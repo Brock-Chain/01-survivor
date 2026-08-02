@@ -3,14 +3,13 @@ extends Node2D
 ## Auto-fires at the nearest enemy in range. Multi-shot fans out in a small
 ## spread. Reads everything from the player's Stats — upgrades tune it live.
 
-const RANGE: float = 260.0
-const SPREAD_DEG: float = 7.0
-
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/weapons/projectile.tscn")
 
 ## Wired by Player (stats) and Main (container).
 var stats: Stats
 var container: Node2D
+## Base numbers. Injected by Player; upgrades never write to it.
+var resource: WeaponResource
 ## Injected by Main so crit rolls stay part of the seeded run.
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
@@ -18,7 +17,7 @@ var _cooldown: float = 0.0
 
 
 func _physics_process(delta: float) -> void:
-	if stats == null or container == null:
+	if stats == null or container == null or resource == null:
 		return
 	_cooldown -= delta
 	if _cooldown > 0.0:
@@ -27,12 +26,12 @@ func _physics_process(delta: float) -> void:
 	if target == null:
 		return
 	_fire_at(target)
-	_cooldown = stats.fire_interval
+	_cooldown = resource.interval * stats.fire_rate_mult
 
 
 func _nearest_enemy() -> Enemy:
 	var best: Enemy = null
-	var best_d: float = RANGE * RANGE
+	var best_d: float = resource.range * resource.range
 	for node: Node in get_tree().get_nodes_in_group("enemies"):
 		var enemy: Enemy = node as Enemy
 		if enemy == null:
@@ -47,13 +46,14 @@ func _nearest_enemy() -> Enemy:
 func _fire_at(target: Enemy) -> void:
 	Sfx.play(&"shoot", -10.0)
 	var base_dir: Vector2 = (target.global_position - global_position).normalized()
-	var count: int = stats.projectile_count
+	var count: int = maxi(1, resource.count + stats.projectile_bonus)
 	var crit: bool = stats.crit_chance > 0.0 and rng.randf() < stats.crit_chance
-	var damage: int = roundi(stats.damage * stats.crit_mult) if crit else stats.damage
+	var base_damage: int = maxi(1, resource.damage + stats.damage_bonus)
+	var damage: int = roundi(base_damage * stats.crit_mult) if crit else base_damage
 	for i: int in count:
-		var offset_deg: float = (i - (count - 1) / 2.0) * SPREAD_DEG
+		var offset_deg: float = (i - (count - 1) / 2.0) * resource.spread_deg
 		var projectile: Projectile = PROJECTILE_SCENE.instantiate()
-		projectile.setup(base_dir.rotated(deg_to_rad(offset_deg)), stats.projectile_speed,
+		projectile.setup(base_dir.rotated(deg_to_rad(offset_deg)), resource.projectile_speed * stats.projectile_speed_mult,
 				damage, stats.pierce, crit)
 		projectile.position = global_position
 		container.add_child(projectile)

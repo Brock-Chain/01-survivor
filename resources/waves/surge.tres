@@ -11,9 +11,9 @@
 script = ExtResource("1_jmojb")
 id = &"surge"
 start_time = 220.0
-spawn_interval = 0.3
+spawn_interval = 0.24
 hp_mult = 2.6
 elite_chance = 0.1
 intensity = 2
 types = Array[ExtResource("2_ai8p0")]([ExtResource("3_bef8n"), ExtResource("4_t1ht0"), ExtResource("5_03e1g"), ExtResource("6_5vxr1")])
-weights = Array[float]([2.5, 3.5, 2.2, 1.2])
+weights = Array[float]([2.0, 3.5, 3.4, 1.5])

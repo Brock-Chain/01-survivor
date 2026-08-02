@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_co33q"]
+
+[resource]
+script = ExtResource("1_co33q")
+id = &"orbit_radius"
+display_name = "Wide Orbit"
+description = "+10px orbit radius"
+effect = 13
+magnitude = 10.0
+max_stacks = 4
+weight = 0.8
+requires_unlock = &"orbital"

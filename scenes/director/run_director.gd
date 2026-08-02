@@ -50,6 +50,7 @@ const BOSS_INTENSITY: int = 3
 var spawner: Spawner
 var target: Node2D
 var boss_container: Node2D
+var bolt_container: Node2D
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 var elapsed: float = 0.0
@@ -136,6 +137,7 @@ func _spawn_boss(index: int, count: int, event: int) -> void:
 	var angle: float = TAU * (float(index) / float(maxi(1, count))) - PI * 0.5
 	boss.position = spawner.ring_position(angle)
 	boss.configure(target, 1.0 + float(event) * 0.4)
+	boss.bolt_container = bolt_container
 	bosses_alive += 1
 	boss.died.connect(_on_boss_died.bind(event))
 	boss_container.add_child(boss)

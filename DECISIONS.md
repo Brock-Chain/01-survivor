@@ -156,6 +156,40 @@ happen.
   logic. The headless smoke run did. Worth remembering: a parse error in a scene script is invisible
   to the unit suite.
 
+## Telemetry-driven balance pass — 2026-08-02
+
+First analysis of real playtest data (`tools/analyze_telemetry.py`), and it disagreed with the soak
+on almost everything.
+
+- **Still far too easy.** HP never dropped below 72% and sat at 89–100% for most of the run; 13
+  damage taken all game. Living enemies were 6–22 where the god-mode bot saw 38–63 — a competent
+  human clears much faster than the bot, which is precisely why soak numbers cannot set difficulty.
+  Spawn intervals cut again, enemy speeds up, Lancer weight up sharply.
+
+- **Lancers are the efficient threat.** Bolts were 38% of all damage taken despite Lancers being a
+  minority of spawns. Ranged pressure lands where chasers do not, so their share went up rather than
+  adding more chasers.
+
+- **Boss HP 300 → 900 each.** Two Prisms at 600 total died in 11 seconds.
+
+- **Three of the four dead-weight upgrades are a difficulty symptom, not a design fault.**
+  `tough_hide` 0/18, `siphon` 1/12, `magnetism` 3/18 — defensive and sustain picks are worthless when
+  nothing threatens you. Their magnitudes were deliberately NOT buffed; only their draw weights were
+  lowered so they stop crowding offers. Re-measure after the difficulty change before touching them.
+  `momentum` (0/9) is the real design fault — +4% move speed is strictly worse than `swift_boots`'
+  +12%, so it was pure redundancy. Raised to +7%.
+
+- **Enemy bolts were counted as living enemies.** `Enemy._act_ranged` parented bolts via
+  `get_parent()`, and a Lancer's parent is the Enemies container — so every bolt in flight consumed a
+  slot against `MAX_ALIVE` and inflated the enemy stat. Bolts now live in their own `EnemyBolts`
+  container, injected rather than inferred. Found only by reading the numbers, not the code.
+
+- **Resources must not reach for autoloads.** `WeaponResource.is_available()` and
+  `UpgradeResource.is_eligible()` initially called the `Meta` singleton. That fails to compile
+  outside a running game (the weapon-authoring tool script died on `Identifier not found: Meta`) and,
+  worse, would have made upgrade-pool unit tests depend on the player's real save file. Unlocks now
+  cross as a value — the same rule already established for RunState/MetaState.
+
 ## Known-open at time of writing (2026-08-02)
 
 **All five resolved in M0 (commit `0b3cdf3`).** Kept for the record:

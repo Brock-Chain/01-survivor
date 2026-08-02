@@ -21,13 +21,13 @@ func test_max_hp_and_damage_are_flat() -> void:
 	_mk(UpgradeResource.Effect.MAX_HP, 2.0).apply_to(s)
 	_mk(UpgradeResource.Effect.DAMAGE, 1.0).apply_to(s)
 	assert_eq(s.max_hp, 8)
-	assert_eq(s.damage, 2)
+	assert_eq(s.damage_bonus, 1, "a modifier, not an absolute")
 
 
 func test_fire_rate_reduces_interval() -> void:
 	var s := Stats.new()
 	_mk(UpgradeResource.Effect.FIRE_RATE, 0.12).apply_to(s)
-	assert_almost_eq(s.fire_interval, 0.8 * 0.88, 0.001)
+	assert_almost_eq(s.fire_rate_mult, 0.88, 0.001)
 
 
 func test_projectiles_and_magnet_and_xp() -> void:
@@ -36,8 +36,8 @@ func test_projectiles_and_magnet_and_xp() -> void:
 	_mk(UpgradeResource.Effect.PROJECTILE_SPEED, 0.2).apply_to(s)
 	_mk(UpgradeResource.Effect.MAGNET, 28.0).apply_to(s)
 	_mk(UpgradeResource.Effect.XP_GAIN, 0.15).apply_to(s)
-	assert_eq(s.projectile_count, 2)
-	assert_almost_eq(s.projectile_speed, 340.0 * 1.2, 0.001)
+	assert_eq(s.projectile_bonus, 1)
+	assert_almost_eq(s.projectile_speed_mult, 1.2, 0.001)
 	assert_almost_eq(s.magnet_radius, 76.0, 0.001)
 	assert_almost_eq(s.xp_mult, 1.15, 0.001)
 

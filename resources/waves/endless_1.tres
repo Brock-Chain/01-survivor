@@ -11,9 +11,9 @@
 script = ExtResource("1_wqkka")
 id = &"endless_1"
 start_time = 300.0
-spawn_interval = 0.26
+spawn_interval = 0.21
 hp_mult = 3.4
 elite_chance = 0.14
 intensity = 2
 types = Array[ExtResource("2_s8v3g")]([ExtResource("3_gn8pl"), ExtResource("4_oow3s"), ExtResource("5_0oags"), ExtResource("6_6elhu")])
-weights = Array[float]([2.0, 3.5, 2.4, 1.6])
+weights = Array[float]([1.8, 3.5, 3.6, 1.8])

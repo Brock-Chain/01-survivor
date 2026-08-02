@@ -3,7 +3,17 @@ extends SceneTree
 ##
 ##   <console.exe> --headless --path . -s res://tools/gen_waves.gd
 ##
-## Rebalanced 2026-08-02 after the first human playtest:
+## Rebalanced twice on 2026-08-02. Pass 2 is driven by TELEMETRY from a real
+## playtest, not a soak: HP never dropped below 72% and sat at 89-100% for most
+## of the run, with only 13 damage taken all game, and 6-22 living enemies where
+## the god-mode bot saw 38-63. A competent human clears far faster than the bot,
+## which is exactly why soak numbers cannot set difficulty.
+##
+## Levers pulled: spawn intervals down again, Lancer share up (bolts were 38% of
+## all damage taken despite being a minority of spawns — the ranged threat is
+## the efficient one), and enemy speeds up.
+##
+## Pass 1, after the same playtest's written feedback:
 ##   "too easy and a bit slow... most of the game I could just stay still and
 ##    beat all enemies without getting hit, even during 2:10-4:00."
 ##
@@ -19,13 +29,13 @@ const ENEMIES: String = "res://resources/enemies"
 
 
 func _init() -> void:
-	var drifter := _enemy(&"drifter", 3, 62.0, 1, 3, Color(1, 0.29, 0.72), 14.0, "enemy_drifter")
-	var dart := _enemy(&"dart", 1, 132.0, 1, 2, Color(1, 0.55, 0.16), 10.0, "enemy_dart")
-	var bulwark := _enemy(&"bulwark", 14, 40.0, 2, 9, Color(0.72, 0.35, 1), 20.0, "enemy_bulwark")
-	var lancer := _enemy(&"lancer", 4, 58.0, 1, 6, Color(1, 0.42, 0.55), 14.0, "enemy_lancer")
+	var drifter := _enemy(&"drifter", 3, 72.0, 1, 3, Color(1, 0.29, 0.72), 14.0, "enemy_drifter")
+	var dart := _enemy(&"dart", 1, 152.0, 1, 2, Color(1, 0.55, 0.16), 10.0, "enemy_dart")
+	var bulwark := _enemy(&"bulwark", 16, 46.0, 2, 9, Color(0.72, 0.35, 1), 20.0, "enemy_bulwark")
+	var lancer := _enemy(&"lancer", 4, 66.0, 1, 6, Color(1, 0.42, 0.55), 14.0, "enemy_lancer")
 	lancer.behavior = EnemyStats.Behavior.RANGED
 	lancer.attack_range = 195.0
-	lancer.attack_interval = 2.3
+	lancer.attack_interval = 1.9
 	lancer.bolt_speed = 140.0
 
 	for e: EnemyStats in [drifter, dart, bulwark, lancer]:
@@ -33,13 +43,13 @@ func _init() -> void:
 
 	# start, interval, hp_mult, elite%, intensity, types, weights
 	var waves: Array[WaveResource] = [
-		_wave(&"opening", 0.0, 0.85, 1.0, 0.0, 0, [drifter], [1.0]),
-		_wave(&"pressure", 45.0, 0.62, 1.3, 0.02, 1, [drifter, dart], [3.0, 2.0]),
-		_wave(&"ranged", 95.0, 0.52, 1.6, 0.04, 1, [drifter, dart, lancer], [3.0, 2.0, 1.6]),
-		_wave(&"swarm", 150.0, 0.40, 2.0, 0.07, 2, [drifter, dart, lancer, bulwark], [3.0, 3.0, 1.8, 0.9]),
-		_wave(&"surge", 220.0, 0.30, 2.6, 0.10, 2, [drifter, dart, lancer, bulwark], [2.5, 3.5, 2.2, 1.2]),
-		_wave(&"endless_1", 300.0, 0.26, 3.4, 0.14, 2, [drifter, dart, lancer, bulwark], [2.0, 3.5, 2.4, 1.6]),
-		_wave(&"endless_2", 420.0, 0.23, 4.4, 0.17, 2, [drifter, dart, lancer, bulwark], [2.0, 3.5, 2.6, 1.8]),
+		_wave(&"opening", 0.0, 0.72, 1.0, 0.0, 0, [drifter], [1.0]),
+		_wave(&"pressure", 45.0, 0.50, 1.3, 0.02, 1, [drifter, dart], [3.0, 2.0]),
+		_wave(&"ranged", 95.0, 0.40, 1.6, 0.04, 1, [drifter, dart, lancer], [3.0, 2.0, 2.6]),
+		_wave(&"swarm", 150.0, 0.31, 2.0, 0.07, 2, [drifter, dart, lancer, bulwark], [2.6, 3.0, 3.0, 1.1]),
+		_wave(&"surge", 220.0, 0.24, 2.6, 0.10, 2, [drifter, dart, lancer, bulwark], [2.0, 3.5, 3.4, 1.5]),
+		_wave(&"endless_1", 300.0, 0.21, 3.4, 0.14, 2, [drifter, dart, lancer, bulwark], [1.8, 3.5, 3.6, 1.8]),
+		_wave(&"endless_2", 420.0, 0.19, 4.4, 0.17, 2, [drifter, dart, lancer, bulwark], [2.0, 3.5, 2.6, 1.8]),
 		_wave(&"endless_3", 600.0, 0.21, 5.8, 0.20, 2, [dart, lancer, bulwark], [3.0, 2.8, 2.0]),
 		_wave(&"endless_4", 900.0, 0.19, 7.6, 0.24, 2, [dart, lancer, bulwark], [3.0, 3.0, 2.4]),
 	]

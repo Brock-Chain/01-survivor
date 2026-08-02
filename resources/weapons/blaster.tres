@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="WeaponResource" format=3]
+
+[ext_resource type="Script" path="res://resources/weapon_resource.gd" id="1_bv6pg"]
+
+[resource]
+script = ExtResource("1_bv6pg")
+id = &"blaster"
+display_name = "Blaster"

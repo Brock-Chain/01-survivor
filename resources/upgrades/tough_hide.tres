@@ -10,4 +10,4 @@ description = "+2 max HP"
 effect = 1
 magnitude = 2.0
 max_stacks = 5
-weight = 1.0
+weight = 0.55

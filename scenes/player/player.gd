@@ -6,6 +6,10 @@ extends CharacterBody2D
 signal died
 signal health_changed(hp: int, max_hp: int)
 
+## Weapon data. The orbital is gated behind beating the Prism.
+const BLASTER_WEAPON: WeaponResource = preload("res://resources/weapons/blaster.tres")
+const ORBITAL_WEAPON: WeaponResource = preload("res://resources/weapons/orbital.tres")
+
 @export var stats: Stats
 
 var health: Health
@@ -17,6 +21,7 @@ var _time: float = 0.0
 @onready var magnet_shape: CollisionShape2D = $Magnet/CollisionShape2D
 @onready var visual: Sprite2D = $Visual
 @onready var weapon: Weapon = $Weapon
+@onready var orbitals: OrbitalWeapon = $Orbitals
 @onready var camera: GameCamera = $Camera2D
 
 
@@ -25,6 +30,8 @@ func _ready() -> void:
 	health.changed.connect(func(hp: int, max_hp: int) -> void: health_changed.emit(hp, max_hp))
 	health.died.connect(_on_died)
 	weapon.stats = stats
+	weapon.resource = BLASTER_WEAPON
+	orbitals.setup(stats, ORBITAL_WEAPON, Meta.state.unlocks)
 	magnet.area_entered.connect(_on_magnet_area_entered)
 	refresh_from_stats()
 	health_changed.emit(health.hp, health.max_hp)
@@ -48,6 +55,7 @@ func _physics_process(delta: float) -> void:
 func refresh_from_stats() -> void:
 	var circle: CircleShape2D = magnet_shape.shape
 	circle.radius = stats.magnet_radius
+	orbitals.refresh()
 
 
 func _check_contact_damage() -> void:

@@ -17,6 +17,9 @@ const ARENA_MARGIN: float = 24.0
 ## seeded run reproduces both the spawn sequence and its placement.
 var target: Node2D
 var container: Node2D
+## Where ranged enemies put their bolts. Deliberately NOT `container`: a bolt
+## parented to the enemy container counts as a living enemy.
+var bolt_container: Node2D
 var arena: Rect2
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
@@ -48,6 +51,7 @@ func spawn(stats: EnemyStats, hp_mult: float = 1.0, elite: bool = false) -> Enem
 
 	var enemy: Enemy = enemy_scene.instantiate()
 	enemy.setup(stats, target, hp_mult, elite)
+	enemy.bolt_container = bolt_container
 	enemy.position = pos
 	container.add_child(enemy)
 	enemy_spawned.emit(enemy)

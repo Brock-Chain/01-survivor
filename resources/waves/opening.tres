@@ -7,6 +7,6 @@
 [resource]
 script = ExtResource("1_x82ae")
 id = &"opening"
-spawn_interval = 0.85
+spawn_interval = 0.72
 types = Array[ExtResource("2_bagal")]([ExtResource("3_hlu1y")])
 weights = Array[float]([1.0])

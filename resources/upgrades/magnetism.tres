@@ -10,4 +10,4 @@ description = "+28px pickup range"
 effect = 6
 magnitude = 28.0
 max_stacks = 4
-weight = 0.9
+weight = 0.5

@@ -14,10 +14,13 @@ func _init(upgrades: Array[UpgradeResource], rng: RandomNumberGenerator) -> void
 
 
 ## stacks: Dictionary[StringName -> int] of how many times each id was taken.
-## Returns up to `count` distinct upgrades whose stack cap isn't reached.
-func draw(count: int, stacks: Dictionary) -> Array[UpgradeResource]:
+## unlocks: ids the player has earned; gates unlock-locked upgrades.
+## Returns up to `count` distinct upgrades that are still eligible.
+func draw(count: int, stacks: Dictionary,
+		unlocks: Array[StringName] = []) -> Array[UpgradeResource]:
 	var eligible: Array[UpgradeResource] = _upgrades.filter(
-		func(u: UpgradeResource) -> bool: return u.is_eligible(int(stacks.get(u.id, 0)))
+		func(u: UpgradeResource) -> bool:
+			return u.is_eligible(int(stacks.get(u.id, 0)), unlocks)
 	)
 	var result: Array[UpgradeResource] = []
 	while result.size() < count and not eligible.is_empty():

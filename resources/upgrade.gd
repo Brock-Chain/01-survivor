@@ -16,6 +16,9 @@ enum Effect {
 	PIERCE,           ## magnitude = extra enemies each shot passes through
 	CRIT_CHANCE,      ## magnitude = added crit chance (0.08 = +8%)
 	LIFESTEAL,        ## magnitude = added chance per kill to recover 1 HP
+	ORBITAL_COUNT,    ## magnitude = extra orbiting shards
+	ORBITAL_RADIUS,   ## magnitude = flat orbit radius (px)
+	ORBITAL_SPEED,    ## magnitude = fractional spin bonus
 }
 
 @export var id: StringName
@@ -30,12 +33,21 @@ enum Effect {
 @export var max_stacks: int = 5
 ## Relative draw weight. Higher = offered more often. Must be > 0.
 @export var weight: float = 1.0
+## Empty means always offerable. Otherwise this upgrade only enters the pool
+## once that unlock is held — so orbital upgrades cannot clutter the offers of a
+## player who has never beaten the Prism.
+@export var requires_unlock: StringName = &""
 
 
 ## Applies this upgrade to stats. HEAL is the exception — it touches Health,
 ## handled by the caller (Main) since Stats doesn't know about current HP.
 ## True if this may still be offered at `taken` stacks.
-func is_eligible(taken: int) -> bool:
+## `unlocks` is passed in, never read from the Meta autoload: otherwise these
+## become untestable without a save file, and content data ends up coupled to
+## persistent state.
+func is_eligible(taken: int, unlocks: Array[StringName] = []) -> bool:
+	if requires_unlock != &"" and not unlocks.has(requires_unlock):
+		return false
 	return true if max_stacks <= 0 else taken < max_stacks
 
 
@@ -46,13 +58,13 @@ func apply_to(stats: Stats) -> void:
 		Effect.MAX_HP:
 			stats.max_hp += int(magnitude)
 		Effect.DAMAGE:
-			stats.damage += int(magnitude)
+			stats.damage_bonus += int(magnitude)
 		Effect.FIRE_RATE:
-			stats.fire_interval *= 1.0 - magnitude
+			stats.fire_rate_mult *= 1.0 - magnitude
 		Effect.PROJECTILE_COUNT:
-			stats.projectile_count += int(magnitude)
+			stats.projectile_bonus += int(magnitude)
 		Effect.PROJECTILE_SPEED:
-			stats.projectile_speed *= 1.0 + magnitude
+			stats.projectile_speed_mult *= 1.0 + magnitude
 		Effect.MAGNET:
 			stats.magnet_radius += magnitude
 		Effect.XP_GAIN:
@@ -65,3 +77,9 @@ func apply_to(stats: Stats) -> void:
 			stats.crit_chance = minf(0.85, stats.crit_chance + magnitude)
 		Effect.LIFESTEAL:
 			stats.lifesteal_chance = minf(0.6, stats.lifesteal_chance + magnitude)
+		Effect.ORBITAL_COUNT:
+			stats.orbital_bonus_count += int(magnitude)
+		Effect.ORBITAL_RADIUS:
+			stats.orbital_bonus_radius += magnitude
+		Effect.ORBITAL_SPEED:
+			stats.orbital_speed_mult *= 1.0 + magnitude

@@ -30,12 +30,30 @@ func _init() -> void:
 		# --- endless: unlimited stacks so late levels always have an offer ---
 		["overdrive", "Overdrive", "+1 damage",
 			UpgradeResource.Effect.DAMAGE, 1.0, 0, 0.35],
-		["momentum", "Momentum", "+4% move speed",
-			UpgradeResource.Effect.MOVE_SPEED, 0.04, 0, 0.3],
+		["momentum", "Momentum", "+7% move speed",
+			UpgradeResource.Effect.MOVE_SPEED, 0.07, 0, 0.3],
 		["cadence", "Cadence", "5% faster firing",
 			UpgradeResource.Effect.FIRE_RATE, 0.05, 0, 0.3],
 	]
 
+	for d: Array in defs:
+		pass
+	_write(defs, &"")
+	# Orbital upgrades exist only for players who have beaten the Prism, so they
+	# never clutter the offers of someone who has not unlocked the weapon.
+	_write([
+		["orbit_count", "Split Orbit", "+1 orbiting shard",
+			UpgradeResource.Effect.ORBITAL_COUNT, 1.0, 4, 1.1],
+		["orbit_radius", "Wide Orbit", "+10px orbit radius",
+			UpgradeResource.Effect.ORBITAL_RADIUS, 10.0, 4, 0.8],
+		["orbit_speed", "Spin Up", "+18% orbit speed",
+			UpgradeResource.Effect.ORBITAL_SPEED, 0.18, 4, 0.8],
+	], MetaState.UNLOCK_ORBITAL)
+	print("gen_upgrades: done")
+	quit(0)
+
+
+func _write(defs: Array, requires: StringName) -> void:
 	for d: Array in defs:
 		var u := UpgradeResource.new()
 		u.id = StringName(d[0])
@@ -45,10 +63,8 @@ func _init() -> void:
 		u.magnitude = d[4]
 		u.max_stacks = d[5]
 		u.weight = d[6]
+		u.requires_unlock = requires
 		var path: String = "%s/%s.tres" % [OUT, u.id]
 		u.resource_path = path
 		var err: int = ResourceSaver.save(u, path)
 		print("  %s %s" % ["ok  " if err == OK else "FAIL", path])
-
-	print("gen_upgrades: wrote %d" % defs.size())
-	quit(0)

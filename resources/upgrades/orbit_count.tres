@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_f454h"]
+
+[resource]
+script = ExtResource("1_f454h")
+id = &"orbit_count"
+display_name = "Split Orbit"
+description = "+1 orbiting shard"
+effect = 12
+magnitude = 1.0
+max_stacks = 4
+weight = 1.1
+requires_unlock = &"orbital"

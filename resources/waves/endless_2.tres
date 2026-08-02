@@ -11,7 +11,7 @@
 script = ExtResource("1_61ekf")
 id = &"endless_2"
 start_time = 420.0
-spawn_interval = 0.23
+spawn_interval = 0.19
 hp_mult = 4.4
 elite_chance = 0.17
 intensity = 2

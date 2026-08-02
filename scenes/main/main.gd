@@ -33,6 +33,11 @@ const UPGRADE_LIST: Array[UpgradeResource] = [
 	preload("res://resources/upgrades/overdrive.tres"),
 	preload("res://resources/upgrades/momentum.tres"),
 	preload("res://resources/upgrades/cadence.tres"),
+	# Orbital upgrades. Gated by requires_unlock, so they stay out of the offers
+	# of a player who has never beaten the Prism.
+	preload("res://resources/upgrades/orbit_count.tres"),
+	preload("res://resources/upgrades/orbit_radius.tres"),
+	preload("res://resources/upgrades/orbit_speed.tres"),
 ]
 
 var time_survived: float = 0.0
@@ -64,6 +69,7 @@ var _tele_t: float = 0.0
 @onready var spawner: Spawner = $Spawner
 @onready var director: RunDirector = $RunDirector
 @onready var bosses: Node2D = $Bosses
+@onready var enemy_bolts: Node2D = $EnemyBolts
 @onready var victory_screen: VictoryScreen = $Victory
 @onready var enemies: Node2D = $Enemies
 @onready var pickups: Node2D = $Pickups
@@ -82,12 +88,14 @@ func _ready() -> void:
 	spawner.container = enemies
 	spawner.arena = ARENA
 	spawner.rng = run_rng
+	spawner.bolt_container = enemy_bolts
 	spawner.enemy_spawned.connect(_on_enemy_spawned)
 	# One RNG drives upgrades, spawn choice and spawn placement, so a seeded run
 	# reproduces whole — the groundwork M3 needs for seeded runs.
 	director.spawner = spawner
 	director.target = player
 	director.boss_container = bosses
+	director.bolt_container = enemy_bolts
 	director.rng = run_rng
 	director.boss_spawned.connect(_on_boss_spawned)
 	director.victory.connect(_on_victory)
@@ -141,9 +149,10 @@ func _physics_process(delta: float) -> void:
 		_dev_stats_t += delta
 		if _dev_stats_t >= 30.0:
 			_dev_stats_t = 0.0
-			print("[stats] t=%4.0fs enemies=%3d pickups=%3d projectiles=%2d kills=%4d lvl=%2d bosses=%d"
+			print("[stats] t=%4.0fs enemies=%3d pickups=%3d proj=%2d bolts=%3d kills=%4d lvl=%2d bosses=%d"
 					% [time_survived, enemies.get_child_count(), pickups.get_child_count(),
-					projectiles.get_child_count(), kills, level, director.bosses_alive])
+					projectiles.get_child_count(), enemy_bolts.get_child_count(),
+					kills, level, director.bosses_alive])
 
 
 ## Every 5s: the pressure curve. Answers "is the start too easy" with numbers —
@@ -252,7 +261,7 @@ func _check_level_up() -> void:
 	while xp_into_level >= Progression.xp_required(level):
 		xp_into_level -= Progression.xp_required(level)
 		level += 1
-		var offers: Array[UpgradeResource] = pool.draw(3, stacks)
+		var offers: Array[UpgradeResource] = pool.draw(3, stacks, Meta.state.unlocks)
 		if offers.is_empty():
 			continue  # everything maxed — bank the level, keep playing
 		# Log what was OFFERED, not just what was taken: a pick rate without a

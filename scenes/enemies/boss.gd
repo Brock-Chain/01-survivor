@@ -132,7 +132,7 @@ func _fire() -> void:
 		var bolt: EnemyProjectile = PROJECTILE_SCENE.instantiate()
 		bolt.setup(Vector2.RIGHT.rotated(angle) * BOLT_SPEED, damage)
 		bolt.global_position = global_position
-		get_parent().add_child(bolt)
+		_bolt_parent().add_child(bolt)
 	if phase == 2:
 		_dash_dir = (target.global_position - global_position).normalized()
 		_dash_left = DASH_TIME

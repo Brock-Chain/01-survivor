@@ -69,7 +69,11 @@ func event(type: StringName, data: Dictionary = {}) -> void:
 	row.merge(data)
 	_file.store_line(JSON.stringify(row))
 	_pending += 1
-	if _pending >= FLUSH_EVERY:
+	# Always flush on the periodic tick, not just every N events. Without this a
+	# run sits entirely in the OS buffer until 40 events accumulate, so a
+	# partially-played run reads as a 0-byte file and closing the window mid-run
+	# can lose the lot. A flush every 5s costs nothing at this write volume.
+	if _pending >= FLUSH_EVERY or type == &"tick":
 		_file.flush()
 		_pending = 0
 
@@ -99,4 +103,6 @@ func _close() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE:
-		_close()
+		# Record the ending even when the player just closes the window,
+		# otherwise quit runs vanish from the endings report entirely.
+		end_run("quit")

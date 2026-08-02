@@ -62,3 +62,35 @@ func test_weights_bias_the_draw() -> void:
 		if offers[0].id == &"common":
 			heavy_first += 1
 	assert_gt(heavy_first, 90, "weight-100 picked first in >90/100 seeds")
+
+
+# --- unlock gating ----------------------------------------------------------
+
+func _locked(id: String, requires: String) -> UpgradeResource:
+	var u := _mk(id)
+	u.requires_unlock = StringName(requires)
+	return u
+
+
+func test_locked_upgrades_stay_out_until_unlocked() -> void:
+	var ups: Array[UpgradeResource] = [_locked("orbit", "orbital"), _mk("a"), _mk("b")]
+	var offers := _pool(ups).draw(3, {})
+	assert_eq(offers.size(), 2, "the locked one is not offerable")
+	for u: UpgradeResource in offers:
+		assert_ne(u.id, &"orbit")
+
+
+func test_locked_upgrades_appear_once_unlocked() -> void:
+	var ups: Array[UpgradeResource] = [_locked("orbit", "orbital"), _mk("a"), _mk("b")]
+	var unlocks: Array[StringName] = [&"orbital"]
+	assert_eq(_pool(ups).draw(3, {}, unlocks).size(), 3)
+
+
+func test_unlimited_stacks_are_always_eligible() -> void:
+	# The level-37 bug: with every upgrade capped, the pool ran dry and offered
+	# nothing but a heal. max_stacks <= 0 must never exhaust.
+	var endless := _mk("endless", 1.0, 0)
+	assert_true(endless.is_eligible(0))
+	assert_true(endless.is_eligible(500), "unlimited means unlimited")
+	var capped := _mk("capped", 1.0, 2)
+	assert_false(capped.is_eligible(2))

@@ -6,7 +6,7 @@
 script = ExtResource("1_74biv")
 id = &"momentum"
 display_name = "Momentum"
-description = "+4% move speed"
-magnitude = 0.04
+description = "+7% move speed"
+magnitude = 0.07
 max_stacks = 0
 weight = 0.3

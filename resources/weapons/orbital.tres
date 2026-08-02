@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WeaponResource" format=3]
+
+[ext_resource type="Script" path="res://resources/weapon_resource.gd" id="1_osbbb"]
+
+[resource]
+script = ExtResource("1_osbbb")
+id = &"orbital"
+display_name = "Orbitals"
+kind = 1
+requires_unlock = &"orbital"
+damage = 2
+interval = 0.4
+count = 2
+orbit_radius = 48.0
+orbit_speed = 2.6

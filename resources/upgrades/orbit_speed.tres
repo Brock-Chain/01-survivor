@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_7ma3g"]
+
+[resource]
+script = ExtResource("1_7ma3g")
+id = &"orbit_speed"
+display_name = "Spin Up"
+description = "+18% orbit speed"
+effect = 14
+magnitude = 0.18
+max_stacks = 4
+weight = 0.8
+requires_unlock = &"orbital"

@@ -11,9 +11,9 @@
 script = ExtResource("1_bmsjj")
 id = &"swarm"
 start_time = 150.0
-spawn_interval = 0.4
+spawn_interval = 0.31
 hp_mult = 2.0
 elite_chance = 0.07
 intensity = 2
 types = Array[ExtResource("2_60lty")]([ExtResource("3_xa8eo"), ExtResource("4_k14kk"), ExtResource("5_isvl3"), ExtResource("6_oggs8")])
-weights = Array[float]([3.0, 3.0, 1.8, 0.9])
+weights = Array[float]([2.6, 3.0, 3.0, 1.1])

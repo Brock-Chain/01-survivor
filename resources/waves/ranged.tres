@@ -10,9 +10,9 @@
 script = ExtResource("1_j8dev")
 id = &"ranged"
 start_time = 95.0
-spawn_interval = 0.52
+spawn_interval = 0.4
 hp_mult = 1.6
 elite_chance = 0.04
 intensity = 1
 types = Array[ExtResource("2_a8504")]([ExtResource("3_amw3k"), ExtResource("4_cn3d5"), ExtResource("5_0uxn3")])
-weights = Array[float]([3.0, 2.0, 1.6])
+weights = Array[float]([3.0, 2.0, 2.6])

@@ -91,12 +91,17 @@ Beating the Prism unlocks the **Orbital** — which is M4's second weapon, so th
 to give.
 
 ### M4 — Weapons as data
-- [ ] System contract first
-- [ ] `WeaponResource`; port the existing projectile weapon onto it
-- [ ] Orbitals — the second weapon
-- [ ] Upgrades retargeted at specific weapons
+- [x] Contract written first (docstring on `WeaponResource`)
+- [x] `WeaponResource` + blaster ported onto it. Stats became MODIFIERS
+      (`damage_bonus`, `fire_rate_mult`, …); base numbers live on the weapon, so
+      one "+12% fire rate" improves two weapons with different base rates
+- [x] Orbitals — the second weapon, gated behind beating the Prism
+- [x] Orbital-specific upgrades, gated by `requires_unlock` so they never clutter
+      the offers of a player who has not unlocked the weapon
+- [ ] **Human verification:** both weapons distinct in a 30-second clip
 
-**Gate:** both weapons read as distinct in a 30-second clip.
+**Gate:** both weapons read as distinct in a 30-second clip. *Code complete and
+soak-verified; the feel half needs a playtest with the orbital unlocked.*
 
 ### M5 — Enemy archetypes
 - [x] Drifter, Dart, Bulwark, **Lancer** (pulled forward — the ranged threat was
@@ -158,6 +163,7 @@ recorded in `DECISIONS.md` with why. Only then does M7 start.
 - [x] **v1.1 M2** Run Director (2026-08-02) — waves as data, elites, The Prism, victory, endless
 - [x] **v1.1 M3** Run & Meta State (2026-08-02) — seed, save/load, unlocks
 - [~] **v1.1 M5** mostly done early (playtest response) — Splitter outstanding
-- [ ] v1.1: **M4** ← next (weapons as data + orbitals) · M6 audio · **M6.5 design review** · M7 ship
+- [x] **v1.1 M4** Weapons as data (2026-08-02) — WeaponResource, orbitals, unlock-gated upgrades
+- [ ] v1.1: **M6** audio ← next · **M6.5 design review** · M7 ship  *(M5 all but the Splitter is done)*
 
 *Checkboxes are updated at session end. A milestone list that lies is worse than none.*

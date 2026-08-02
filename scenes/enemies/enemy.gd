@@ -17,6 +17,8 @@ var target: Node2D
 var is_elite: bool = false
 var damage: int = 1
 var xp_value: int = 1
+## Injected by the spawner. Falls back to our parent only if unset.
+var bolt_container: Node2D
 var _shoot_cd: float = 0.0
 
 @onready var visual: Sprite2D = $Visual
@@ -93,7 +95,11 @@ func _act_ranged(delta: float) -> void:
 		var bolt: EnemyProjectile = BOLT_SCENE.instantiate()
 		bolt.setup(dir * stats.bolt_speed, damage)
 		bolt.global_position = global_position
-		get_parent().add_child(bolt)
+		_bolt_parent().add_child(bolt)
+
+
+func _bolt_parent() -> Node:
+	return bolt_container if is_instance_valid(bolt_container) else get_parent()
 
 
 func take_hit(amount: int) -> void:
