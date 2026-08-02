@@ -3,6 +3,17 @@ extends RefCounted
 ## Difficulty as pure functions of elapsed time — tunable data, not
 ## scattered constants, and unit-testable at exact time points.
 
+## Hard ceiling on living enemies. A SAFETY BOUND, not a difficulty lever —
+## pressure comes from spawn_interval and hp_mult. Without it the spawn curve
+## outruns achievable DPS and the live set grows without limit for the whole run.
+const MAX_ALIVE: int = 110
+
+
+## The spawn guard, kept pure so the bound is unit-testable rather than only
+## observable by playing for ten minutes.
+static func should_spawn(alive: int) -> bool:
+	return alive < MAX_ALIVE
+
 
 ## Seconds between spawns: 1.4s at start, linearly down to 0.4s floor (~2min).
 static func spawn_interval(t: float) -> float:

@@ -33,6 +33,12 @@ var stacks: Dictionary = {}
 var pool: UpgradePool
 var run_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
+## Dev flags, read from user args after a bare `--` (same convention as
+## ai_screenshot.gd). Inert in a normal run and in exported builds.
+var _dev_stats: bool = false
+var _dev_autopick: bool = false
+var _dev_stats_t: float = 0.0
+
 @onready var player: Player = $Player
 @onready var spawner: Spawner = $Spawner
 @onready var enemies: Node2D = $Enemies
@@ -57,12 +63,38 @@ func _ready() -> void:
 	hud.set_health(player.health.hp, player.health.max_hp)
 	hud.set_xp(xp_into_level, Progression.xp_required(level), level)
 	Music.play_gameplay()
+	_apply_dev_flags()
 	print("01-survivor boot OK — Godot %s" % Engine.get_version_info()["string"])
+
+
+## --dev-godmode  player takes no damage
+## --dev-stats    print entity counts every 30s of game time
+## --dev-autopick auto-take the first upgrade offer (a paused panel would stall
+##                a headless soak run forever)
+func _apply_dev_flags() -> void:
+	for arg: String in OS.get_cmdline_user_args():
+		match arg:
+			"--dev-godmode":
+				player.health.invincible = true
+				print("[dev] godmode")
+			"--dev-stats":
+				_dev_stats = true
+				print("[dev] stats")
+			"--dev-autopick":
+				_dev_autopick = true
+				print("[dev] autopick")
 
 
 func _physics_process(delta: float) -> void:
 	time_survived += delta
 	hud.set_run(time_survived, kills)
+	if _dev_stats:
+		_dev_stats_t += delta
+		if _dev_stats_t >= 30.0:
+			_dev_stats_t = 0.0
+			print("[stats] t=%4.0fs enemies=%3d pickups=%3d projectiles=%2d kills=%4d lvl=%d"
+					% [time_survived, enemies.get_child_count(), pickups.get_child_count(),
+					projectiles.get_child_count(), kills, level])
 
 
 func _on_enemy_spawned(enemy: Enemy) -> void:
@@ -81,7 +113,7 @@ func _on_enemy_died(xp_value: int, at: Vector2, tint: Color) -> void:
 
 func _spawn_gem(xp_value: int, at: Vector2) -> void:
 	var gem: XpGem = XP_GEM_SCENE.instantiate()
-	gem.setup(xp_value)
+	gem.setup(xp_value, player)
 	gem.position = at
 	pickups.add_child(gem)
 	gem.collected.connect(_on_gem_collected)
@@ -96,25 +128,32 @@ func _spawn_burst(at: Vector2, tint: Color) -> void:
 
 func _on_gem_collected(xp_value: int) -> void:
 	Sfx.play(&"pickup", -8.0)
-	var gained: int = roundi(xp_value * player.stats.xp_mult)
+	var gained: int = Progression.xp_gain(xp_value, player.stats.xp_mult)
 	total_xp += gained
 	xp_into_level += gained
 	_check_level_up()
-	hud.set_xp(xp_into_level, Progression.xp_required(level), level)
 
 
+## Drains banked XP one level at a time. Loops rather than recursing so a single
+## fat gem worth several levels resolves cleanly: we break to show each offer,
+## and _on_upgrade_chosen re-enters to continue draining. Every exit path
+## refreshes the HUD — the old version didn't, so chained level-ups left the XP
+## bar stale until the next gem.
 func _check_level_up() -> void:
-	var required: int = Progression.xp_required(level)
-	if xp_into_level < required:
-		return
-	xp_into_level -= required
-	level += 1
-	var offers: Array[UpgradeResource] = pool.draw(3, stacks)
-	if offers.is_empty():
-		return  # everything maxed — nothing to offer, keep playing
-	Sfx.play(&"levelup")
-	get_tree().paused = true
-	level_up_panel.show_offers(offers, level)
+	while xp_into_level >= Progression.xp_required(level):
+		xp_into_level -= Progression.xp_required(level)
+		level += 1
+		var offers: Array[UpgradeResource] = pool.draw(3, stacks)
+		if offers.is_empty():
+			continue  # everything maxed — bank the level, keep playing
+		if _dev_autopick:
+			_on_upgrade_chosen.call_deferred(offers[0])
+			break
+		Sfx.play(&"levelup")
+		get_tree().paused = true
+		level_up_panel.show_offers(offers, level)
+		break
+	hud.set_xp(xp_into_level, Progression.xp_required(level), level)
 
 
 func _on_upgrade_chosen(upgrade: UpgradeResource) -> void:

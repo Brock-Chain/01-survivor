@@ -8,18 +8,26 @@ signal collected(xp_value: int)
 const HOME_ACCEL: float = 900.0
 const MAX_SPEED: float = 460.0
 const COLLECT_DIST: float = 12.0
+## An ignored gem gives up and flies home on its own. This is what BOUNDS the
+## live gem count — without it an uncollected gem lives for the whole run, and
+## the set only ever grows. Homing rather than expiring so XP is never lost;
+## the magnet upgrade still buys *immediacy*, which is what makes it feel good.
+const IDLE_TIMEOUT: float = 20.0
 
 var xp_value: int = 1
 
+var _home: Node2D
 var _target: Node2D
 var _speed: float = 0.0
 var _bob_t: float = 0.0
+var _idle_t: float = 0.0
 
 @onready var visual: Sprite2D = $Visual
 
 
-func setup(p_xp_value: int) -> void:
+func setup(p_xp_value: int, p_home: Node2D) -> void:
 	xp_value = p_xp_value
+	_home = p_home
 
 
 ## Called by the player's magnet area. Idempotent.
@@ -39,6 +47,9 @@ func _physics_process(delta: float) -> void:
 	if _target == null:
 		_bob_t += delta * 3.0
 		visual.position.y = sin(_bob_t) * 2.0
+		_idle_t += delta
+		if _idle_t >= IDLE_TIMEOUT and is_instance_valid(_home):
+			attract(_home)
 		return
 	if not is_instance_valid(_target):
 		_target = null

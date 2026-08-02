@@ -19,7 +19,7 @@ var target: Node2D
 func setup(p_stats: EnemyStats, p_target: Node2D, hp_mult: float = 1.0) -> void:
 	stats = p_stats
 	target = p_target
-	hp = maxi(1, roundi(stats.max_hp * hp_mult))
+	hp = stats.effective_hp(hp_mult)
 
 
 func _ready() -> void:

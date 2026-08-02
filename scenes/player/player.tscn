@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scenes/player/game_camera.gd" id="5_cam"]
 
 [sub_resource type="Resource" id="Resource_stats"]
+resource_local_to_scene = true
 script = ExtResource("2_st")
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
@@ -16,6 +17,7 @@ size = Vector2(12, 14)
 size = Vector2(14, 16)
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_magnet"]
+resource_local_to_scene = true
 radius = 48.0
 
 [node name="Player" type="CharacterBody2D"]

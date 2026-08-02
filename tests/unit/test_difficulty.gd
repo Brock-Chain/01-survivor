@@ -17,6 +17,15 @@ func test_hp_mult_steps_every_45s() -> void:
 	assert_almost_eq(Difficulty.hp_mult(180.0), 3.0, 0.001)
 
 
+func test_spawn_guard_bounds_the_live_enemy_set() -> void:
+	# The spawn curve outruns achievable DPS, so without this guard the live set
+	# grows for the whole run. Boundedness is a property, not a play-test result.
+	assert_true(Difficulty.should_spawn(0), "spawns from empty")
+	assert_true(Difficulty.should_spawn(Difficulty.MAX_ALIVE - 1), "spawns up to the cap")
+	assert_false(Difficulty.should_spawn(Difficulty.MAX_ALIVE), "refuses at the cap")
+	assert_false(Difficulty.should_spawn(Difficulty.MAX_ALIVE + 50), "stays refused above it")
+
+
 func test_fast_enemies_absent_then_ramp() -> void:
 	assert_almost_eq(Difficulty.fast_ratio(0.0), 0.0, 0.001)
 	assert_almost_eq(Difficulty.fast_ratio(119.9), 0.0, 0.001)

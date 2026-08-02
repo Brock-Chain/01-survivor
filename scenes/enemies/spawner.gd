@@ -33,7 +33,10 @@ func _physics_process(delta: float) -> void:
 	_elapsed += delta
 	_cooldown -= delta
 	if _cooldown <= 0.0:
-		_spawn()
+		# At the cap we burn the cooldown without spawning, so the spawner
+		# throttles itself instead of queueing a backlog to dump later.
+		if Difficulty.should_spawn(container.get_child_count()):
+			_spawn()
 		_cooldown = Difficulty.spawn_interval(_elapsed)
 
 
