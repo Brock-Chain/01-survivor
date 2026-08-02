@@ -28,11 +28,13 @@ func show_offers(offers: Array[UpgradeResource], level: int) -> void:
 	var first: Button = null
 	for upgrade: UpgradeResource in offers:
 		var button := Button.new()
-		button.text = "%s\n%s" % [upgrade.display_name, upgrade.description]
+		button.text = "%s\n%s\n\n%s" % [upgrade.display_name, upgrade.description,
+				Rarity.name_of(upgrade.rarity).to_upper()]
 		button.custom_minimum_size = CARD
 		button.size_flags_horizontal = Control.SIZE_FILL
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button.clip_text = true
+		_apply_rarity(button, upgrade.rarity)
 		button.pressed.connect(_on_option_pressed.bind(upgrade))
 		options.add_child(button)
 		if first == null:

@@ -6,8 +6,8 @@ extends Area2D
 
 signal collected(resource: PowerUpResource)
 
-const COLLECT_DIST: float = 15.0
-const LIFETIME: float = 11.0
+const COLLECT_DIST: float = 19.0
+const LIFETIME: float = 14.0
 const FADE_AT: float = 3.0
 
 var resource: PowerUpResource

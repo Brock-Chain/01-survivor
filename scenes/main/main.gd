@@ -18,7 +18,9 @@ const POWER_UPS: Array[PowerUpResource] = [
 	preload("res://resources/powerups/haste.tres"),
 	preload("res://resources/powerups/collect.tres"),
 ]
-const POWER_UP_DROP_CHANCE: float = 0.018
+## Playtest 2026-08-02: at 1.8% a tester played to level 9 without seeing one.
+## Rare should mean 'a moment', not 'a rumour'.
+const POWER_UP_DROP_CHANCE: float = 0.040
 
 ## Health is a world drop, not a level-up option. Only drops when the player
 ## is actually hurt, so it can never be the wasted pick a heal-at-full-HP was.
