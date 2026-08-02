@@ -1,19 +1,21 @@
 [gd_resource type="Resource" script_class="WaveResource" format=3]
 
-[ext_resource type="Script" path="res://resources/wave_resource.gd" id="1_a8x37"]
-[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="2_07q11"]
-[ext_resource type="Resource" path="res://resources/enemies/dart.tres" id="3_vu705"]
-[ext_resource type="Resource" path="res://resources/enemies/lancer.tres" id="4_iheo1"]
-[ext_resource type="Resource" path="res://resources/enemies/bulwark.tres" id="5_hi82h"]
-[ext_resource type="Resource" path="res://resources/enemies/shard.tres" id="6_xrqhw"]
+[ext_resource type="Script" path="res://resources/wave_resource.gd" id="1_vu705"]
+[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="2_iheo1"]
+[ext_resource type="Resource" path="res://resources/enemies/dart.tres" id="3_hi82h"]
+[ext_resource type="Resource" path="res://resources/enemies/lancer.tres" id="4_xrqhw"]
+[ext_resource type="Resource" path="res://resources/enemies/bulwark.tres" id="5_ch3c7"]
+[ext_resource type="Resource" path="res://resources/enemies/splitter.tres" id="6_d2373"]
+[ext_resource type="Resource" path="res://resources/enemies/ram.tres" id="7_wc7kr"]
+[ext_resource type="Resource" path="res://resources/enemies/shard.tres" id="8_caois"]
 
 [resource]
-script = ExtResource("1_a8x37")
+script = ExtResource("1_vu705")
 id = &"endless_3"
 start_time = 600.0
 spawn_interval = 0.21
 hp_mult = 5.8
 elite_chance = 0.2
 intensity = 2
-types = Array[ExtResource("2_07q11")]([ExtResource("3_vu705"), ExtResource("4_iheo1"), ExtResource("5_hi82h"), ExtResource("6_xrqhw")])
-weights = Array[float]([3.0, 2.8, 2.0, 1.5])
+types = Array[ExtResource("2_iheo1")]([ExtResource("3_hi82h"), ExtResource("4_xrqhw"), ExtResource("5_ch3c7"), ExtResource("6_d2373"), ExtResource("7_wc7kr"), ExtResource("8_caois")])
+weights = Array[float]([3.0, 2.8, 2.0, 2.4, 2.4, 1.5])

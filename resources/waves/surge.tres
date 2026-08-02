@@ -1,19 +1,21 @@
 [gd_resource type="Resource" script_class="WaveResource" format=3]
 
-[ext_resource type="Script" path="res://resources/wave_resource.gd" id="1_jmojb"]
-[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="2_ai8p0"]
-[ext_resource type="Resource" path="res://resources/enemies/drifter.tres" id="3_bef8n"]
-[ext_resource type="Resource" path="res://resources/enemies/dart.tres" id="4_t1ht0"]
-[ext_resource type="Resource" path="res://resources/enemies/lancer.tres" id="5_03e1g"]
-[ext_resource type="Resource" path="res://resources/enemies/bulwark.tres" id="6_5vxr1"]
+[ext_resource type="Script" path="res://resources/wave_resource.gd" id="1_bef8n"]
+[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="2_t1ht0"]
+[ext_resource type="Resource" path="res://resources/enemies/drifter.tres" id="3_03e1g"]
+[ext_resource type="Resource" path="res://resources/enemies/dart.tres" id="4_5vxr1"]
+[ext_resource type="Resource" path="res://resources/enemies/lancer.tres" id="5_51gnw"]
+[ext_resource type="Resource" path="res://resources/enemies/bulwark.tres" id="6_h1jhr"]
+[ext_resource type="Resource" path="res://resources/enemies/splitter.tres" id="7_avdor"]
+[ext_resource type="Resource" path="res://resources/enemies/ram.tres" id="8_fj6ox"]
 
 [resource]
-script = ExtResource("1_jmojb")
+script = ExtResource("1_bef8n")
 id = &"surge"
 start_time = 220.0
 spawn_interval = 0.24
 hp_mult = 2.6
 elite_chance = 0.1
 intensity = 2
-types = Array[ExtResource("2_ai8p0")]([ExtResource("3_bef8n"), ExtResource("4_t1ht0"), ExtResource("5_03e1g"), ExtResource("6_5vxr1")])
-weights = Array[float]([2.0, 3.5, 3.4, 1.5])
+types = Array[ExtResource("2_t1ht0")]([ExtResource("3_03e1g"), ExtResource("4_5vxr1"), ExtResource("5_51gnw"), ExtResource("6_h1jhr"), ExtResource("7_avdor"), ExtResource("8_fj6ox")])
+weights = Array[float]([2.0, 3.5, 3.4, 1.5, 1.8, 1.4])

@@ -1,20 +1,22 @@
 [gd_resource type="Resource" script_class="WaveResource" format=3]
 
-[ext_resource type="Script" path="res://resources/wave_resource.gd" id="1_s8v3g"]
-[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="2_gn8pl"]
-[ext_resource type="Resource" path="res://resources/enemies/drifter.tres" id="3_oow3s"]
-[ext_resource type="Resource" path="res://resources/enemies/dart.tres" id="4_0oags"]
-[ext_resource type="Resource" path="res://resources/enemies/lancer.tres" id="5_6elhu"]
-[ext_resource type="Resource" path="res://resources/enemies/bulwark.tres" id="6_377y0"]
-[ext_resource type="Resource" path="res://resources/enemies/shard.tres" id="7_jtabw"]
+[ext_resource type="Script" path="res://resources/wave_resource.gd" id="1_oow3s"]
+[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="2_0oags"]
+[ext_resource type="Resource" path="res://resources/enemies/drifter.tres" id="3_6elhu"]
+[ext_resource type="Resource" path="res://resources/enemies/dart.tres" id="4_377y0"]
+[ext_resource type="Resource" path="res://resources/enemies/lancer.tres" id="5_jtabw"]
+[ext_resource type="Resource" path="res://resources/enemies/bulwark.tres" id="6_qph7p"]
+[ext_resource type="Resource" path="res://resources/enemies/splitter.tres" id="7_hjvfo"]
+[ext_resource type="Resource" path="res://resources/enemies/ram.tres" id="8_hawrp"]
+[ext_resource type="Resource" path="res://resources/enemies/shard.tres" id="9_uhf0k"]
 
 [resource]
-script = ExtResource("1_s8v3g")
+script = ExtResource("1_oow3s")
 id = &"endless_1"
 start_time = 300.0
 spawn_interval = 0.21
 hp_mult = 3.4
 elite_chance = 0.14
 intensity = 2
-types = Array[ExtResource("2_gn8pl")]([ExtResource("3_oow3s"), ExtResource("4_0oags"), ExtResource("5_6elhu"), ExtResource("6_377y0"), ExtResource("7_jtabw")])
-weights = Array[float]([1.8, 3.5, 3.6, 1.8, 0.9])
+types = Array[ExtResource("2_0oags")]([ExtResource("3_6elhu"), ExtResource("4_377y0"), ExtResource("5_jtabw"), ExtResource("6_qph7p"), ExtResource("7_hjvfo"), ExtResource("8_hawrp"), ExtResource("9_uhf0k")])
+weights = Array[float]([1.8, 3.5, 3.6, 1.8, 2.0, 1.8, 0.9])

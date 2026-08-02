@@ -47,14 +47,25 @@ func spawn(stats: EnemyStats, hp_mult: float = 1.0, elite: bool = false) -> Enem
 	if not is_instance_valid(target) or not is_instance_valid(container):
 		return null
 
-	var pos: Vector2 = ring_position(rng.randf_range(0.0, TAU))
-
 	# A type may bring its own scene (the Shard uses boss.gd at reduced scale).
+	return spawn_at(stats, ring_position(rng.randf_range(0.0, TAU)), hp_mult, elite)
+
+
+## Place one enemy at an EXACT point. Used by the ring spawn above and by death
+## payloads (the Splitter), which must appear where the parent died rather than
+## on the ring.
+func spawn_at(stats: EnemyStats, pos: Vector2, hp_mult: float = 1.0,
+		elite: bool = false) -> Enemy:
+	if stats == null or not is_instance_valid(target) or not is_instance_valid(container):
+		return null
 	var override: PackedScene = stats.resolve_scene()
 	var packed: PackedScene = override if override != null else enemy_scene
+	if packed == null:
+		return null
 	var enemy: Enemy = packed.instantiate()
 	enemy.setup(stats, target, hp_mult, elite)
 	enemy.bolt_container = bolt_container
+	enemy.spawner = self
 	enemy.position = pos
 	container.add_child(enemy)
 	enemy_spawned.emit(enemy)

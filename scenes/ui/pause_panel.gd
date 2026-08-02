@@ -130,6 +130,12 @@ func resume() -> void:
 	resumed.emit()
 
 
+func _on_restart() -> void:
+	Sfx.play(&"click")
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+
 func _on_quit() -> void:
 	Sfx.play(&"click")
 	get_tree().paused = false

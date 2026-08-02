@@ -19,11 +19,17 @@ var damage: int = 1
 var xp_value: int = 1
 ## Injected by the spawner. Falls back to our parent only if unset.
 var bolt_container: Node2D
+## Injected too, so a death payload can place its children.
+var spawner: Spawner
 var _shoot_cd: float = 0.0
 ## Cryo Rounds. Strongest slow wins and the longest duration wins, rather than
 ## stacking — otherwise sustained fire freezes everything solid.
 var _slow_factor: float = 1.0
 var _slow_left: float = 0.0
+## CHARGE state: 0 stalking, 1 telegraphing, 2 dashing, 3 recovering.
+var _charge_phase: int = 0
+var _charge_t: float = 0.0
+var _charge_dir: Vector2 = Vector2.ZERO
 
 @onready var visual: Sprite2D = $Visual
 @onready var shape: CollisionShape2D = $CollisionShape2D
@@ -96,6 +102,8 @@ func _physics_process(delta: float) -> void:
 	_tick_slow(delta)
 	if stats.behavior == EnemyStats.Behavior.RANGED:
 		_act_ranged(delta)
+	elif stats.behavior == EnemyStats.Behavior.CHARGE:
+		_act_charge(delta)
 	else:
 		velocity = (target.global_position - global_position).normalized() * speed_now()
 	move_and_slide()
@@ -123,6 +131,38 @@ func _act_ranged(delta: float) -> void:
 		_bolt_parent().add_child(bolt)
 
 
+## Stalk, telegraph, dash, recover. The recovery is the point: a charger that
+## could turn mid-dash would be unavoidable, and one that never committed would
+## be a slightly faster chaser. Standing in an open lane is what it punishes.
+func _act_charge(delta: float) -> void:
+	_charge_t -= delta
+	var to_target: Vector2 = target.global_position - global_position
+	match _charge_phase:
+		0:
+			velocity = to_target.normalized() * speed_now()
+			if to_target.length() <= stats.charge_range:
+				_charge_phase = 1
+				_charge_t = stats.charge_telegraph
+				# Flare white: the tell has to be visible before it can be fair.
+				visual.modulate = Color(1, 1, 1, 1)
+		1:
+			velocity = Vector2.ZERO  # planting is part of the tell
+			if _charge_t <= 0.0:
+				_charge_phase = 2
+				_charge_t = stats.charge_time
+				_charge_dir = to_target.normalized()
+				visual.modulate = stats.tint
+		2:
+			velocity = _charge_dir * stats.charge_speed
+			if _charge_t <= 0.0:
+				_charge_phase = 3
+				_charge_t = stats.charge_recover
+		_:
+			velocity = velocity.lerp(Vector2.ZERO, 6.0 * delta)
+			if _charge_t <= 0.0:
+				_charge_phase = 0
+
+
 func _bolt_parent() -> Node:
 	return bolt_container if is_instance_valid(bolt_container) else get_parent()
 
@@ -138,10 +178,25 @@ func take_hit(amount: int, execute_below: float = 0.0) -> void:
 		hp = 0
 	Sfx.play(&"hit", -8.0)
 	if hp <= 0:
+		_split()
 		died.emit(xp_value, global_position, stats.tint)
 		queue_free()
 		return
 	_flash()
+
+
+## The Splitter's death payload. Deferred because this runs inside a physics
+## callback, and adding physics bodies mid-flush is forbidden.
+func _split() -> void:
+	if stats.split_count <= 0 or spawner == null:
+		return
+	var child: EnemyStats = stats.resolve_split()
+	if child == null:
+		return
+	var at: Vector2 = global_position
+	for i: int in stats.split_count:
+		var offset: Vector2 = Vector2.RIGHT.rotated(TAU * float(i) / float(stats.split_count)) * 12.0
+		spawner.spawn_at.call_deferred(child, at + offset, 1.0, false)
 
 
 func _flash() -> void:

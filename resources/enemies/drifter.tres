@@ -6,6 +6,6 @@
 [resource]
 script = ExtResource("1_odmc3")
 id = &"drifter"
-sprite = ExtResource("2_801wv")
 speed = 72.0
 tint = Color(1, 0.29, 0.72, 1)
+sprite = ExtResource("2_801wv")

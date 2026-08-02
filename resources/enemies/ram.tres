@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyStats" format=3]
+
+[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="1_trdkn"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemy_dart.png" id="2_x7o83"]
+
+[resource]
+script = ExtResource("1_trdkn")
+id = &"ram"
+behavior = 2
+max_hp = 7
+speed = 46.0
+damage = 2
+xp_value = 7
+tint = Color(1, 0.34, 0.42, 1)
+size = 17.0
+sprite = ExtResource("2_x7o83")
+charge_range = 215.0
+charge_telegraph = 0.62
+charge_speed = 440.0
+charge_time = 0.44
+charge_recover = 0.95

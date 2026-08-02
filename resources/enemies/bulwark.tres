@@ -6,10 +6,10 @@
 [resource]
 script = ExtResource("1_27jss")
 id = &"bulwark"
-sprite = ExtResource("2_8ybf3")
 max_hp = 16
 speed = 46.0
 damage = 2
 xp_value = 9
 tint = Color(0.72, 0.35, 1, 1)
 size = 20.0
+sprite = ExtResource("2_8ybf3")

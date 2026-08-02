@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyStats" format=3]
+
+[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="1_a3cts"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemy_splitter.png" id="2_h7yqw"]
+
+[resource]
+script = ExtResource("1_a3cts")
+id = &"splitter"
+max_hp = 6
+speed = 54.0
+xp_value = 5
+tint = Color(1, 0.78, 0.2, 1)
+size = 15.0
+sprite = ExtResource("2_h7yqw")
+split_into_path = "res://resources/enemies/dart.tres"
+split_count = 2

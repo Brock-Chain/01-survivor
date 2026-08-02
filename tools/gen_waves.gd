@@ -44,11 +44,27 @@ func _init() -> void:
 	# becomes recurring instead of a one-off. Capped at 4 alive: the fight is fun
 	# in small numbers and miserable as a swarm, and that cap is now data
 	# (EnemyStats.max_alive) rather than a rule someone has to remember.
+	# THE SPLITTER — dies into two Darts, so clearing it carelessly makes the
+	# problem worse. Punishes autopilot fire in a way no stat block can.
+	var splitter := _enemy(&"splitter", 6, 54.0, 1, 5, Color(1, 0.78, 0.2), 15.0, "enemy_splitter")
+	splitter.split_into_path = "res://resources/enemies/dart.tres"
+	splitter.split_count = 2
+
+	# THE RAM — telegraphs, then commits to a straight dash it cannot steer out
+	# of. The Lancer punishes standing still; this punishes standing in a LANE.
+	var ram := _enemy(&"ram", 7, 46.0, 2, 7, Color(1, 0.34, 0.42), 17.0, "enemy_dart")
+	ram.behavior = EnemyStats.Behavior.CHARGE
+	ram.charge_range = 215.0
+	ram.charge_telegraph = 0.62
+	ram.charge_speed = 440.0
+	ram.charge_time = 0.44
+	ram.charge_recover = 0.95
+
 	var shard := _enemy(&"shard", 90, 30.0, 2, 40, Color(1, 0.42, 0.85), 19.0, "")
 	shard.scene_path = "res://scenes/enemies/shard.tscn"
 	shard.max_alive = 4
 
-	for e: EnemyStats in [drifter, dart, bulwark, lancer, shard]:
+	for e: EnemyStats in [drifter, dart, bulwark, lancer, splitter, ram, shard]:
 		_save(e, "%s/%s.tres" % [ENEMIES, e.id])
 
 	# start, interval, hp_mult, elite%, intensity, types, weights
@@ -56,12 +72,12 @@ func _init() -> void:
 		_wave(&"opening", 0.0, 0.72, 1.0, 0.0, 0, [drifter], [1.0]),
 		_wave(&"pressure", 45.0, 0.50, 1.3, 0.02, 1, [drifter, dart], [3.0, 2.0]),
 		_wave(&"ranged", 95.0, 0.40, 1.6, 0.04, 1, [drifter, dart, lancer], [3.0, 2.0, 2.6]),
-		_wave(&"swarm", 150.0, 0.31, 2.0, 0.07, 2, [drifter, dart, lancer, bulwark], [2.6, 3.0, 3.0, 1.1]),
-		_wave(&"surge", 220.0, 0.24, 2.6, 0.10, 2, [drifter, dart, lancer, bulwark], [2.0, 3.5, 3.4, 1.5]),
-		_wave(&"endless_1", 300.0, 0.21, 3.4, 0.14, 2, [drifter, dart, lancer, bulwark, shard], [1.8, 3.5, 3.6, 1.8, 0.9]),
-		_wave(&"endless_2", 420.0, 0.19, 4.4, 0.17, 2, [drifter, dart, lancer, bulwark, shard], [2.0, 3.5, 2.6, 1.8, 1.2]),
-		_wave(&"endless_3", 600.0, 0.21, 5.8, 0.20, 2, [dart, lancer, bulwark, shard], [3.0, 2.8, 2.0, 1.5]),
-		_wave(&"endless_4", 900.0, 0.19, 7.6, 0.24, 2, [dart, lancer, bulwark, shard], [3.0, 3.0, 2.4, 1.8]),
+		_wave(&"swarm", 150.0, 0.31, 2.0, 0.07, 2, [drifter, dart, lancer, bulwark, splitter], [2.6, 3.0, 3.0, 1.1, 1.4]),
+		_wave(&"surge", 220.0, 0.24, 2.6, 0.10, 2, [drifter, dart, lancer, bulwark, splitter, ram], [2.0, 3.5, 3.4, 1.5, 1.8, 1.4]),
+		_wave(&"endless_1", 300.0, 0.21, 3.4, 0.14, 2, [drifter, dart, lancer, bulwark, splitter, ram, shard], [1.8, 3.5, 3.6, 1.8, 2.0, 1.8, 0.9]),
+		_wave(&"endless_2", 420.0, 0.19, 4.4, 0.17, 2, [drifter, dart, lancer, bulwark, splitter, ram, shard], [2.0, 3.5, 2.6, 1.8, 2.2, 2.2, 1.2]),
+		_wave(&"endless_3", 600.0, 0.21, 5.8, 0.20, 2, [dart, lancer, bulwark, splitter, ram, shard], [3.0, 2.8, 2.0, 2.4, 2.4, 1.5]),
+		_wave(&"endless_4", 900.0, 0.19, 7.6, 0.24, 2, [dart, lancer, bulwark, splitter, ram, shard], [3.0, 3.0, 2.4, 2.6, 2.6, 1.8]),
 	]
 	for w: WaveResource in waves:
 		_save(w, "%s/%s.tres" % [WAVES, w.id])
@@ -73,7 +89,7 @@ func _init() -> void:
 	schedule.max_concurrent_bosses = 6
 	schedule.boss_spawn_throttle = 0.5
 	_save(schedule, "res://resources/run_schedule.tres")
-	print("gen_waves: 5 enemies + %d waves + schedule" % waves.size())
+	print("gen_waves: 7 enemies + %d waves + schedule" % waves.size())
 	quit(0)
 
 
