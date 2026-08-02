@@ -16,14 +16,22 @@ var _time: float = 0.0
 @onready var magnet: Area2D = $Magnet
 @onready var magnet_shape: CollisionShape2D = $Magnet/CollisionShape2D
 @onready var visual: ColorRect = $Visual
+@onready var weapon: Weapon = $Weapon
 
 
 func _ready() -> void:
 	health = Health.new(stats.max_hp)
 	health.changed.connect(func(hp: int, max_hp: int) -> void: health_changed.emit(hp, max_hp))
 	health.died.connect(_on_died)
+	weapon.stats = stats
+	magnet.area_entered.connect(_on_magnet_area_entered)
 	refresh_from_stats()
 	health_changed.emit(health.hp, health.max_hp)
+
+
+func _on_magnet_area_entered(area: Area2D) -> void:
+	if area is XpGem:
+		(area as XpGem).attract(self)
 
 
 func _physics_process(delta: float) -> void:
@@ -59,5 +67,6 @@ func _update_invuln_visual() -> void:
 
 func _on_died() -> void:
 	set_physics_process(false)
+	weapon.set_physics_process(false)
 	visual.modulate = Color(0.4, 0.4, 0.4, 0.8)
 	died.emit()

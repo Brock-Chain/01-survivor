@@ -1,7 +1,8 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scenes/player/player.gd" id="1_pl"]
 [ext_resource type="Script" path="res://resources/stats.gd" id="2_st"]
+[ext_resource type="Script" path="res://scenes/weapons/weapon.gd" id="3_wp"]
 
 [sub_resource type="Resource" id="Resource_stats"]
 script = ExtResource("2_st")
@@ -46,6 +47,9 @@ monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Magnet"]
 shape = SubResource("CircleShape2D_magnet")
+
+[node name="Weapon" type="Node2D" parent="."]
+script = ExtResource("3_wp")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 limit_left = 0
