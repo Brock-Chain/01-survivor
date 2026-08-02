@@ -99,6 +99,8 @@ func _ready() -> void:
 	director.rng = run_rng
 	director.boss_spawned.connect(_on_boss_spawned)
 	director.victory.connect(_on_victory)
+	# The music is a CONSUMER of run intensity, not a system of its own.
+	director.intensity_changed.connect(Music.set_intensity)
 	player.died.connect(_on_player_died)
 	player.health_changed.connect(hud.set_health)
 	player.weapon.container = projectiles
@@ -195,6 +197,7 @@ func _on_victory(_event_index: int) -> void:
 	# The victory screen waits on a button, which would stall a headless soak at
 	# the exact moment endless begins — the part that most needs soaking.
 	Telemetry.event(&"victory", {"kills": kills, "lvl": level})
+	Music.play_victory()
 	run_state.won = true
 	_banked = true
 	Meta.absorb_run(run_state.to_result())  # banked BEFORE the choice is offered

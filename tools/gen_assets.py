@@ -261,7 +261,9 @@ def main() -> None:
     write_wav(SFX / "hurt.wav", sweep(220, 90, 0.16, amp=0.5, curve=2.0))
     write_wav(SFX / "death.wav", sweep(440, 50, 0.6, amp=0.5, curve=1.5))
     write_wav(SFX / "click.wav", blips([1200], 0.03, amp=0.25))
-    write_music()
+    # Music is no longer synthesized here — it is composed in Strudel under
+    # audio_src/ and built by tools/build_music.py. write_music() is kept only
+    # as the reference implementation of the stdlib-synthesis approach.
 
 
 if __name__ == "__main__":

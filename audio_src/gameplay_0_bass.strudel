@@ -1,0 +1,31 @@
+// ── LAYER 0 · FOUNDATION ──────────────────────────────────────────────────
+// Always audible. Bass + pad only: no melody, because a melody you hear on
+// every single run is the thing that grates first. Melody is saved for the
+// boss layer, which the player hears rarely.
+//
+// FORM (8 cycles = 16s @ cps 0.5):
+//   A  Am  – F   – C   – G     i – bVI – bIII – bVII   (Aeolian vamp, home ground)
+//   B  Dm  – F   – G   – Am    iv – bVI – bVII – i     (the Aeolian cadence)
+// The B half is what stops this being a 4-chord circle: bVI-bVII-i is the
+// standard "epic minor" resolution, so the loop arrives somewhere.
+setcps(0.5)
+stack(
+  // Bass: root-driven 8ths with an octave lift, and the LAST eighth of each bar
+  // is an approach tone stepping into the next root. That pull is what makes a
+  // static vamp feel like it is going somewhere.
+  note(`<[a1 a1 a2 a1 a1 a2 a1 g1]
+         [f1 f1 f2 f1 f1 f2 f1 b1]
+         [c2 c2 c3 c2 c2 c3 c2 a2]
+         [g1 g1 g2 g1 g1 g2 g1 c2]
+         [d2 d2 d3 d2 d2 d3 d2 c2]
+         [f1 f1 f2 f1 f1 f2 f1 f2]
+         [g1 g1 g2 g1 g1 g2 g1 g2]
+         [a1 a1 a2 a1 a1 a2 a2 e2]>`)
+    .s("sawtooth").lpf(560).lpq(7).gain(0.44).release(0.07),
+
+  // Pad: first inversions chosen for VOICE LEADING — A3 is a common tone across
+  // Am/F/Dm, and the top voice walks E-F-E-D-F-F-D-E entirely by step. No leaps.
+  note(`<[a3,c4,e4] [a3,c4,f4] [g3,c4,e4] [g3,b3,d4]
+         [a3,d4,f4] [a3,c4,f4] [g3,b3,d4] [a3,c4,e4]>`)
+    .s("triangle").gain(0.115).room(0.55).size(0.8).release(1.6).attack(0.35)
+)

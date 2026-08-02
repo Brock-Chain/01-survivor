@@ -1,0 +1,15 @@
+// ── LAYER 2 · MOTION ──────────────────────────────────────────────────────
+// The hook. 16th arpeggio with an added 9th on the tonic chords for colour —
+// a bare triad arp reads as an exercise, the 9th reads as a choice.
+// The filter sweep completes exactly once per loop, so the build is
+// predictable: the player learns the shape of the bar without noticing.
+setcps(0.5)
+stack(
+  note(`<[a4 c5 e5 b5] [f4 a4 c5 e5] [c5 e5 g5 d5] [g4 b4 d5 a5]
+         [d5 f5 a5 e5] [f4 a4 c5 f5] [g4 b4 d5 g5] [a4 c5 e5 a5]>*4`)
+    .s("square")
+    .lpf(sine.range(850, 3400).slow(8)).lpq(9)
+    .gain(0.155).release(0.045)
+    .delay(0.32).delaytime(0.1875).delayfeedback(0.33)   // dotted-8th echo
+    .pan(0.42)
+)

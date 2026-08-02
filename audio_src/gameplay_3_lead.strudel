@@ -1,0 +1,16 @@
+// ── LAYER 3 · THREAT (boss tier only) ─────────────────────────────────────
+// Not "the arp but higher" — a distinct motif in A HARMONIC minor. Raising G
+// to G# turns the bVII into V/i, and that leading tone is the single clearest
+// signal in tonal music that something is bearing down on you.
+// Paired with a 16th octave pulse: the engine underneath the melody.
+setcps(0.5)
+stack(
+  note(`<[a5 ~ ~ g#5] [a5 ~ c6 ~] [b5 ~ ~ a5] [g#5 ~ e5 ~]
+         [f5 ~ ~ e5] [d5 ~ f5 ~] [e5 ~ g#5 ~] [a5 ~ ~ ~]>*2`)
+    .s("sawtooth").lpf(3000).lpq(4)
+    .gain(0.185).release(0.18).attack(0.01)
+    .room(0.3).delay(0.22).delaytime(0.25).delayfeedback(0.28),
+
+  note("<a2 a2 a2 a2 d3 d3 e3 e3>*8")
+    .s("square").lpf(430).gain(0.085).release(0.028)
+)

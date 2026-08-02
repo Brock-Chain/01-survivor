@@ -5,6 +5,7 @@ extends Control
 
 
 func _ready() -> void:
+	Music.play_title()
 	%StartButton.pressed.connect(_on_start)
 	%StartButton.grab_focus()
 

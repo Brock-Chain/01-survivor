@@ -1,0 +1,12 @@
+// ── LAYER 1 · PULSE ───────────────────────────────────────────────────────
+// Four-on-the-floor: the synthwave staple, and it doubles as the game's
+// heartbeat. Hats sit OFF the beat — straight 8ths would plod; the offbeat is
+// what gives the genre its lift.
+setcps(0.5)
+stack(
+  s("bd*4").gain(0.50),                          // four on the floor
+  s("~ cp ~ cp").gain(0.30),                     // backbeat on 2 and 4
+  s("[~ hh]*4").gain(0.12).pan(sine.range(0.38, 0.62).fast(2)),
+  s("<~ ~ ~ [~ ~ ~ ho] ~ ~ ~ [~ ~ ho ho]>").gain(0.17),  // bar-8 turnaround
+  s("<cr ~ ~ ~ ~ ~ ~ ~>").gain(0.20)             // marks the top of the loop
+)

@@ -1,0 +1,18 @@
+// ── TITLE ─────────────────────────────────────────────────────────────────
+// Same world, at rest. Same key and progression as gameplay so pressing START
+// feels like the music TIGHTENS rather than switches — continuity is the point.
+// Half the harmonic rhythm, no percussion, everything wide and slow.
+setcps(0.5)
+stack(
+  note("<a1 a1 f1 f1 c2 c2 g1 g1>")
+    .s("sawtooth").lpf(340).gain(0.30).release(1.2).attack(0.06),
+
+  note(`<[a3,c4,e4] [a3,c4,e4] [a3,c4,f4] [a3,c4,f4]
+         [g3,c4,e4] [g3,c4,e4] [g3,b3,d4] [g3,b3,d4]>`)
+    .s("triangle").gain(0.15).room(0.75).size(0.9).attack(0.7).release(2.2),
+
+  // Sparse call, drenched in dotted-8th delay — the space is the instrument.
+  note("<[a5 ~ ~ ~] [~ ~ e5 ~] [~ c5 ~ ~] [~ ~ ~ a4] [~ e5 ~ ~] [~ ~ g5 ~] [~ d5 ~ ~] [~ ~ ~ ~]>")
+    .s("sine").gain(0.135).room(0.7)
+    .delay(0.4).delaytime(0.1875).delayfeedback(0.45)
+)

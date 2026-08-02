@@ -24,3 +24,7 @@ export_credentials.cfg
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Strudel render intermediates (the .ogg build artifacts ARE committed)
+audio_src/*.wav
+audio_src/*.events.json
