@@ -15,6 +15,18 @@ static func should_spawn(alive: int) -> bool:
 	return alive < MAX_ALIVE
 
 
+## Elite promotion. An elite is the SAME archetype under pressure — same
+## silhouette, same behaviour, more of everything — so the player reads it
+## instantly instead of learning a sixth enemy.
+const ELITE_HP_MULT: float = 3.2
+const ELITE_XP_MULT: float = 3.0
+const ELITE_SCALE: float = 1.45
+const ELITE_DAMAGE_BONUS: int = 1
+## Elites keep their type's hue and gain a bright rim, so "dangerous" reads
+## without breaking the colour law.
+const ELITE_RIM: Color = Color(1.0, 0.95, 0.75, 1.0)
+
+
 ## Seconds between spawns: 1.4s at start, linearly down to 0.4s floor (~2min).
 static func spawn_interval(t: float) -> float:
 	return clampf(1.4 - 0.008 * t, 0.4, 1.4)

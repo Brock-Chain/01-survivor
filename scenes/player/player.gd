@@ -55,10 +55,19 @@ func _check_contact_damage() -> void:
 		return
 	for body: Node2D in hurtbox.get_overlapping_bodies():
 		if body is Enemy:
-			if health.take_damage((body as Enemy).stats.damage, _time):
-				Sfx.play(&"hurt")
-				camera.add_trauma(0.5)
+			if apply_damage((body as Enemy).damage):
 				break
+
+
+## Public damage entry point. Contact damage and enemy projectiles both come
+## through here so i-frames, the hurt cue and screenshake can never disagree.
+## Returns true if the damage actually landed.
+func apply_damage(amount: int) -> bool:
+	if not health.take_damage(amount, _time):
+		return false
+	Sfx.play(&"hurt")
+	camera.add_trauma(0.5)
+	return true
 
 
 func _update_invuln_visual() -> void:

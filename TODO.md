@@ -56,17 +56,23 @@ Regenerate every sprite in the neon-geometric style; apply the colour law from B
 ### M2 — Run Director
 Waves as data, elites, boss, win condition, endless.
 
-- [ ] `WaveResource` / director schedule as `.tres`
-- [ ] Elite modifier (rim, HP, damage, XP)
-- [ ] The Prism — 2 phases, every attack telegraphed
-- [ ] Enemy projectiles + collision layer
-- [ ] Victory state, reward banking, Restart / Continue choice
-- [ ] Endless: double boss at ~10:00, +1 boss per 5:00, cap 3
-- [ ] Rebalance 0:00–5:00 to be winnable and tense
-- [ ] Run-intensity signal published for the audio layer
+- [x] `WaveResource` / director schedule as `.tres` (8 waves, authored by `tools/gen_waves.gd`)
+- [x] Elite modifier (pulsing rim, HP, damage, XP)
+- [x] The Prism — 2 phases, every attack telegraphed
+- [x] Enemy projectiles + collision layer 6
+- [x] Victory state, reward banking, Restart / Continue choice
+- [x] Endless: double boss at ~10:00, +1 boss per 5:00, cap 3
+- [x] Run-intensity signal published for the audio layer
+- [ ] Rebalance 0:00–5:00 — needs a HUMAN playtest, not a soak (see below)
 
-**Gate:** a full run reaches the boss and can be won · victory banks and offers Restart/Continue ·
-endless reaches the double-boss · losing is legible.
+**Gate: PASSED 2026-08-02** (except the rebalance, which cannot be judged headless). Soak to 16:00:
+boss at 5:00 → victory → endless → **2 bosses at 10:00, 3 at 15:00 (capped)**; enemies bounded
+8–14 throughout; no `SCRIPT ERROR`. 46/46 GUT green.
+
+⚠️ **Open balance question for the playtest:** with `--dev-autopick` (which takes a random offer)
+the first boss took 23s in one run and 166s in another. A human picking damage deliberately should
+be much faster, but the spread means boss HP (`resources/enemies/prism.tres`, 230) is unverified at
+human skill. Tune it from a real run, not from a soak.
 
 ### M3 — Run & Meta State
 - [ ] System contract first

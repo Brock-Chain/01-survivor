@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WaveResource" format=3]
+
+[ext_resource type="Script" path="res://resources/wave_resource.gd" id="1_bsrj4"]
+[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="2_gdl0m"]
+[ext_resource type="Resource" path="res://resources/enemies/chaser.tres" id="3_wqkka"]
+[ext_resource type="Resource" path="res://resources/enemies/fast.tres" id="4_s8v3g"]
+
+[resource]
+script = ExtResource("1_bsrj4")
+id = &"endless_1"
+start_time = 300.0
+spawn_interval = 0.52
+hp_mult = 3.0
+elite_chance = 0.13
+intensity = 2
+types = Array[ExtResource("2_gdl0m")]([ExtResource("3_wqkka"), ExtResource("4_s8v3g")])
+weights = Array[float]([2.0, 3.0])

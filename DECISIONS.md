@@ -58,6 +58,38 @@ happen.
   Both floor at 1: a 0-HP enemy is unkillable because `take_hit` early-returns on `hp <= 0`, and a
   0-XP gem reads as a bug.
 
+- **2026-08-02 — Boss extends Enemy rather than resembling one.** The Prism was first written as a
+  standalone `CharacterBody2D` with a matching signature. It shipped for one build in which the boss
+  spawned on time and **could not be killed or even targeted**: both `Weapon._nearest_enemy()` and
+  `Projectile._on_body_entered()` cast to `Enemy`, so a lookalike is invisible to the entire combat
+  system. Making `Boss extends Enemy` (with its own `prism.tres` EnemyStats) removed every special
+  case in weapon, projectile, Main, the kill counter and the death burst. *Lesson: when several
+  systems gate on `is SomeType`, "same signature" is not the same as "same type".*
+
+- **2026-08-02 — All ring placement goes through `Spawner.ring_position()`.** The director placed
+  bosses on the spawn ring with its own maths and no arena clamp. At angle −90° that put the boss at
+  y = −20, outside the top wall, where it stuck against the collision shape ~380 px from the player —
+  permanently outside the weapon's 260 px range, which is why the "unkillable boss" looked like a
+  damage bug for two soak runs. The clamp existed in `Spawner.spawn()` all along; the fix was to stop
+  duplicating placement and expose it.
+
+- **2026-08-02 — Spawner is mechanism, Run Director is policy.** The spawner used to own its own
+  cadence and pick enemy types from `Difficulty.fast_ratio`. It now only places one enemy on the
+  ring; *what* spawns, *how often*, elite promotion and boss scheduling are the director's, read
+  from `RunSchedule` / `WaveResource` `.tres`. Retuning the run's shape is now a data edit.
+
+- **2026-08-02 — One RNG for the whole run.** Upgrade draws, enemy-type selection and spawn placement
+  now share `Main.run_rng`. Costs nothing today and is most of what M3's seeded-runs requirement
+  needs.
+
+- **2026-08-02 — Wave `.tres` files are engine-generated (`tools/gen_waves.gd`).** Hand-writing a
+  typed `Array[EnemyStats]` into `.tres` text is guesswork; letting `ResourceSaver` serialize
+  guarantees a format Godot reads back. The output is ordinary editable data — a bootstrap, not a
+  pipeline.
+
+- **2026-08-02 — `--dev-autocontinue` added.** The victory screen waits on a button, which stalls a
+  headless soak at exactly the moment endless begins — the part most needing soak coverage.
+
 ## Known-open at time of writing (2026-08-02)
 
 **All five resolved in M0 (commit `0b3cdf3`).** Kept for the record:

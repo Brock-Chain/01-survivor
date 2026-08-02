@@ -1,15 +1,17 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="1_main"]
 [ext_resource type="Texture2D" path="res://assets/sprites/floor.png" id="0_floor"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
 [ext_resource type="Script" path="res://scenes/enemies/spawner.gd" id="3_spawner"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/enemy.tscn" id="4_enemy"]
-[ext_resource type="Resource" path="res://resources/enemies/chaser.tres" id="5_chaser"]
 [ext_resource type="PackedScene" path="res://scenes/ui/level_up_panel.tscn" id="6_lup"]
-[ext_resource type="Resource" path="res://resources/enemies/fast.tres" id="7_fast"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="8_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/game_over.tscn" id="9_go"]
+[ext_resource type="Script" path="res://scenes/director/run_director.gd" id="10_dir"]
+[ext_resource type="Resource" path="res://resources/run_schedule.tres" id="11_sched"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/boss.tscn" id="12_boss"]
+[ext_resource type="PackedScene" path="res://scenes/ui/victory.tscn" id="13_vic"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_h"]
 size = Vector2(1344, 32)
@@ -53,17 +55,24 @@ shape = SubResource("RectangleShape2D_v")
 
 [node name="Projectiles" type="Node2D" parent="."]
 
+[node name="Bosses" type="Node2D" parent="."]
+
 [node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector2(640, 360)
 
 [node name="Spawner" type="Node" parent="."]
 script = ExtResource("3_spawner")
 enemy_scene = ExtResource("4_enemy")
-chaser_stats = ExtResource("5_chaser")
-fast_stats = ExtResource("7_fast")
+
+[node name="RunDirector" type="Node" parent="."]
+script = ExtResource("10_dir")
+schedule = ExtResource("11_sched")
+boss_scene = ExtResource("12_boss")
 
 [node name="LevelUpPanel" parent="." instance=ExtResource("6_lup")]
 
 [node name="Hud" parent="." instance=ExtResource("8_hud")]
 
 [node name="GameOver" parent="." instance=ExtResource("9_go")]
+
+[node name="Victory" parent="." instance=ExtResource("13_vic")]

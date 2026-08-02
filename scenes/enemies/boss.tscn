@@ -1,0 +1,28 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scenes/enemies/boss.gd" id="1_bs"]
+[ext_resource type="Texture2D" path="res://assets/sprites/boss_core.png" id="2_tex"]
+[ext_resource type="Shader" path="res://assets/shaders/flash.gdshader" id="3_sh"]
+[ext_resource type="Resource" path="res://resources/enemies/prism.tres" id="4_stats"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_flash"]
+resource_local_to_scene = true
+shader = ExtResource("3_sh")
+shader_parameter/flash = 0.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_boss"]
+resource_local_to_scene = true
+size = Vector2(26, 26)
+
+[node name="Boss" type="CharacterBody2D" groups=["enemies"]]
+collision_layer = 2
+collision_mask = 19
+script = ExtResource("1_bs")
+boss_stats = ExtResource("4_stats")
+
+[node name="Visual" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_flash")
+texture = ExtResource("2_tex")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_boss")

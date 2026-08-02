@@ -1,7 +1,10 @@
 class_name Spawner
 extends Node
-## Timer-free spawner: a cooldown accumulator driven by Difficulty curves.
-## Spawns on a ring around the player, clamped into the arena.
+## MECHANISM ONLY: places one enemy on a ring around the target, clamped into
+## the arena. What spawns, how often, and how hard is the Run Director's policy.
+##
+## Split this way so pacing lives in .tres data the director reads, and this
+## script never needs to change when the run's shape does.
 
 signal enemy_spawned(enemy: Enemy)
 
@@ -9,49 +12,43 @@ const SPAWN_RADIUS: float = 380.0
 const ARENA_MARGIN: float = 24.0
 
 @export var enemy_scene: PackedScene
-@export var chaser_stats: EnemyStats
-@export var fast_stats: EnemyStats
 
-## Wired by Main at _ready (call down).
+## Wired by Main at _ready (call down). `rng` is shared with the director so a
+## seeded run reproduces both the spawn sequence and its placement.
 var target: Node2D
 var container: Node2D
 var arena: Rect2
-
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
-var _elapsed: float = 0.0
-var _cooldown: float = 0.8
+
+func alive_count() -> int:
+	return container.get_child_count() if is_instance_valid(container) else 0
 
 
-func _ready() -> void:
-	rng.randomize()
-
-
-func _physics_process(delta: float) -> void:
+## A point on the spawn ring, CLAMPED INTO THE ARENA. The clamp is the whole
+## point: an unclamped ring position lands outside the walls on any angle facing
+## a nearby edge, and a spawn that collides with walls is stuck there forever —
+## permanently out of weapon range. Every ring placement goes through here.
+func ring_position(angle: float) -> Vector2:
 	if not is_instance_valid(target):
-		return
-	_elapsed += delta
-	_cooldown -= delta
-	if _cooldown <= 0.0:
-		# At the cap we burn the cooldown without spawning, so the spawner
-		# throttles itself instead of queueing a backlog to dump later.
-		if Difficulty.should_spawn(container.get_child_count()):
-			_spawn()
-		_cooldown = Difficulty.spawn_interval(_elapsed)
-
-
-func _spawn() -> void:
-	var angle: float = rng.randf_range(0.0, TAU)
+		return Vector2.ZERO
 	var pos: Vector2 = target.global_position + Vector2.RIGHT.rotated(angle) * SPAWN_RADIUS
 	pos.x = clampf(pos.x, arena.position.x + ARENA_MARGIN, arena.end.x - ARENA_MARGIN)
 	pos.y = clampf(pos.y, arena.position.y + ARENA_MARGIN, arena.end.y - ARENA_MARGIN)
+	return pos
 
-	var stats: EnemyStats = chaser_stats
-	if fast_stats != null and rng.randf() < Difficulty.fast_ratio(_elapsed):
-		stats = fast_stats
+
+func spawn(stats: EnemyStats, hp_mult: float = 1.0, elite: bool = false) -> Enemy:
+	if stats == null or enemy_scene == null:
+		return null
+	if not is_instance_valid(target) or not is_instance_valid(container):
+		return null
+
+	var pos: Vector2 = ring_position(rng.randf_range(0.0, TAU))
 
 	var enemy: Enemy = enemy_scene.instantiate()
-	enemy.setup(stats, target, Difficulty.hp_mult(_elapsed))
+	enemy.setup(stats, target, hp_mult, elite)
 	enemy.position = pos
 	container.add_child(enemy)
 	enemy_spawned.emit(enemy)
+	return enemy

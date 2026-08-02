@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WaveResource" format=3]
+
+[ext_resource type="Script" path="res://resources/wave_resource.gd" id="1_1f3yv"]
+[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="2_48x58"]
+[ext_resource type="Resource" path="res://resources/enemies/chaser.tres" id="3_bmsjj"]
+[ext_resource type="Resource" path="res://resources/enemies/fast.tres" id="4_60lty"]
+
+[resource]
+script = ExtResource("1_1f3yv")
+id = &"swarm"
+start_time = 130.0
+spawn_interval = 0.78
+hp_mult = 1.75
+elite_chance = 0.05
+intensity = 1
+types = Array[ExtResource("2_48x58")]([ExtResource("3_bmsjj"), ExtResource("4_60lty")])
+weights = Array[float]([2.0, 2.0])

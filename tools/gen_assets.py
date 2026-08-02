@@ -42,6 +42,9 @@ NEON = {
     "bullet": ((110, 245, 255), (240, 255, 255)),
     "orbital": ((150, 235, 255), (245, 255, 255)),
     "gem": ((120, 255, 190), (240, 255, 230)),      # green-cyan pickup
+    # Enemy fire. Yellow is RESERVED — nothing friendly is ever yellow, so
+    # "this can hurt me" reads before the shape does.
+    "bolt": ((255, 226, 96), (255, 250, 220)),
     # Greyscale — tinted at runtime. Kept bright: `modulate` MULTIPLIES, so the
     # sprite's own value is a ceiling on how neon the tinted result can look.
     "enemy": ((214, 214, 214), (255, 255, 255)),
@@ -233,6 +236,13 @@ def main() -> None:
                         ("enemy_dart.png", "triangle"), ("enemy_bulwark.png", "octagon"),
                         ("enemy_splitter.png", "diamond"), ("enemy_lancer.png", "chevron")):
         neon_sprite(name, 16, shape, "enemy", radius=5.5, core_ratio=0.5)
+
+    neon_sprite("bolt.png", 8, "diamond", "bolt", radius=2.4, core_ratio=0.5,
+                glow=1.2, glow_alpha=0.72)
+    # The boss is the one place detail is affordable, so it gets its own canvas
+    # rather than a scaled-up enemy. Greyscale — boss.gd tints core and shards.
+    neon_sprite("boss_core.png", 32, "hexagon", "enemy", radius=11.5,
+                core_ratio=0.54, glow=3.2, glow_alpha=0.6)
 
     write_floor()
 

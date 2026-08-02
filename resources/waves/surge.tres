@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WaveResource" format=3]
+
+[ext_resource type="Script" path="res://resources/wave_resource.gd" id="1_lerlu"]
+[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="2_6uqbr"]
+[ext_resource type="Resource" path="res://resources/enemies/chaser.tres" id="3_jmojb"]
+[ext_resource type="Resource" path="res://resources/enemies/fast.tres" id="4_ai8p0"]
+
+[resource]
+script = ExtResource("1_lerlu")
+id = &"surge"
+start_time = 210.0
+spawn_interval = 0.62
+hp_mult = 2.2
+elite_chance = 0.09
+intensity = 2
+types = Array[ExtResource("2_6uqbr")]([ExtResource("3_jmojb"), ExtResource("4_ai8p0")])
+weights = Array[float]([2.0, 3.0])

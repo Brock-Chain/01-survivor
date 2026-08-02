@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WaveResource" format=3]
+
+[ext_resource type="Script" path="res://resources/wave_resource.gd" id="1_1h3jg"]
+[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="2_m2tyy"]
+[ext_resource type="Resource" path="res://resources/enemies/chaser.tres" id="3_ysty8"]
+[ext_resource type="Resource" path="res://resources/enemies/fast.tres" id="4_s83an"]
+
+[resource]
+script = ExtResource("1_1h3jg")
+id = &"pressure"
+start_time = 60.0
+spawn_interval = 1.0
+hp_mult = 1.35
+elite_chance = 0.02
+intensity = 1
+types = Array[ExtResource("2_m2tyy")]([ExtResource("3_ysty8"), ExtResource("4_s83an")])
+weights = Array[float]([3.0, 1.0])

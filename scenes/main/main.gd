@@ -37,10 +37,14 @@ var run_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 ## ai_screenshot.gd). Inert in a normal run and in exported builds.
 var _dev_stats: bool = false
 var _dev_autopick: bool = false
+var _dev_autocontinue: bool = false
 var _dev_stats_t: float = 0.0
 
 @onready var player: Player = $Player
 @onready var spawner: Spawner = $Spawner
+@onready var director: RunDirector = $RunDirector
+@onready var bosses: Node2D = $Bosses
+@onready var victory_screen: VictoryScreen = $Victory
 @onready var enemies: Node2D = $Enemies
 @onready var pickups: Node2D = $Pickups
 @onready var projectiles: Node2D = $Projectiles
@@ -55,7 +59,16 @@ func _ready() -> void:
 	spawner.target = player
 	spawner.container = enemies
 	spawner.arena = ARENA
+	spawner.rng = run_rng
 	spawner.enemy_spawned.connect(_on_enemy_spawned)
+	# One RNG drives upgrades, spawn choice and spawn placement, so a seeded run
+	# reproduces whole — the groundwork M3 needs for seeded runs.
+	director.spawner = spawner
+	director.target = player
+	director.boss_container = bosses
+	director.rng = run_rng
+	director.boss_spawned.connect(_on_boss_spawned)
+	director.victory.connect(_on_victory)
 	player.died.connect(_on_player_died)
 	player.health_changed.connect(hud.set_health)
 	player.weapon.container = projectiles
@@ -83,22 +96,47 @@ func _apply_dev_flags() -> void:
 			"--dev-autopick":
 				_dev_autopick = true
 				print("[dev] autopick")
+			"--dev-autocontinue":
+				_dev_autocontinue = true
+				print("[dev] autocontinue")
 
 
 func _physics_process(delta: float) -> void:
-	time_survived += delta
+	# The director owns run time; Main mirrors it so there is exactly one clock.
+	time_survived = director.elapsed
 	hud.set_run(time_survived, kills)
 	if _dev_stats:
 		_dev_stats_t += delta
 		if _dev_stats_t >= 30.0:
 			_dev_stats_t = 0.0
-			print("[stats] t=%4.0fs enemies=%3d pickups=%3d projectiles=%2d kills=%4d lvl=%d"
+			print("[stats] t=%4.0fs enemies=%3d pickups=%3d projectiles=%2d kills=%4d lvl=%2d bosses=%d"
 					% [time_survived, enemies.get_child_count(), pickups.get_child_count(),
-					projectiles.get_child_count(), kills, level])
+					projectiles.get_child_count(), kills, level, director.bosses_alive])
 
 
 func _on_enemy_spawned(enemy: Enemy) -> void:
 	enemy.died.connect(_on_enemy_died)
+
+
+## A boss is just a very large enemy as far as kills, XP and juice are concerned.
+func _on_boss_spawned(boss: Node2D) -> void:
+	boss.died.connect(_on_enemy_died)
+	player.camera.add_trauma(0.6)
+	if _dev_stats:
+		print("[boss] spawned t=%.0fs alive=%d" % [time_survived, director.bosses_alive])
+
+
+## Fired once, on the first boss event cleared. The reward is already banked by
+## the time this runs — Continue is pure upside.
+func _on_victory(_event_index: int) -> void:
+	if _dev_stats:
+		print("[victory] t=%.0fs kills=%d lvl=%d" % [time_survived, kills, level])
+	# The victory screen waits on a button, which would stall a headless soak at
+	# the exact moment endless begins — the part that most needs soaking.
+	if _dev_autocontinue:
+		return
+	get_tree().paused = true
+	victory_screen.show_results(time_survived, kills, level)
 
 
 func _on_enemy_died(xp_value: int, at: Vector2, tint: Color) -> void:
