@@ -149,6 +149,10 @@ Before M7, stop and assess the whole game as a game, not as a checklist.
 - [ ] **Claude assesses which are worth doing** — this is a filter, not a to-do dump
 - [ ] Apply the accepted set, re-verify, re-playtest
 - [ ] Feed telemetry from real playtests into the review as evidence
+- [ ] **Game-feel findings go through the juice lab** (`scenes/dev/juice_lab.tscn`), not straight
+      into the game: build the change as a variant next to the shipped one, then let a human pick.
+      Applies to the two feel items already parked here — the deferred M1 hit-flash retune and any
+      "X needs more punch" the review returns. Cases live in `_variants()` / `_play()`.
 
 **Gate:** the accepted changes are applied and verified, and anything rejected is
 recorded in `DECISIONS.md` with why. Only then does M7 start.
@@ -181,6 +185,9 @@ recorded in `DECISIONS.md` with why. Only then does M7 start.
 - [x] **v1.1 M3** Run & Meta State (2026-08-02) — seed, save/load, unlocks
 - [~] **v1.1 M5** mostly done early (playtest response) — Splitter outstanding
 - [x] **v1.1 M4** Weapons as data (2026-08-02) — WeaponResource, orbitals, unlock-gated upgrades
+- [x] **Tooling** (2026-08-02) — juice lab (`scenes/dev/`) + contact-sheet mode on the screenshot
+      autoload. Closes the gap between headless verification and whole-game screenshots: neither
+      could judge a 0.3 s effect. Used by M6.5.
 - [ ] v1.1: **M6** audio ← next · **M6.5 design review** · M7 ship  *(M5 all but the Splitter is done)*
 
 *Checkboxes are updated at session end. A milestone list that lies is worse than none.*

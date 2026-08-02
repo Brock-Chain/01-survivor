@@ -9,12 +9,20 @@ Engine: `..\..\engine\Godot_v4.7.1-stable_win64_console.exe` (always the `_conso
 ```powershell
 # after any external file changes
 <console.exe> --headless --import --path .
-# smoke test (~5s game time); success = exit 0 AND no SCRIPT ERROR/ERROR in output
+# smoke test (~5s game time); success = exit 0 AND no SCRIPT ERROR/ERROR in output.
+# KNOWN-BENIGN exception: "ERROR: N resources still in use at exit" — the audio
+# server holds every stream that PLAYED during the session past the leak check
+# (engine teardown ordering; _exit_tree nulling proved useless). Anything else is real.
 <console.exe> --headless --path . --quit-after 300
 # tests (must be green before every push)
 <console.exe> --headless --path . -d -s addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit
 # screenshot of the running game → Read the PNG (dir .ai\ is gitignored)
 <console.exe> --path . -w --resolution 1280x720 -- --screenshot=<abs>/.ai/shot.png --shot-frame=30
+# contact sheet — several frames in ONE png, for anything that MOVES (--fixed-fps is mandatory)
+<console.exe> --path . -w --resolution 1280x720 --fixed-fps 60 -- --screenshot=<abs>/.ai/sheet.png --shot-frames=1,3,5,7,9,12
+# juice lab — one effect, alone, shipped variant vs alternatives (scenes/dev/, excluded from exports)
+<console.exe> --path . -w --resolution 1280x720 res://scenes/dev/juice_lab.tscn
+<console.exe> --path . -w --resolution 1280x720 --fixed-fps 60 res://scenes/dev/juice_lab.tscn -- --lab-case=hit_flash --lab-variant=1 --screenshot=<abs>/.ai/flash.png --shot-frames=1,3,5,7,9,12
 # web export (builds\ is gitignored)
 <console.exe> --headless --path . --export-release "Web" builds/web/index.html
 ```
