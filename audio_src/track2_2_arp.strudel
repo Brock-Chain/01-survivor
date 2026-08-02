@@ -1,0 +1,28 @@
+// ── TRACK 2 · LAYER 2 · MOTION ────────────────────────────────────────────
+// The hook. One rigid 4-note cell — root, 5th, 3rd, 5th — hammered as 16ths
+// and simply TRANSPOSED onto each chord. Keeping the shape identical is the
+// whole point: when Dm slides to Eb in bar 2, every single note of the cell
+// moves up a half or whole step at once. That parallel slide is the darksynth
+// signature, and an ostinato that never varies its contour reads as machinery
+// closing in rather than as a melody.
+//
+// The cell is inverted (5th-root-3rd-root, or 3rd-root-5th-root) in bars 5-7
+// so the B section stays inside one octave instead of climbing off the top.
+// Written as <[cell*4] ...> so each cycle gets exactly one chord's cell four
+// times — the arp stays locked to the bass, one chord per cycle.
+setcps(0.5)
+stack(
+  note(`<[[d5 a5 f5 a5]*4] [[eb5 bb5 g5 bb5]*4]
+         [[d5 a5 f5 a5]*4] [[c5 g5 eb5 g5]*4]
+         [[d5 g5 bb5 g5]*4] [[d5 bb5 f5 bb5]*4]
+         [[eb5 bb5 g5 bb5]*4] [[d5 a5 f5 a5]*4]>`)
+    .s("square")
+    // Resonant sweep completing once per loop: the player learns the shape of
+    // the 16 seconds without ever noticing they are being told where they are.
+    // lpq 12 is high enough that the sweep screams at the corner — that whistle
+    // is the aggression, and it costs nothing in headroom.
+    .lpf(sine.range(650, 3100).slow(8)).lpq(12)
+    .gain(0.115).release(0.04).attack(0.001)
+    .delay(0.3).delaytime(0.1875).delayfeedback(0.34)   // dotted-16th smear
+    .pan(0.57)
+)

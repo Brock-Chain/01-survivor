@@ -39,16 +39,38 @@ RENDERER = Path("REDACTED/render_superdough.mjs")
 CPS = 0.5
 BLOCK = 65536
 
-# name -> (cycles, loop?)  A one-shot keeps its natural ring-out; a loop gets
-# the tail folded back so it can repeat seamlessly.
-PIECES = {
-    "gameplay_0_bass": (8, True),
-    "gameplay_1_drums": (8, True),
-    "gameplay_2_arp": (8, True),
-    "gameplay_3_lead": (8, True),
-    "title": (8, True),
-    "victory": (4, False),
-}
+# Discovered from disk rather than hardcoded: adding a track is four .strudel
+# files with the right names, not a code edit.
+#   <track>_<layer>_<name>.strudel  ->  an 8-cycle gameplay stem
+#   title.strudel                   ->  an 8-cycle loop
+#   victory.strudel                 ->  a 4-cycle ONE-SHOT (keeps its ring-out)
+ONE_SHOTS = {"victory": 4}
+
+
+def discover() -> dict[str, tuple[int, bool]]:
+    pieces: dict[str, tuple[int, bool]] = {}
+    for f in sorted(SRC.glob("*.strudel")):
+        name = f.stem
+        if name in ONE_SHOTS:
+            pieces[name] = (ONE_SHOTS[name], False)
+        else:
+            pieces[name] = (8, True)
+    return pieces
+
+
+PIECES = discover()
+
+
+def stem_groups() -> dict[str, list[str]]:
+    """Gameplay stem sets, keyed by track prefix, ordered by layer index."""
+    groups: dict[str, list[str]] = {}
+    for name in PIECES:
+        parts = name.split("_")
+        if len(parts) >= 3 and parts[1].isdigit():
+            groups.setdefault(parts[0], []).append(name)
+    for k in groups:
+        groups[k].sort(key=lambda n: int(n.split("_")[1]))
+    return groups
 
 
 def render(name: str, cycles: int) -> dict:
@@ -131,20 +153,25 @@ def main() -> int:
                   f"({'inaudible' if disc < 0.02 else 'AUDIBLE - investigate'})")
         write_ogg(ogg, data, sr)
         peak = np.max(np.abs(data), axis=0)
-        if name.startswith("gameplay"):
+        if name.split("_")[1:2] and name.split("_")[1].isdigit():
             stems[name] = data
         kb = ogg.stat().st_size / 1024
         print(f"    {len(data) / sr:.1f}s  peak {peak.max():.2f}  {kb:.0f} KB  "
               f"({summary['rendered']} events)")
 
-    if len(stems) > 1:
-        n = min(len(d) for d in stems.values())
-        mixed = sum(d[:n] for d in stems.values())
+    # Each TRACK is checked on its own: stems only ever play with their siblings,
+    # so mixing every track together would be measuring a sound nobody hears.
+    for prefix, names in stem_groups().items():
+        have = [stems[n] for n in names if n in stems]
+        if len(have) < 2:
+            continue
+        n = min(len(d) for d in have)
+        mixed = sum(d[:n] for d in have)
         true_peak = float(np.max(np.abs(mixed)))
-        naive = sum(float(np.max(np.abs(d))) for d in stems.values())
-        print(f"\n  all {len(stems)} gameplay stems mixed: TRUE peak {true_peak:.2f}")
-        print(f"  (sum-of-peaks would have claimed {naive:.2f} — peaks rarely coincide)")
-        print(f"  {'headroom OK' if true_peak < 0.95 else 'CLIPS — lower stem gains'}")
+        naive = sum(float(np.max(np.abs(d))) for d in have)
+        verdict = "headroom OK" if true_peak < 0.95 else "CLIPS - lower stem gains"
+        print(f"\n  [{prefix}] {len(have)} stems mixed: TRUE peak {true_peak:.2f}  {verdict}")
+        print(f"           (sum-of-peaks would have claimed {naive:.2f})")
     return 0
 
 

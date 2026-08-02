@@ -1,0 +1,44 @@
+// ── TRACK 3 · LAYER 1 · PULSE ─────────────────────────────────────────────
+// Four-on-the-floor, because that is the genre and it doubles as the game's
+// heartbeat. Everything else is arranged to mark the A/B form so the player
+// can feel where they are in the 16s loop without being told.
+//   - crash on bars 1 and 5 : one per half, so the form is audible
+//   - 16th hats only in the B half : the second half is where it opens up
+//   - fills on the LAST beat of bars 4 and 8, building INTO the downbeat.
+//     A fill stranded mid-bar reads as a mistake; a fill that lands on the
+//     next "1" reads as intentional.
+setcps(0.5)
+stack(
+  s("bd*4").gain(0.40),                          // four on the floor
+
+  // Backbeat: clap on top, snare underneath. The snare supplies the crack the
+  // clap alone lacks; the clap supplies the width. Both are kept low because
+  // they land on the same 16th as a kick — that three-way stack on beats 2 and
+  // 4 is what sets this stem's peak, so the kick gets the headroom.
+  s("~ cp ~ cp").gain(0.15),
+  s("~ sd ~ sd").gain(0.09),
+
+  // Offbeat 8th hats — straight 8ths plod, the offbeat is the genre's lift.
+  s("[~ hh]*4").gain(0.12).pan(sine.range(0.36, 0.64).fast(2)),
+
+  // B half only: a 16th on the tail of each beat. Adds motion without adding
+  // volume, and its arrival at bar 5 is the second half announcing itself.
+  s("<~ ~ ~ ~ [~ ~ ~ hh]*4 [~ ~ ~ hh]*4 [~ ~ ~ hh]*4 [~ ~ ~ hh]*4>").gain(0.05),
+
+  // Rimshot on the "and of 3": a small forward shove every bar. Sits in a gap
+  // — nothing else is on that 8th — so it reads as groove, not clutter.
+  s("~ ~ [~ rs] ~").gain(0.11).pan(0.66),
+
+  // Open hat on the "and of 4" every other bar: the classic lift.
+  s("<~ [~ ~ ~ [~ ho]]>").gain(0.15),
+
+  // Turnarounds. Bar 4 is a two-note push into the B half; bar 8 is the full
+  // run resetting the loop. Both occupy beat 4 only, and both start AFTER the
+  // beat-4 backbeat rather than on it — so the fill answers the clap instead
+  // of doubling it, which keeps the run audible without adding a new peak.
+  s("<~ ~ ~ [~ ~ ~ [~ ~ sd sd]] ~ ~ ~ [~ ~ ~ [~ sd sd sd]]>").gain(0.16),
+
+  // Crash kept deliberately low: it lands on the same 16th as a kick, and the
+  // sum of the two is what sets this stem's peak for the whole 16 seconds.
+  s("<cr ~ ~ ~>").gain(0.12)                     // tops of both halves
+)

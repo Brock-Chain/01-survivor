@@ -1,0 +1,49 @@
+// ── TRACK 3 · LAYER 0 · FOUNDATION ────────────────────────────────────────
+// "track3" is the brighter sibling: outrun / dream wave. Same tonic (A) and
+// same tempo as the gameplay track so the two are interchangeable, but the
+// mode is A DORIAN, not Aeolian. Dorian = A B C D E F# G. The natural 6th
+// (F#) is the whole point: it makes the IV chord MAJOR (D), and a major IV
+// under a minor tonic is what reads as hopeful-at-night instead of sad.
+//
+// Bass + pad only. No melody, deliberately: this layer plays on every run and
+// a tune heard that often is the first thing to grate.
+//
+// FORM (8 cycles = 16s @ cps 0.5), two halves so the loop ARRIVES:
+//   A  Am – G  – C  – D     i – bVII – bIII – IV
+//      Brightness rises chord by chord and the half ENDS OPEN on the major IV
+//      — unresolved, which is what makes the B half feel necessary.
+//   B  Bm – C  – D  – Am    ii – bIII – IV – i
+//      Roots climb by step B–C–D before dropping home to A. The final D→Am is
+//      the Dorian plagal cadence (major IV falling to minor i) — the one
+//      cadence Aeolian cannot make, and the reason this track lifts.
+setcps(0.5)
+stack(
+  // Bass: driving 8ths with an octave lift, but a REST on the "and of 2" —
+  // that hole is where the extra air over the original comes from.
+  // Last 8th of every bar is an approach tone stepping into the next root:
+  //   f#1→g1 (Dorian 6th used as a leading tone up to bVII), b1→c2, e2→d2,
+  //   a1→b1, d2→c2, e2→d2, g1→a1 (the bVII–i step, modal signature).
+  // Bar 8 breaks the rule on purpose: e2→a1 is a dominant LEAP, not a step,
+  // so the loop reset reads as a reset instead of one more passing tone.
+  note(`<[a1 a1 a2 ~ a1 a2 a1 f#1]
+         [g1 g1 g2 ~ g1 g2 g1 b1]
+         [c2 c2 c3 ~ c2 c3 c2 e2]
+         [d2 d2 d3 ~ d2 d3 d2 a1]
+         [b1 b1 b2 ~ b1 b2 b1 d2]
+         [c2 c2 c3 ~ c2 c3 c2 e2]
+         [d2 d2 d3 ~ d2 d3 d2 g1]
+         [a1 a1 a2 ~ a1 a2 a2 e2]>`)
+    .s("sawtooth").lpf(520).lpq(6).gain(0.46).release(0.08),
+
+  // Pad: voiced so the TOP VOICE is a stepwise arch —
+  //   E4 D4 E4 F#4 | F#4 G4 F#4 E4
+  // It peaks on G4 in bar 6 and sighs back down. The F#4 arriving at the end
+  // of the A half is held as a common tone into Bm, then the closing F#4→E4
+  // over Am is the plagal IV–i resolution sung by the top voice itself.
+  // Inversions chosen for that line: C is 2nd-inversion in bars 3, D is
+  // 2nd-inversion in bars 4/7 so no voice ever leaps more than a third.
+  note(`<[a3,c4,e4] [g3,b3,d4] [g3,c4,e4] [a3,d4,f#4]
+         [b3,d4,f#4] [c4,e4,g4] [a3,d4,f#4] [a3,c4,e4]>`)
+    .s("triangle").gain(0.105).room(0.68).size(0.9)
+    .attack(0.45).release(1.9)
+)

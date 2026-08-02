@@ -1,0 +1,41 @@
+// ── TRACK 2 · LAYER 1 · PULSE ─────────────────────────────────────────────
+// Industrial, not synthwave. Three deliberate departures from the gameplay kit:
+//   1. The kick is four-on-the-floor PLUS a syncopated hit on the "a" of 3.
+//      That extra kick shoves beat 4 forward and is what makes the groove
+//      feel like machinery rather than a dance floor.
+//   2. Hats are straight 16ths, not offbeat 8ths. Offbeat 8ths lift; constant
+//      16ths churn. This track wants churn.
+//   3. Backbeat is snare AND clap stacked. Neither one alone is heavy enough;
+//      together they read as a single wide industrial hit.
+// Fills sit on the LAST beat of bars 4 and 8 and build INTO the downbeat —
+// same rule the gameplay kit learned the hard way. A fill stranded mid-bar
+// parses as a mistake.
+setcps(0.5)
+stack(
+  s("bd*4").gain(0.42),                            // the floor
+
+  // The machine push: extra kick on the "a" of beat 3, every bar.
+  s("[~ ~ [~ ~ ~ bd] ~]").gain(0.26),
+
+  // Stacked backbeat.
+  s("~ sd ~ sd").gain(0.24),
+  s("~ cp ~ cp").gain(0.13),
+
+  // Constant 16th churn, panned narrow so it never distracts.
+  s("hh*16").gain(0.045).pan(sine.range(0.38, 0.62).fast(4)),
+
+  // Phrase turnarounds: beat 4 of bar 4 and of bar 8, always leading into the
+  // next downbeat. Bar 8's is the longer of the two, because it hands the loop
+  // back to the top.
+  s(`<~ ~ ~ [~ ~ ~ [sd sd sd sd]]
+      ~ ~ ~ [~ ~ [sd sd] [sd sd sd sd]]>`).gain(0.19),
+
+  // Open hat as the release valve at the end of each half-phrase.
+  s("<~ ~ ~ [~ ~ ~ [~ ho]] ~ ~ ~ [~ ~ ~ [~ ho]]>").gain(0.11),
+
+  // Metal hit marks the top of the B section (bar 5) — the only structural
+  // signpost in the kit, so the player can feel the form without counting.
+  s("<~ ~ ~ ~ metal ~ ~ ~>").gain(0.13),
+
+  s("<cr ~ ~ ~ ~ ~ ~ ~>").gain(0.18)               // top of the loop
+)

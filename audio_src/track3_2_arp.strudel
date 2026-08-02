@@ -1,0 +1,24 @@
+// ── TRACK 3 · LAYER 2 · MOTION ────────────────────────────────────────────
+// The hook. 16ths, but the cell is a WAVE, not a ladder: root → 5th → 3rd →
+// colour tone. A straight ascending arp reads as an exercise; the up-then-down
+// contour reads as a melody that happens to be fast.
+//
+// The 4th note of every cell is chosen to land a step or a third from the next
+// cell's first note (…b4→a4 at the loop seam is a step), so 8 bars of 16ths
+// still trace one continuous line.
+//
+// Colour tones: added 9ths on Am/G/C, and Bm7 in bar 5. F# is in the D and Bm
+// cells — that is the Dorian 6th doing the lifting up here where it's audible.
+// Delay is a dotted 8th (0.375s at cps 0.5) with high feedback: the echoes
+// land between the 16ths and fill the space the original track packed with
+// notes. Space instead of density is the whole brief for this track.
+setcps(0.5)
+stack(
+  note(`<[a4 e5 c5 b4] [g4 d5 b4 a4] [c5 g5 e5 d5] [d5 a5 f#5 e5]
+         [b4 f#5 d5 a4] [c5 g5 e5 d5] [d5 a5 f#5 e5] [a4 e5 c5 b4]>*4`)
+    .s("square")
+    .lpf(sine.range(900, 3600).slow(8)).lpq(8)   // one full sweep per loop
+    .gain(0.17).release(0.05)
+    .delay(0.36).delaytime(0.375).delayfeedback(0.38)
+    .pan(0.44).room(0.18).size(0.7)
+)

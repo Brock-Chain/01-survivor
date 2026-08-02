@@ -1,0 +1,39 @@
+// ── TRACK 2 · LAYER 3 · THREAT (boss tier only) ───────────────────────────
+// A distinct MOTIF, not the arp moved up. Where the gameplay boss layer raises
+// the 7th to build an ascending leading tone (V–i, "rising to meet you"), this
+// one does the opposite: it leans on the flat-2 and resolves DOWNWARD by half
+// step, bII–i. Same amount of tension, opposite direction — it reads as
+// something pressing down on you rather than something rising up.
+//
+// Second device: D PHRYGIAN DOMINANT (D Eb F# G A Bb C) is borrowed for two
+// bars only. Eb→F# is an AUGMENTED SECOND, the widest melodic step in common
+// use and the most obviously "wrong" interval available. It is used exactly
+// where it cannot fight the pad: bar 4 (Cm = C Eb G, no F, so F# is a clean
+// tritone against the root) and bar 5 (Gm = G Bb D, no F, so F# is a leading
+// tone into G). Every other bar stays natural-F so nothing grinds by accident.
+//
+// Contour: bars 1-3 grind low around d5/eb5, bars 5-7 climb to bb5, bar 8
+// hammers eb5 three times and drops a half step to d5. The arc is the point.
+setcps(0.5)
+stack(
+  note(`<[d5 ~ eb5 ~ d5 ~ ~ ~]
+         [eb5 ~ ~ d5 eb5 ~ g5 ~]
+         [f5 ~ eb5 ~ d5 ~ ~ ~]
+         [eb5 ~ f#5 ~ g5 ~ ~ ~]
+         [g5 ~ ~ f#5 g5 ~ bb5 ~]
+         [bb5 ~ a5 ~ f5 ~ d5 ~]
+         [eb5 ~ ~ eb5 g5 ~ bb5 ~]
+         [eb5 eb5 ~ eb5 d5 ~ ~ ~]>`)
+    .s("sawtooth").lpf(3200).lpq(5)
+    .gain(0.145).attack(0.008).release(0.22)
+    .room(0.28).delay(0.2).delaytime(0.25).delayfeedback(0.26),
+
+  // Siren drone: one sustained root per bar with slow vibrato, filtered dark.
+  // No other layer holds anything — bass is staccato, arp is 16ths, drums are
+  // transient. The drone is the only sustained low-mid in the mix, which is
+  // why the boss tier suddenly feels like the room got smaller.
+  note("<d3 eb3 d3 c3 g3 bb3 eb3 d3>")
+    .s("sawtooth").lpf(520).lpq(9)
+    .gain(0.055).attack(0.5).release(1.1)
+    .vib(5).vibmod(0.25)
+)

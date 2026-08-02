@@ -1,0 +1,32 @@
+// ── TRACK 3 · LAYER 3 · THREAT (boss tier only) ───────────────────────────
+// A distinct motif, not the arp moved up. Two harmonic devices, both of which
+// work by CONTRADICTING the brightness the other three layers established:
+//
+//   1. G# — the raised 7th, a leading tone into A. It appears ONLY on the
+//      tonic bars (1 and 8) where the V/i pull belongs and where no other
+//      layer is sounding a G natural; using it over bVII or bIII would just
+//      be a wrong note rather than tension.
+//   2. C natural over the D chord in bar 7. That turns the bright Dorian IV
+//      into D7 and smuggles a TRITONE (F#–C) into the one chord this track
+//      leans on for its optimism. The peak note d6 sits right on top of it,
+//      one bar before the resolution.
+//
+// Shape: a descending prowl through the A half (a5 down to d5), then the same
+// gesture restated a register higher through the B half, climbing to d6 and
+// collapsing onto the tonic. The rest in slot 2 of every cell, doubled by *2,
+// gives the motif a limp — long, gap, short-short — which is what makes it
+// read as something walking toward you rather than a tune.
+setcps(0.5)
+stack(
+  note(`<[a5 ~ g#5 a5] [b5 ~ a5 g5] [g5 ~ e5 d5] [f#5 ~ e5 d5]
+         [b5 ~ a5 f#5] [c6 ~ b5 g5] [d6 ~ c6 a5] [b5 ~ g#5 a5]>*2`)
+    .s("sawtooth").lpf(3200).lpq(4)
+    .gain(0.2).attack(0.012).release(0.2)
+    .room(0.4).size(0.9)
+    .delay(0.3).delaytime(0.375).delayfeedback(0.3),
+
+  // The engine underneath: staccato octave pulse on the bar roots. Filtered
+  // hard so it stays out of the layer-0 bass and just adds pressure.
+  note("<a2 g2 c3 d3 b2 c3 d3 a2>*8")
+    .s("square").lpf(450).gain(0.075).release(0.026)
+)

@@ -1,0 +1,53 @@
+// ── TRACK 2 · LAYER 0 · FOUNDATION ────────────────────────────────────────
+// The darker sibling of the gameplay track. Key: D PHRYGIAN (D Eb F G A Bb C).
+// The whole identity of this track is the bII — Eb, a half step above the
+// tonic. That flat-2 is the single most menacing degree available, and unlike
+// a raised 7th it pulls DOWN into the tonic, which reads as collapse rather
+// than triumph.
+//
+// FORM (8 cycles = 16s @ cps 0.5):
+//   A  Dm – Eb – Dm – Cm     i – bII – i – bVII
+//   B  Gm – Bb – Eb – Dm     iv – bVI – bII – i
+// A is a half-step grind that never leaves home: i–bII–i is the "Jaws" wobble
+// stretched to chord length, then it falls to bVII and hangs there unresolved.
+// B is the only real motion in the piece — it climbs iv–bVI, then the Phrygian
+// cadence bII–i slams the door. So the loop ARRIVES instead of circling.
+// Bass + pad only. No melody: this plays on every run and a tune here is the
+// first thing that would grate.
+setcps(0.5)
+stack(
+  // Bass: 16th gallop (1-e-_-a), not the original's even 8ths — the hole on
+  // every third sixteenth is what makes it lurch instead of jog. Each bar ends
+  // on an APPROACH TONE a step from the next root, so the harmony is pulled
+  // forward rather than restated. Bar 7's approach is E natural: the ONLY
+  // chromatic note in the layer, a natural-2 grinding against the flat-2 one
+  // sixteenth before the Phrygian cadence lands.
+  note(`<[[d2 d2 ~ d2] [d3 ~ d2 d2] [d2 d2 ~ d2] [d3 d2 d2 f2]]
+         [[eb2 eb2 ~ eb2] [eb3 ~ eb2 eb2] [eb2 eb2 ~ eb2] [eb3 eb2 eb2 c2]]
+         [[d2 d2 ~ d2] [d3 ~ d2 d2] [d2 d2 ~ d2] [d3 d2 d2 bb1]]
+         [[c2 c2 ~ c2] [c3 ~ c2 c2] [c2 c2 ~ c2] [c3 c2 c2 f2]]
+         [[g2 g2 ~ g2] [g3 ~ g2 g2] [g2 g2 ~ g2] [g3 g2 g2 a2]]
+         [[bb2 bb2 ~ bb2] [bb3 ~ bb2 bb2] [bb2 bb2 ~ bb2] [bb3 bb2 bb2 f2]]
+         [[eb2 eb2 ~ eb2] [eb3 ~ eb2 eb2] [eb2 eb2 ~ eb2] [eb3 eb2 eb2 e2]]
+         [[d2 d2 ~ d2] [d3 ~ d2 d2] [d2 d2 ~ d2] [d3 d2 d2 a2]]>`)
+    .s("sawtooth")
+    // Low cutoff + high resonance is the poor man's distortion: the filter
+    // self-emphasises at the corner and the saw comes out growling. Sweeping
+    // the corner over 4 cycles means the growl breathes twice per loop.
+    .lpf(sine.range(300, 640).slow(4)).lpq(11)
+    .gain(0.30).release(0.055).attack(0.002),
+
+  // Pad: VOICE LED, not block chords. Dm and Eb share no common tone at all,
+  // so planing all three voices up a half/whole step is literally the smoothest
+  // motion available — and parallel triads sliding by half step is the horror
+  // move, so the constraint and the mood agree.
+  //   top voice: A4 Bb4 A4 C5 | Bb4 Bb4 Bb4 A4  (one m3, everything else step)
+  //   bars 5-7 hold common tones (g4, then d4+bb4, then bb4)
+  //   bar 7→8 moves ALL THREE voices down by step: the bII–i cadence.
+  // Bar 8 is voiced identically to bar 1, so the loop seam has zero voice
+  // motion — the game never restarts this, it just runs forever.
+  note(`<[d4,f4,a4] [eb4,g4,bb4] [d4,f4,a4] [eb4,g4,c5]
+         [d4,g4,bb4] [d4,f4,bb4] [eb4,g4,bb4] [d4,f4,a4]>`)
+    .s("sawtooth").lpf(1250).lpq(3)
+    .gain(0.075).room(0.6).size(0.85).attack(0.45).release(1.8)
+)

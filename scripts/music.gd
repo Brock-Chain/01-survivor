@@ -14,14 +14,23 @@ extends Node
 ## Survives scene reloads (autoloads persist), so a restart never restarts the
 ## music — you keep the groove you had.
 
-## Stem index == the intensity tier that switches it on. The Run Director
-## publishes 0..3; tier 3 is a boss.
-const STEMS: Array[String] = [
-	"res://assets/audio/music/gameplay_0_bass.ogg",
-	"res://assets/audio/music/gameplay_1_drums.ogg",
-	"res://assets/audio/music/gameplay_2_arp.ogg",
-	"res://assets/audio/music/gameplay_3_lead.ogg",
+## One entry per TRACK; within a track, stem index == the intensity tier that
+## switches it on (the Run Director publishes 0..3, tier 3 being a boss).
+## Tracks are interchangeable: same tempo, same length, same four-layer shape,
+## so rotation costs nothing structurally.
+const TRACK_NAMES: Array[String] = ["Neon", "Darksynth", "Outrun"]
+const TRACKS: Array = [
+	["gameplay_0_bass", "gameplay_1_drums", "gameplay_2_arp", "gameplay_3_lead"],
+	["track2_0_bass", "track2_1_drums", "track2_2_arp", "track2_3_lead"],
+	["track3_0_bass", "track3_1_drums", "track3_2_arp", "track3_3_lead"],
 ]
+const LAYERS: int = 4
+
+## -1 rotates through the tracks, one per run. 0+ pins one, for testing.
+var forced_track: int = -1
+var current_track: int = 0
+
+var _rotation: int = -1
 const TITLE_TRACK: String = "res://assets/audio/music/title.ogg"
 const VICTORY_TRACK: String = "res://assets/audio/music/victory.ogg"
 
@@ -44,13 +53,40 @@ var _fades: Array[Tween] = []
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	for path: String in STEMS:
-		var player := _make_player(path, true)
+	# Players are created ONCE and have their stream swapped per track. Creating
+	# them per run would restart audio nodes mid-session for no benefit.
+	for i: int in LAYERS:
+		var player := AudioStreamPlayer.new()
+		player.bus = &"Music"
 		player.volume_db = SILENT_DB
+		add_child(player)
 		_stems.append(player)
 		_fades.append(null)
 	_title = _make_player(TITLE_TRACK, true)
 	_victory = _make_player(VICTORY_TRACK, false)
+
+
+## Which tracks actually have all four stems built. A track whose .ogg files are
+## missing is skipped rather than played as silence.
+func available_tracks() -> Array[int]:
+	var out: Array[int] = []
+	for i: int in TRACKS.size():
+		var ok: bool = true
+		for stem: String in TRACKS[i]:
+			if not ResourceLoader.exists(_stem_path(stem)):
+				ok = false
+				break
+		if ok:
+			out.append(i)
+	return out
+
+
+func track_name(index: int) -> String:
+	return TRACK_NAMES[index] if index >= 0 and index < TRACK_NAMES.size() else "?"
+
+
+func _stem_path(stem: String) -> String:
+	return "res://assets/audio/music/%s.ogg" % stem
 
 
 func _make_player(path: String, looping: bool) -> AudioStreamPlayer:
@@ -80,11 +116,35 @@ func play_gameplay() -> void:
 		_title.stop()
 	if _stems[0].playing:
 		return  # already running — a scene reload must not restart the music
+	_load_track(_choose_track())
 	for player: AudioStreamPlayer in _stems:
 		player.volume_db = SILENT_DB
 		player.play()
 	intensity = -1
 	set_intensity(0)
+
+
+## Pinned track if one is forced, else the next in rotation. Rotation advances
+## per RUN, so consecutive runs are audibly different — which is most of what
+## stops a 16-second loop wearing out.
+func _choose_track() -> int:
+	var options: Array[int] = available_tracks()
+	if options.is_empty():
+		return 0
+	if forced_track >= 0 and options.has(forced_track):
+		return forced_track
+	_rotation = (_rotation + 1) % options.size()
+	return options[_rotation]
+
+
+func _load_track(index: int) -> void:
+	current_track = index
+	var stems: Array = TRACKS[index]
+	for i: int in _stems.size():
+		var stream: AudioStream = load(_stem_path(stems[i]))
+		if stream is AudioStreamOggVorbis:
+			(stream as AudioStreamOggVorbis).loop = true
+		_stems[i].stream = stream
 
 
 ## Called from the Run Director's intensity signal. Stems at or below `level`
