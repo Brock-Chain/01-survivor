@@ -139,9 +139,16 @@ def main() -> int:
             continue
         strudel = SRC / f"{name}.strudel"
         ogg = OUT / f"{name}.ogg"
-        if not args.force and ogg.exists() and ogg.stat().st_mtime > strudel.stat().st_mtime:
+        # The events sidecar is a byproduct of rendering, so a stem whose .ogg is
+        # current but whose sidecar was cleaned up has nothing for the score
+        # viewer to draw. Missing sidecar counts as out of date.
+        events = SRC / f"{name}.wav.events.json"
+        fresh = ogg.exists() and ogg.stat().st_mtime > strudel.stat().st_mtime
+        if not args.force and fresh and events.exists():
             print(f"  = {name} (up to date)")
             continue
+        if fresh and not events.exists():
+            print(f"  > {name} (re-rendering: sidecar missing)")
 
         print(f"  > {name}")
         summary = render(name, cycles)

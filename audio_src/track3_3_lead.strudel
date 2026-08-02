@@ -23,6 +23,12 @@
 // sounded merely blurry rather than wrong only because everything is
 // diatonic. The multiplier now lives INSIDE each cell, so the note count and
 // rhythm are unchanged but each chord is locked to its own bar.
+// MISSED BY THE FIRST HARMONY FIX: the octave drone still carried an outer
+// `*8`, so it cycled all eight roots inside EVERY bar instead of holding one
+// per bar. The roots were already correct for the progression — they were
+// simply running eight times too fast. Caught because the score viewer had to
+// special-case it to animate at a sane rate, which is a good sign a tool is
+// telling you something about the content.
 setcps(0.5)
 stack(
   note(`<[[a5 ~ g#5 a5]*2]
@@ -40,6 +46,6 @@ stack(
 
   // The engine underneath: staccato octave pulse on the bar roots. Filtered
   // hard so it stays out of the layer-0 bass and just adds pressure.
-  note("<a2 g2 c3 d3 b2 c3 d3 a2>*8")
+  note("<[a2*8] [g2*8] [c3*8] [d3*8] [b2*8] [c3*8] [d3*8] [a2*8]>")  // one root per BAR, pulsed as 16ths
     .s("square").lpf(450).gain(0.075).release(0.026)
 )

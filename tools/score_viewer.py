@@ -771,13 +771,16 @@ function buildCode(){
 
 function fillMeta(){
   document.getElementById("title").textContent = SCORE.prefix;
+  // each item needs its own element: the meta bar is a flex row, and loose text
+  // between the <i> tags collapses into ONE anonymous flex item, so the gap
+  // lands in the wrong places and the labels run together ("8 cyclescps 0.50")
   document.getElementById("meta").innerHTML = [
     `<i>${SCORE.cycles}</i> cycles`,
     `cps <i>${SCORE.cps.toFixed(2)}</i>`,
     `<i>${total.toFixed(2)}</i> s loop`,
     `<i>${stems.reduce((a,s) => a + s.count, 0)}</i> events`,
     `built <i>${SCORE.generated}</i>`,
-  ].join("");
+  ].map(s => `<span>${s}</span>`).join("");
 }
 
 document.getElementById("foot").innerHTML =
