@@ -1,0 +1,3 @@
+// Health pickup. Warm and restorative: two soft triangle notes rising a fifth,
+// low-mid register — clearly not XP (higher, thinner) or a power-up (sparkle).
+note("[g4 d5] ~ ~ ~ ~ ~ ~ ~").s("triangle").decay(.15).sustain(0).lpf(2200).gain(.85)

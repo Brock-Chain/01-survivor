@@ -20,6 +20,15 @@ var _cooldown: float = 0.0
 var _shots: int = 0
 
 
+## For GATED weapon instances (the scattergun). Availability resolves ONCE, like
+## OrbitalWeapon.setup — an unearned weapon must cost nothing per frame. The
+## blaster's node never calls this; Player injects its resource directly.
+func configure(p_resource: WeaponResource, unlocks: Array[StringName]) -> void:
+	var ok: bool = p_resource.is_available(unlocks)
+	resource = p_resource if ok else null
+	set_physics_process(ok)
+
+
 func _physics_process(delta: float) -> void:
 	if stats == null or container == null or resource == null:
 		return
@@ -58,12 +67,14 @@ func _nearest_enemy() -> Enemy:
 
 
 func _fire_at(target: Enemy) -> void:
-	Sfx.play(&"shoot", -10.0)
 	var base_dir: Vector2 = (target.global_position - global_position).normalized()
 	var count: int = maxi(1, resource.count + stats.projectile_bonus)
 	_shots += 1
 	var mega: bool = stats.overclock_every > 0 and _shots % stats.overclock_every == 0
 	var crit: bool = stats.crit_chance > 0.0 and rng.randf() < stats.crit_chance
+	# The cue is rolled with the shot: a crit must SOUND like it counted, or the
+	# stat only exists in the damage numbers nobody is reading mid-swarm.
+	Sfx.play(&"crit" if crit else resource.fire_sound, -7.0 if crit else -10.0)
 	var base_damage: int = maxi(1, roundi((resource.damage + stats.damage_bonus) * _power_mult()))
 	var damage: int = roundi(base_damage * stats.crit_mult) if crit else base_damage
 	for i: int in count:

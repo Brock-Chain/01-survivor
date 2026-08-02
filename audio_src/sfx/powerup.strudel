@@ -1,0 +1,4 @@
+// Power-up collected. Designed to feel like LUCK: a fast bright ladder with a
+// delay shimmer — quicker and sparklier than the level-up cadence.
+note("[c5 e5 g5 b5 e6] ~ ~ ~").s("square").decay(.09).sustain(0).lpf(5200)
+  .delay(.3).delaytime(.11).delayfeedback(.35).gain(.8)

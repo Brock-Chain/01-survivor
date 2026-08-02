@@ -26,7 +26,36 @@ func _init() -> void:
 	blaster.range = 260.0
 	blaster.projectile_speed = 340.0
 	_save(blaster, "res://resources/weapons/blaster.tres")
-	print("gen_weapons: 2 weapons")
+
+	# Five pellets in a wide cone, short range: the blaster from across the
+	# screen, the scattergun only up close — proximity is the price of burst.
+	var scatter := WeaponResource.new()
+	scatter.id = &"scattergun"
+	scatter.display_name = "Scattergun"
+	scatter.kind = WeaponResource.Kind.PROJECTILE
+	scatter.requires_unlock = MetaState.UNLOCK_ELITE_HUNTER
+	scatter.fire_sound = &"blast"
+	scatter.damage = 2
+	scatter.interval = 1.5
+	scatter.count = 5
+	scatter.range = 170.0
+	scatter.projectile_speed = 300.0
+	scatter.spread_deg = 12.0
+	_save(scatter, "res://resources/weapons/scattergun.tres")
+
+	# Instant piercing line. Slow, heavy, rewards lining enemies up.
+	var lance := WeaponResource.new()
+	lance.id = &"lance"
+	lance.display_name = "Prism Lance"
+	lance.kind = WeaponResource.Kind.BEAM
+	lance.requires_unlock = MetaState.UNLOCK_ENDLESS_PROVEN
+	lance.fire_sound = &"lance"
+	lance.damage = 3
+	lance.interval = 2.4
+	lance.count = 1
+	lance.range = 320.0
+	_save(lance, "res://resources/weapons/lance.tres")
+	print("gen_weapons: 4 weapons")
 	quit(0)
 
 

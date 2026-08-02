@@ -1,0 +1,9 @@
+// Boss attack telegraph. THE teaching sound: 0.6s of dread that always
+// precedes a volley, sized to fit inside the 0.62s telegraph window.
+// A low tritone (e + bb) swelling upward with an opening filter — the exact
+// opposite of the level-up jingle this cue used to (wrongly) share.
+stack(
+  note("[e2,bb2] ~ ~ ~").s("sawtooth").attack(.05).decay(.12).sustain(.7).release(.1)
+    .penv(-4).pdecay(.5).lpf(900).lpenv(4).lpattack(.45).gain(.9),
+  s("white").attack(.32).decay(.18).sustain(0).hpf(1800).gain(.4)
+)

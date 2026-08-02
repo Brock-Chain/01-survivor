@@ -47,10 +47,12 @@ func absorb_run(result: Dictionary) -> Array[StringName]:
 
 
 ## For a run banked at victory that then continued into endless: improve the
-## records without counting a second run.
+## records and earn late milestones without counting a second run.
 func update_records(result: Dictionary) -> void:
-	state.update_records(result)
+	var gained: Array[StringName] = state.update_records(result)
 	save_state()
+	if not gained.is_empty():
+		unlocked.emit(gained)
 
 
 func has_unlock(id: StringName) -> bool:

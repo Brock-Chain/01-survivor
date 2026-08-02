@@ -1,0 +1,7 @@
+// Boss arrival. An impact, not a jingle: sub drop, blast of noise, and a
+// distorted low growl. Announces "the rules just changed".
+stack(
+  note("e2").s("sine").penv(12).pdecay(.25).decay(.7).sustain(0).gain(1.1),
+  s("white").decay(.3).sustain(0).lpf(1600).gain(.55),
+  note("e1").s("square").penv(5).pdecay(.2).decay(.6).sustain(0).lpf(500).distort("1.3:.6").gain(.75)
+)

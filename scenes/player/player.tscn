@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scenes/player/player.gd" id="1_pl"]
 [ext_resource type="Script" path="res://resources/stats.gd" id="2_st"]
@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/player.png" id="4_tex"]
 [ext_resource type="Script" path="res://scenes/player/game_camera.gd" id="5_cam"]
 [ext_resource type="Script" path="res://scenes/weapons/orbital_weapon.gd" id="6_orb"]
+[ext_resource type="Script" path="res://scenes/weapons/lance_weapon.gd" id="7_ln"]
 
 [sub_resource type="Resource" id="Resource_stats"]
 resource_local_to_scene = true
@@ -51,6 +52,12 @@ shape = SubResource("CircleShape2D_magnet")
 
 [node name="Weapon" type="Node2D" parent="."]
 script = ExtResource("3_wp")
+
+[node name="Scattergun" type="Node2D" parent="."]
+script = ExtResource("3_wp")
+
+[node name="Lance" type="Node2D" parent="."]
+script = ExtResource("7_ln")
 
 [node name="Orbitals" type="Node2D" parent="."]
 script = ExtResource("6_orb")

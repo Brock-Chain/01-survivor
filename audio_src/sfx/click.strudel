@@ -1,0 +1,2 @@
+// UI click. A clean 25ms tick — present, never noticed.
+note("e6").s("square").decay(.025).sustain(0).lpf(4000).gain(.7)

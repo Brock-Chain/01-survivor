@@ -1,0 +1,7 @@
+// Player takes damage. Has to cut through a full mix and read as ALARM —
+// distorted saw falling a fifth, with a noise slap and a low body.
+stack(
+  note("a3").s("sawtooth").penv(7).pdecay(.16).decay(.18).sustain(0).lpf(2400).distort("1.5:.55").gain(.85),
+  s("white").decay(.09).sustain(0).lpf(2000).gain(.5),
+  note("a2").s("square").penv(5).pdecay(.12).decay(.15).sustain(0).gain(.6)
+)

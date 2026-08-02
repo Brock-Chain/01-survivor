@@ -1,0 +1,8 @@
+// Critical shot — replaces the shoot sound on crit frames. Same cyan zap
+// family, but an octave of fall, a sine punch underneath and real distortion:
+// audibly "that one counted" even at shoot volume.
+stack(
+  note("e5").s("square").penv(12).pdecay(.1).decay(.12).sustain(0).lpf(4500).distort("1.4:.7").gain(.85),
+  note("e3").s("sine").penv(8).pdecay(.08).decay(.1).sustain(0).gain(.8),
+  s("white").decay(.03).sustain(0).hpf(1600).gain(.4)
+)

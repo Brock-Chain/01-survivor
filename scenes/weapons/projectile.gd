@@ -116,7 +116,9 @@ func _burst(count: int) -> void:
 				maxi(1, roundi(damage * 0.5)))
 		shard.global_position = global_position
 		shard.scale = Vector2.ONE * 0.8
-		get_parent().add_child(shard)
+		# We are INSIDE body_entered — a physics flush. Adding an Area2D here
+		# trips "Can't change this state while flushing queries" on every burst.
+		get_parent().add_child.call_deferred(shard)
 
 
 ## Chain Lightning: arc to the nearest few other enemies. Modelled as very
@@ -139,7 +141,8 @@ func _chain(from: Enemy) -> void:
 				maxi(1, roundi(damage * 0.6)))
 		bolt.global_position = from.global_position
 		bolt.scale = Vector2.ONE * 0.7
-		get_parent().add_child(bolt)
+		# Same flush rule as _burst: this runs inside body_entered.
+		get_parent().add_child.call_deferred(bolt)
 
 
 func _nearest_excluding(exclude: Array[Enemy], from: Vector2, radius: float) -> Enemy:

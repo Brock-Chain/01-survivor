@@ -109,7 +109,7 @@ soak-verified; the feel half needs a playtest with the orbital unlocked.*
 - [x] Per-type silhouettes via `EnemyStats.sprite` — archetypes are pure data now
 - [x] `EnemyStats.Behavior` enum (CHASE / RANGED)
 - [x] Elite variants (modifier, any type)
-- [ ] Splitter + its death payload
+- [x] Splitter + its death payload
 
 **Gate:** each type identifiable by silhouette and colour alone at 12 px, in a crowd.
 
@@ -121,11 +121,14 @@ soak-verified; the feel half needs a playtest with the orbital unlocked.*
 - [x] Title theme: 64s slow burn that escalates in four sections, then resets
 - [x] Victory merges — ducks the stems and lands on the next bar line
 - [x] Score viewer (`tools/score_viewer.py`) — piano roll + live Strudel code view
-- [ ] Full SFX pass: replace the 8 stdlib WAVs, add ~8 missing cues, pitch-varied sets
-- [ ] Volume / mute options
+- [x] Full SFX pass: 19 Strudel-authored sounds (23 files, pitch-varied sets for shoot/hit/pop/
+      pickup), `tools/build_sfx.py` pipeline, `Sfx` variant support, every cue rewired — the boss
+      telegraph is a dread-swell now, not the level-up jingle
+- [x] Volume / mute options *(already shipped in the pause panel: sliders + mute + M key; box was stale)*
 
 **Gate:** five consecutive runs without the music grating · every action has a sound · no audible
-seam at a loop point or layer change.
+seam at a loop point or layer change. *(Code-complete; the "grating" half is the human's ear at the
+post-M6.5 playtest.)*
 
 ### M6.25 — Upgrade rarity ✅ (added mid-cycle from playtest direction)
 - [x] 5 tiers, per-card roll, odds improving with progress, saturating at level 30
@@ -135,9 +138,12 @@ seam at a loop point or layer change.
 - [x] Neon-LED rarity frames; arena colour law untouched (menu is a separate context)
 
 ### M6.4 — Remaining content
-- [ ] Splitter (dies into two Darts)
-- [ ] Ram (telegraphs, then dashes in a straight line)
-- [ ] Rename everything to **PRISM**
+- [x] Splitter (dies into two Darts)
+- [x] Ram (telegraphs, then dashes in a straight line)
+- [x] Shooting variants (playtest ask): **Scattergun** (5-pellet cone, short range, gated on
+      `elite_hunter` / 1000 kills) + **Prism Lance** (instant piercing beam, new `Kind.BEAM`,
+      gated on `endless_proven`) — every meta milestone now unlocks a weapon
+- [x] Rename everything to **PRISM** (title, window, exports, boot line; save + telemetry migrated)
 - [ ] *(second boss deferred — built alongside the M6.5 findings)*
 
 ### M6.5 — Design review before ship ⭐ REQUESTED BY THE HUMAN

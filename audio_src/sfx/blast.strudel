@@ -1,0 +1,7 @@
+// Scattergun fires. A fat close-range boom: low square thump, sine body, wide
+// noise burst — audibly heavier than the blaster's zap, same cyan family.
+stack(
+  note("d3").s("square").penv(10).pdecay(.09).decay(.12).sustain(0).lpf(1800).distort("1.3:.7").gain(.9),
+  s("white").decay(.09).sustain(0).lpf(2600).gain(.7),
+  note("d2").s("sine").penv(7).pdecay(.08).decay(.12).sustain(0).gain(.8)
+)

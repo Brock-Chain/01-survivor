@@ -30,11 +30,15 @@ extends Resource
 enum Kind {
 	PROJECTILE,  ## fires at the nearest enemy in range
 	ORBITAL,     ## bodies circling the player, damaging on contact
+	BEAM,        ## instant piercing line, everything along it hit at once
 }
 
 @export var id: StringName
 @export var display_name: String
 @export var kind: Kind = Kind.PROJECTILE
+## Sfx cue played when this weapon fires. Data, not code: the scattergun's boom
+## and the blaster's zap differ by .tres field, never by a branch in the script.
+@export var fire_sound: StringName = &"shoot"
 
 ## Empty means "always available". Otherwise the id must be present in MetaState.
 @export var requires_unlock: StringName = &""

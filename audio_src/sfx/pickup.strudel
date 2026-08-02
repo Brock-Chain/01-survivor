@@ -1,0 +1,7 @@
+// XP gem collected. The tiniest sound in the game — a two-note chirp heard
+// hundreds of times, so it must be nearly subliminal. Two variants (inverted
+// interval) so a magnet-vacuumed stream of gems sparkles instead of ticking.
+cat(
+  note("[e6 b6] ~ ~ ~ ~ ~ ~ ~").s("triangle").decay(.06).sustain(0).lpf(7000).gain(.8),
+  note("[b5 e6] ~ ~ ~ ~ ~ ~ ~").s("triangle").decay(.06).sustain(0).lpf(7000).gain(.8)
+)

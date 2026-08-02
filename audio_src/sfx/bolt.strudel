@@ -1,0 +1,3 @@
+// Enemy projectile fired (Lancer, and once per boss volley). Hostile
+// vocabulary: sawtooth, bit-crushed, falling — a spit, not a zap.
+note("d5").s("sawtooth").penv(6).pdecay(.07).decay(.08).sustain(0).lpf(3200).crush(7).gain(.8)

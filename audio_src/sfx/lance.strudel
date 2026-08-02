@@ -1,0 +1,8 @@
+// Prism Lance fires. A piercing beam discharge: long bright fall with a high
+// shimmer layer and a crack of noise — the biggest player sound, for the
+// weapon that hits a whole line at once.
+stack(
+  note("a4").s("sawtooth").penv(16).pdecay(.2).decay(.22).sustain(0).lpf(5200).gain(.8),
+  note("a5").s("square").penv(12).pdecay(.15).decay(.18).sustain(0).lpf(6000).gain(.5),
+  s("white").decay(.05).sustain(0).hpf(2500).gain(.35)
+)

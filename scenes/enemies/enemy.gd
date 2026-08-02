@@ -125,6 +125,9 @@ func _act_ranged(delta: float) -> void:
 	_shoot_cd -= delta
 	if _shoot_cd <= 0.0 and dist <= stats.attack_range * 1.3:
 		_shoot_cd = stats.attack_interval
+		# Quiet: with several Lancers alive this fires constantly, and the cue's
+		# job is "incoming from off-screen", not percussion.
+		Sfx.play(&"bolt", -14.0)
 		var bolt: EnemyProjectile = BOLT_SCENE.instantiate()
 		bolt.setup(dir * stats.bolt_speed, damage)
 		bolt.global_position = global_position

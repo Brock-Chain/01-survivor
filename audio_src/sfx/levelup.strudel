@@ -1,0 +1,6 @@
+// Level up — the panel opens on this. A two-chord cadence with a bell on top:
+// stately "you earned something", distinct from the powerup's quick sparkle.
+stack(
+  note("[c4,e4,g4] [g4,b4,d5] ~ ~ ~ ~ ~ ~").s("sawtooth").decay(.3).sustain(0).lpf(3000).gain(.6),
+  note("~ ~ c6 ~ ~ ~ ~ ~").s("triangle").decay(.4).sustain(0).gain(.7)
+)

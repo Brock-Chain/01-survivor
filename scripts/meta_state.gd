@@ -54,13 +54,23 @@ func absorb(result: Dictionary) -> Array[StringName]:
 	return gained
 
 
-## Records-only update, for a run that was ALREADY banked at its victory moment.
-## Endless play after a win still improves your records; it just cannot count as
-## a second run or the run tally would double. Totals stay as of the banking
-## point — a deliberate simplification over delta-tracking.
-func update_records(result: Dictionary) -> void:
+## Update for a run that was ALREADY banked at its victory moment. Endless play
+## after a win still improves records and still earns MILESTONES — a banked run
+## is absorbed at ~5:20, so "survive to the double boss" can only ever be true
+## here. Without this, ENDLESS_PROVEN (and the weapon behind it) was
+## unobtainable by exactly the players it describes. Only the run tally is
+## frozen at the banking point, or endless would count as a second run.
+## Returns ids unlocked by the endless stretch (empty if none).
+func update_records(result: Dictionary) -> Array[StringName]:
 	best_kills = maxi(best_kills, int(result.get("kills", 0)))
 	best_time = maxf(best_time, float(result.get("time", 0.0)))
+	var gained: Array[StringName] = []
+	for id: StringName in _earned(int(result.get("kills", 0)),
+			float(result.get("time", 0.0)), bool(result.get("won", false))):
+		if not unlocks.has(id):
+			unlocks.append(id)
+			gained.append(id)
+	return gained
 
 
 ## Unlock rules, pure and in one place so "what does this reward?" is answerable

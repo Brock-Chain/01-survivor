@@ -1,0 +1,10 @@
+// Boss death. The payoff of the whole run: a deeper, longer detonation than
+// boss_spawn, then a bright shimmer rising out of the wreckage — destruction
+// resolving into reward.
+stack(
+  note("e2").s("sine").penv(14).pdecay(.35).decay(.9).sustain(0).gain(1.1),
+  s("white").decay(.45).sustain(0).lpf(2500).gain(.6),
+  note("e1").s("sawtooth").penv(10).pdecay(.3).decay(.7).sustain(0).lpf(700).distort("1.4:.6").gain(.8),
+  note("~ [e5 g5 b5 e6 g6 b6] ~ ~").s("square").decay(.12).sustain(0).lpf(6000)
+    .delay(.3).delaytime(.13).delayfeedback(.35).gain(.5)
+)

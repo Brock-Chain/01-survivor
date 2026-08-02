@@ -22,7 +22,12 @@ from pathlib import Path
 
 def default_dir() -> Path:
     appdata = os.environ.get("APPDATA", "")
-    return Path(appdata) / "Godot" / "app_userdata" / "01 Survivor" / "telemetry"
+    base = Path(appdata) / "Godot" / "app_userdata"
+    # The project was renamed "01 Survivor" -> "PRISM" mid-cycle; runs recorded
+    # before the rename live under the old name and are still evidence.
+    new = base / "PRISM" / "telemetry"
+    old = base / "01 Survivor" / "telemetry"
+    return new if new.exists() or not old.exists() else old
 
 
 def load_runs(d: Path) -> list[list[dict]]:

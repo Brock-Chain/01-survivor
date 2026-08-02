@@ -131,6 +131,28 @@ func test_duplicate_unlocks_in_a_save_are_collapsed() -> void:
 	assert_eq(MetaState.from_config(cfg).unlocks.size(), 1)
 
 
+func test_endless_survival_earns_endless_proven_via_update_records() -> void:
+	# The exact shape of a real winning run: banked at victory (~5:20), then
+	# death in endless past 10:00. Absorb sees time=320 so it can never grant
+	# ENDLESS_PROVEN; the records-only update after the endless death must.
+	var meta := MetaState.new()
+	meta.absorb(_result(200, 320.0, true))
+	assert_false(meta.has_unlock(MetaState.UNLOCK_ENDLESS_PROVEN),
+			"not proven at the banking point")
+	var gained: Array[StringName] = meta.update_records(_result(900, 640.0, true))
+	assert_true(meta.has_unlock(MetaState.UNLOCK_ENDLESS_PROVEN),
+			"surviving to the double boss earns it")
+	assert_true(gained.has(MetaState.UNLOCK_ENDLESS_PROVEN), "and it is reported")
+	assert_eq(meta.runs_played, 1, "endless still never counts as a second run")
+
+
+func test_update_records_reports_an_unlock_only_once() -> void:
+	var meta := MetaState.new()
+	meta.absorb(_result(200, 320.0, true))
+	meta.update_records(_result(900, 640.0, true))
+	assert_eq(meta.update_records(_result(950, 700.0, true)).size(), 0)
+
+
 # --- seeding ----------------------------------------------------------------
 
 func test_same_seed_reproduces_the_same_draw() -> void:

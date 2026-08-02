@@ -1,0 +1,17 @@
+// Player blaster. Heard more than any other sound in the game, so it gets a
+// pitch-varied set: one variant per cycle, sliced apart by build_sfx.py.
+// Cyan vocabulary: square wave, tight, falls to a musical pitch.
+cat(
+  stack(
+    note("a5").s("square").penv(9).pdecay(.08).decay(.09).sustain(0).lpf(5200).gain(.8),
+    s("white").decay(.02).sustain(0).hpf(3000).gain(.3)
+  ),
+  stack(
+    note("g5").s("square").penv(8).pdecay(.075).decay(.085).sustain(0).lpf(4800).gain(.8),
+    s("white").decay(.02).sustain(0).hpf(3000).gain(.3)
+  ),
+  stack(
+    note("b5").s("square").penv(10).pdecay(.085).decay(.095).sustain(0).lpf(5600).gain(.8),
+    s("white").decay(.02).sustain(0).hpf(3000).gain(.3)
+  )
+)

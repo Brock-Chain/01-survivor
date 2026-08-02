@@ -1,0 +1,16 @@
+// Enemy death. The kill has to feel bought: a fat falling bloop with a little
+// grit, plus a noise puff for the burst particles. Pitch-varied set of three.
+cat(
+  stack(
+    note("a4").s("square").penv(14).pdecay(.12).decay(.13).sustain(0).lpf(2800).distort("1.2:.75").gain(.85),
+    s("white").decay(.04).sustain(0).hpf(1400).gain(.3)
+  ),
+  stack(
+    note("g4").s("square").penv(13).pdecay(.11).decay(.12).sustain(0).lpf(2600).distort("1.2:.75").gain(.85),
+    s("white").decay(.04).sustain(0).hpf(1400).gain(.3)
+  ),
+  stack(
+    note("b4").s("square").penv(15).pdecay(.13).decay(.14).sustain(0).lpf(3000).distort("1.2:.75").gain(.85),
+    s("white").decay(.04).sustain(0).hpf(1400).gain(.3)
+  )
+)

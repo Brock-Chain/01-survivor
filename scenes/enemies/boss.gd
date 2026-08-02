@@ -113,10 +113,12 @@ func _attack(delta: float) -> void:
 
 
 ## The tell: shards flare to white and a cue plays. Nothing can hurt the player
-## until this finishes.
+## until this finishes. The cue is a dread-swell sized to end inside the
+## telegraph window — it used to be the LEVEL-UP jingle, which taught the
+## player that reward-sound precedes damage. Exactly backwards.
 func _begin_telegraph() -> void:
 	_telegraph_left = telegraph
-	Sfx.play(&"levelup", -12.0)
+	Sfx.play(&"boss_telegraph", -6.0)
 	for shard: Sprite2D in _shards:
 		if not is_instance_valid(shard):
 			continue
@@ -126,6 +128,9 @@ func _begin_telegraph() -> void:
 
 
 func _fire() -> void:
+	# One cue per VOLLEY, not per bolt — 15+ simultaneous plays would eat the
+	# whole voice pool and read as one loud blast anyway.
+	Sfx.play(&"bolt", -6.0)
 	var count: int = spread_p1 if phase == 1 else spread_p2
 	# Offset the ring by half a step off the player's bearing, so a gap always
 	# sits where they are standing and weaving is a real choice, not a coin flip.

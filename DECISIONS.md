@@ -227,6 +227,39 @@ on almost everything.
 - **The second boss is deferred to the M6.5 apply pass**, so it can be designed with the review's
   findings in hand rather than before them.
 
+## M6 audio + shooting variants — 2026-08-02 (second session)
+
+- **SFX are Strudel, same renderer and seed as the music.** The 8 stdlib WAVs replaced and 11 cues
+  added (19 sounds, 23 files) so the whole soundscape shares one synth palette. Vocabulary is the
+  colour law's audio twin: friendly = square/triangle rising, hostile = saw/noise falling, and the
+  boss telegraph is a low tritone dread-swell — it used to play the LEVEL-UP jingle, which taught
+  that reward-sound precedes damage. Pitch direction was verified empirically before authoring:
+  superdough's `penv(n)` OFFSETS THE START and decays to the written note, so a down-chirp needs
+  penv POSITIVE — the intuitive reading is backwards.
+- **Variant sets are cycles.** A pitch-varied set is `cat(v0, v1, v2)` — one variant per cycle —
+  sliced at cycle boundaries by `tools/build_sfx.py`, which also measures boundary bleed, trims at
+  −60 dB, and normalises per FAMILY so authored loudness differences between variants survive.
+- **"N resources still in use at exit" is known-benign teardown noise.** The audio server holds
+  every stream that played during the session past the leak check; `_exit_tree` nulling was tried
+  and does nothing. Documented in CLAUDE.md so smoke greps exclude exactly that line and nothing else.
+- **Prism Core / Chain Lightning spawned projectiles mid-physics-flush** (`add_child` inside
+  `body_entered`) — 17 "Can't change this state while flushing queries" errors in a 15-minute soak.
+  Pre-existing from the rarity milestone; surfaced by longer soaks. Fixed with `add_child.call_deferred`,
+  the same rule every other spawn site already followed.
+- **Both spare meta milestones now unlock weapons.** Scattergun (5-pellet cone, range 170 — proximity
+  is the price of burst) on `elite_hunter`; Prism Lance (instant piercing line, new `Kind.BEAM`,
+  no physics nodes — geometry against the enemies group) on `endless_proven`. Weapon fire cues are
+  data (`WeaponResource.fire_sound`), and a crit replaces the cue rather than layering it.
+- **`endless_proven` was unobtainable by the players it describes.** A winner's run is absorbed at
+  the victory moment (~5:20); death-in-endless only updated records and never evaluated unlocks, so
+  "survive to the double boss" could never be earned after banking a win. `update_records` now earns
+  late milestones; only the run tally stays frozen. Caught because the new lance sat behind it.
+- **`--dev-unlocks` added** — the only way to exercise or playtest a gated weapon without earning it.
+- **Renamed to PRISM.** `user://` moved with the name; the old save + telemetry were copied to the
+  new dir on this machine, and `analyze_telemetry.py` reads whichever dir exists. NOTE: dev soaks
+  write the real save — records are bot-inflated (`best_kills=1047`, `elite_hunter` earned by bots).
+  Flagged as an M6.5 finding (dev runs should use a separate profile).
+
 ## Known-open at time of writing (2026-08-02)
 
 **All five resolved in M0 (commit `0b3cdf3`).** Kept for the record:

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="WeaponResource" format=3]
+
+[ext_resource type="Script" path="res://resources/weapon_resource.gd" id="1_an5xj"]
+
+[resource]
+script = ExtResource("1_an5xj")
+id = &"scattergun"
+display_name = "Scattergun"
+fire_sound = &"blast"
+requires_unlock = &"elite_hunter"
+damage = 2
+interval = 1.5
+count = 5
+range = 170.0
+projectile_speed = 300.0
+spread_deg = 12.0

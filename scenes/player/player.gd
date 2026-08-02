@@ -8,9 +8,13 @@ signal health_changed(hp: int, max_hp: int)
 ## Second Wind fired. Main clears the screen — the player does not know how.
 signal second_wind(at: Vector2)
 
-## Weapon data. The orbital is gated behind beating the Prism.
+## Weapon data. Everything but the blaster is gated behind a meta unlock:
+## orbital = first victory, scattergun = 1000 total kills, lance = surviving to
+## the double boss. Each milestone hands over a new way to play, not a number.
 const BLASTER_WEAPON: WeaponResource = preload("res://resources/weapons/blaster.tres")
 const ORBITAL_WEAPON: WeaponResource = preload("res://resources/weapons/orbital.tres")
+const SCATTER_WEAPON: WeaponResource = preload("res://resources/weapons/scattergun.tres")
+const LANCE_WEAPON: WeaponResource = preload("res://resources/weapons/lance.tres")
 
 @export var stats: Stats
 
@@ -30,6 +34,8 @@ var _time: float = 0.0
 @onready var magnet_shape: CollisionShape2D = $Magnet/CollisionShape2D
 @onready var visual: Sprite2D = $Visual
 @onready var weapon: Weapon = $Weapon
+@onready var scattergun: Weapon = $Scattergun
+@onready var lance: LanceWeapon = $Lance
 @onready var orbitals: OrbitalWeapon = $Orbitals
 @onready var camera: GameCamera = $Camera2D
 
@@ -41,6 +47,10 @@ func _ready() -> void:
 	weapon.stats = stats
 	weapon.buffs = buffs
 	weapon.resource = BLASTER_WEAPON
+	scattergun.stats = stats
+	scattergun.buffs = buffs
+	lance.stats = stats
+	lance.buffs = buffs
 	magnet.area_entered.connect(_on_magnet_area_entered)
 	refresh_from_stats()
 	health_changed.emit(health.hp, health.max_hp)
@@ -55,7 +65,7 @@ func _physics_process(delta: float) -> void:
 	_time += delta
 	for expired: StringName in buffs.tick(delta):
 		if expired == BuffState.SHIELD:
-			Sfx.play(&"click", -4.0)
+			Sfx.play(&"shield_off", -6.0)
 	health.shielded = buffs.has(BuffState.SHIELD)
 	_tick_aegis(delta)
 	var dir: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
@@ -71,6 +81,8 @@ func _physics_process(delta: float) -> void:
 ## died on "Identifier not found: Meta"). Same rule as the Resources.
 func apply_unlocks(unlocks: Array[StringName]) -> void:
 	orbitals.setup(stats, ORBITAL_WEAPON, unlocks)
+	scattergun.configure(SCATTER_WEAPON, unlocks)
+	lance.configure(LANCE_WEAPON, unlocks)
 
 
 ## Re-read anything derived from stats. Main calls this after upgrades apply.
@@ -97,7 +109,7 @@ func _tick_aegis(delta: float) -> void:
 	if _aegis_cd <= 0.0:
 		_aegis_cd = stats.aegis_interval
 		buffs.grant(BuffState.SHIELD, 2.0)
-		Sfx.play(&"levelup", -12.0)
+		Sfx.play(&"shield_on", -10.0)
 
 
 ## Public damage entry point. Contact damage and enemy projectiles both come
@@ -110,7 +122,10 @@ func apply_damage(amount: int, source: StringName = &"unknown") -> bool:
 		_second_wind_spent = true
 		buffs.grant(BuffState.SHIELD, 2.5)
 		camera.add_trauma(1.0)
+		# The death cue INTO shield_on: "that should have killed you" resolving
+		# into "you are protected" — the whole upgrade in two sounds.
 		Sfx.play(&"death", -4.0)
+		Sfx.play(&"shield_on", -4.0)
 		second_wind.emit(global_position)
 		return false
 	if not health.take_damage(amount, _time):

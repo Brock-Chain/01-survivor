@@ -278,17 +278,10 @@ def main() -> None:
 
     write_floor()
 
-    write_wav(SFX / "shoot.wav", sweep(880, 440, 0.07, amp=0.22))
-    write_wav(SFX / "hit.wav", noise_burst(0.06, amp=0.4))
-    write_wav(SFX / "pop.wav", sweep(300, 70, 0.12, amp=0.45))
-    write_wav(SFX / "pickup.wav", blips([660, 990], 0.07, amp=0.3))
-    write_wav(SFX / "levelup.wav", blips([523, 659, 784, 1047], 0.1, amp=0.4))
-    write_wav(SFX / "hurt.wav", sweep(220, 90, 0.16, amp=0.5, curve=2.0))
-    write_wav(SFX / "death.wav", sweep(440, 50, 0.6, amp=0.5, curve=1.5))
-    write_wav(SFX / "click.wav", blips([1200], 0.03, amp=0.25))
-    # Music is no longer synthesized here — it is composed in Strudel under
-    # audio_src/ and built by tools/build_music.py. write_music() is kept only
-    # as the reference implementation of the stdlib-synthesis approach.
+    # Audio is no longer synthesized here — music is composed in Strudel under
+    # audio_src/ (tools/build_music.py) and SFX under audio_src/sfx/
+    # (tools/build_sfx.py). The stdlib helpers above (sweep/blips/noise_burst)
+    # are kept only as the reference implementation of that first approach.
 
 
 if __name__ == "__main__":

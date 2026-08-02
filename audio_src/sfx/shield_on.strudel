@@ -1,0 +1,6 @@
+// Shield granted (Aegis timer, Second Wind). Rises INTO its pitch — the
+// friendly mirror of shield_off's power-down — then hums briefly.
+stack(
+  note("e5").s("square").penv(-7).pdecay(.1).attack(.005).decay(.3).sustain(0).lpf(3600).gain(.7),
+  note("e4").s("triangle").attack(.02).decay(.35).sustain(0).gain(.6)
+)

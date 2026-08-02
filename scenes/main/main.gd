@@ -141,6 +141,9 @@ func _ready() -> void:
 	player.health_changed.connect(hud.set_health)
 	player.weapon.container = projectiles
 	player.weapon.rng = run_rng
+	player.scattergun.container = projectiles
+	player.scattergun.rng = run_rng
+	player.lance.rng = run_rng
 	player.apply_unlocks(Meta.state.unlocks)
 	level_up_panel.upgrade_chosen.connect(_on_upgrade_chosen)
 	# Continuing into endless brings the layers back where they were.
@@ -152,19 +155,25 @@ func _ready() -> void:
 	hud.set_xp(xp_into_level, Progression.xp_required(level), level)
 	Music.play_gameplay()
 	_apply_dev_flags()
-	print("01-survivor boot OK — Godot %s" % Engine.get_version_info()["string"])
+	print("PRISM boot OK — Godot %s" % Engine.get_version_info()["string"])
 
 
 ## --dev-godmode  player takes no damage
 ## --dev-stats    print entity counts every 30s of game time
 ## --dev-autopick auto-take the first upgrade offer (a paused panel would stall
 ##                a headless soak run forever)
+## --dev-unlocks  every weapon active regardless of the save — the only way to
+##                exercise (or playtest) a gated weapon without earning it first
 func _apply_dev_flags() -> void:
 	for arg: String in OS.get_cmdline_user_args():
 		match arg:
 			"--dev-godmode":
 				player.health.invincible = true
 				print("[dev] godmode")
+			"--dev-unlocks":
+				player.apply_unlocks([MetaState.UNLOCK_ORBITAL,
+						MetaState.UNLOCK_ELITE_HUNTER, MetaState.UNLOCK_ENDLESS_PROVEN])
+				print("[dev] all unlocks")
 			"--dev-stats":
 				_dev_stats = true
 				print("[dev] stats")
@@ -269,9 +278,13 @@ func _on_enemy_spawned(enemy: Enemy) -> void:
 	enemy.died.connect(_on_enemy_died)
 
 
-## A boss is just a very large enemy as far as kills, XP and juice are concerned.
+## A boss is just a very large enemy as far as kills, XP and juice are concerned
+## — except in the mix, where its arrival and death are the run's loudest beats.
 func _on_boss_spawned(boss: Node2D) -> void:
 	boss.died.connect(_on_enemy_died)
+	boss.died.connect(func(_xp: int, _at: Vector2, _tint: Color) -> void:
+		Sfx.play(&"boss_death", -2.0))
+	Sfx.play(&"boss_spawn", -2.0)
 	player.camera.add_trauma(0.6)
 	Telemetry.event(&"boss_spawn", {"alive": director.bosses_alive})
 	if _dev_stats:
@@ -357,7 +370,7 @@ func _spawn_health(at: Vector2) -> void:
 	pickups.add_child(pickup)
 	pickup.collected.connect(func() -> void:
 		player.health.heal(2)
-		Sfx.play(&"levelup", -6.0))
+		Sfx.play(&"health", -4.0))
 
 
 func _spawn_power_up(at: Vector2) -> void:
@@ -390,7 +403,7 @@ func _pick_power_up() -> PowerUpResource:
 
 
 func _on_power_up_collected(resource: PowerUpResource) -> void:
-	Sfx.play(&"levelup", -4.0)
+	Sfx.play(&"powerup", -4.0)
 	player.camera.add_trauma(0.15)
 	Telemetry.event(&"powerup_take", {"id": String(resource.id)})
 	if resource.is_instant():

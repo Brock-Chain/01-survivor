@@ -1,0 +1,7 @@
+// Player death. The run ends here: a long two-octave fall in octaves, noise
+// washing out underneath. Nothing else in the game falls this far or this slow.
+stack(
+  note("a2").s("sawtooth").penv(17).pdecay(.85).decay(.95).sustain(0).lpf(2200).gain(.8),
+  note("a1").s("square").penv(17).pdecay(.85).decay(1).sustain(0).lpf(900).gain(.7),
+  s("white").decay(.5).sustain(0).lpf(1100).gain(.35)
+)
