@@ -78,6 +78,18 @@ theme_override_colors/font_color = Color(0.55, 0.70, 0.86, 1)
 horizontal_alignment = 2
 text = "0 kills"
 
+[node name="BuffsRow" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -160.0
+offset_top = 34.0
+offset_right = 160.0
+offset_bottom = 52.0
+alignment = 1
+theme_override_constants/separation = 14
+
 [node name="Bottom" type="HBoxContainer" parent="."]
 anchors_preset = 12
 anchor_top = 1.0

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PowerUpResource" format=3]
+
+[ext_resource type="Script" path="res://resources/power_up.gd" id="1_8j2c7"]
+[ext_resource type="Texture2D" path="res://assets/sprites/pu_power.png" id="2_4k7jq"]
+
+[resource]
+script = ExtResource("1_8j2c7")
+id = &"power"
+display_name = "Overcharge"
+kind = 1
+duration = 8.0
+sprite = ExtResource("2_4k7jq")

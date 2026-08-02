@@ -57,7 +57,10 @@ func refresh() -> void:
 		_orbs.append(orb)
 	for orb: Orbital in _orbs:
 		orb.damage = maxi(1, resource.damage + stats.damage_bonus)
-		orb.hit_interval = resource.interval
+		# Divided by spin: a faster orbit passes through an enemy more often, so
+		# it must be ALLOWED to hit more often. Without this, Spin Up was a
+		# cosmetic upgrade that measured 1 pick in 10 offers.
+		orb.hit_interval = resource.interval / maxf(0.25, stats.orbital_speed_mult)
 
 
 func _physics_process(delta: float) -> void:

@@ -12,6 +12,8 @@ var container: Node2D
 var resource: WeaponResource
 ## Injected by Main so crit rolls stay part of the seeded run.
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+## Temporary power-up multipliers, applied on top of Stats.
+var buffs: BuffState
 
 var _cooldown: float = 0.0
 
@@ -26,7 +28,17 @@ func _physics_process(delta: float) -> void:
 	if target == null:
 		return
 	_fire_at(target)
-	_cooldown = resource.interval * stats.fire_rate_mult
+	_cooldown = resource.interval * stats.fire_rate_mult * _haste_mult()
+
+
+## Haste halves the interval; Overcharge doubles damage. Both are temporary
+## and read from BuffState, never from Stats.
+func _haste_mult() -> float:
+	return 0.5 if buffs != null and buffs.has(BuffState.HASTE) else 1.0
+
+
+func _power_mult() -> float:
+	return 2.0 if buffs != null and buffs.has(BuffState.POWER) else 1.0
 
 
 func _nearest_enemy() -> Enemy:
@@ -48,7 +60,7 @@ func _fire_at(target: Enemy) -> void:
 	var base_dir: Vector2 = (target.global_position - global_position).normalized()
 	var count: int = maxi(1, resource.count + stats.projectile_bonus)
 	var crit: bool = stats.crit_chance > 0.0 and rng.randf() < stats.crit_chance
-	var base_damage: int = maxi(1, resource.damage + stats.damage_bonus)
+	var base_damage: int = maxi(1, roundi((resource.damage + stats.damage_bonus) * _power_mult()))
 	var damage: int = roundi(base_damage * stats.crit_mult) if crit else base_damage
 	for i: int in count:
 		var offset_deg: float = (i - (count - 1) / 2.0) * resource.spread_deg

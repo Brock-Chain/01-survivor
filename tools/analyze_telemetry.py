@@ -71,6 +71,8 @@ def main() -> int:
     end_rows: list[tuple[float, dict]] = []
     dmg_by_source: dict[str, int] = defaultdict(int)
     boss_fights: list[float] = []
+    pu_drop: dict[str, int] = defaultdict(int)
+    pu_take: dict[str, int] = defaultdict(int)
     buckets: dict[int, list[tuple[int, int, int]]] = defaultdict(list)
 
     for rows in runs:
@@ -91,6 +93,10 @@ def main() -> int:
             elif e == "tick":
                 buckets[int(t // 30) * 30].append(
                     (int(r.get("hp", 0)), int(r.get("max_hp", 1)), int(r.get("alive", 0))))
+            elif e == "powerup_drop":
+                pu_drop[r.get("id", "?")] += 1
+            elif e == "powerup_take":
+                pu_take[r.get("id", "?")] += 1
             elif e == "boss_spawn" and boss_at is None:
                 boss_at = t
             elif e == "victory" and boss_at is not None:
@@ -146,6 +152,14 @@ def main() -> int:
         print("BOSS FIGHT LENGTH")
         print(f"  median {boss_fights[len(boss_fights) // 2]:.1f}s   "
               f"range {boss_fights[0]:.1f}-{boss_fights[-1]:.1f}s\n")
+
+    if pu_drop:
+        print("POWER-UPS  (taken / dropped — a low ratio means they are unreachable)")
+        for pid, dropped in sorted(pu_drop.items()):
+            took = pu_take[pid]
+            print(f"  {pid:<10} {bar(took / dropped if dropped else 0)} "
+                  f"{(took / dropped if dropped else 0):5.0%}  ({took}/{dropped})")
+        print()
 
     if dmg_by_source:
         total = sum(dmg_by_source.values())

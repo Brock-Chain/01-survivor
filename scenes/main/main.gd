@@ -7,6 +7,18 @@ const ARENA: Rect2 = Rect2(0, 0, 1280, 720)
 const XP_GEM_SCENE: PackedScene = preload("res://scenes/pickups/xp_gem.tscn")
 const DEATH_BURST_SCENE: PackedScene = preload("res://scenes/fx/death_burst.tscn")
 const HEALTH_PICKUP_SCENE: PackedScene = preload("res://scenes/pickups/health_pickup.tscn")
+const POWER_UP_SCENE: PackedScene = preload("res://scenes/pickups/power_up.tscn")
+
+## Power-ups are the SHORT-TERM counterpart to upgrades: an upgrade changes the
+## rest of the run, a power-up changes the next few seconds. Rare on purpose —
+## the moment has to feel like luck, not income.
+const POWER_UPS: Array[PowerUpResource] = [
+	preload("res://resources/powerups/shield.tres"),
+	preload("res://resources/powerups/power.tres"),
+	preload("res://resources/powerups/haste.tres"),
+	preload("res://resources/powerups/collect.tres"),
+]
+const POWER_UP_DROP_CHANCE: float = 0.018
 
 ## Health is a world drop, not a level-up option. Only drops when the player
 ## is actually hurt, so it can never be the wasted pick a heal-at-full-HP was.
@@ -148,6 +160,7 @@ func _physics_process(delta: float) -> void:
 	Telemetry.set_run_time(time_survived)
 	_sample_telemetry(delta)
 	hud.set_run(time_survived, kills)
+	_push_buffs()
 	if _dev_stats:
 		_dev_stats_t += delta
 		if _dev_stats_t >= 30.0:
@@ -156,6 +169,13 @@ func _physics_process(delta: float) -> void:
 					% [time_survived, enemies.get_child_count(), pickups.get_child_count(),
 					projectiles.get_child_count(), enemy_bolts.get_child_count(),
 					kills, level, director.bosses_alive])
+
+
+func _push_buffs() -> void:
+	var entries: Array = []
+	for id: StringName in player.buffs.active_ids():
+		entries.append({"name": String(id).to_upper(), "left": player.buffs.remaining(id)})
+	hud.set_buffs(entries)
 
 
 ## Every 5s: the pressure curve. Answers "is the start too easy" with numbers —
@@ -215,6 +235,8 @@ func _on_enemy_died(xp_value: int, at: Vector2, tint: Color) -> void:
 		player.health.heal(1)
 	if player.health.hp < player.health.max_hp and run_rng.randf() < HEALTH_DROP_CHANCE:
 		_spawn_health.call_deferred(at)
+	elif run_rng.randf() < POWER_UP_DROP_CHANCE:
+		_spawn_power_up.call_deferred(at)
 	Sfx.play(&"pop", -6.0)
 	player.camera.add_trauma(0.12)
 	# died fires from a physics callback (projectile body_entered) — adding
@@ -239,6 +261,53 @@ func _spawn_health(at: Vector2) -> void:
 	pickup.collected.connect(func() -> void:
 		player.health.heal(2)
 		Sfx.play(&"levelup", -6.0))
+
+
+func _spawn_power_up(at: Vector2) -> void:
+	var choice: PowerUpResource = _pick_power_up()
+	if choice == null:
+		return
+	# Logged on DROP as well as on collect: the ratio of the two answers "are
+	# power-ups actually reachable, or are they dying on the floor?", which
+	# collection events alone cannot tell you.
+	Telemetry.event(&"powerup_drop", {"id": String(choice.id)})
+	var pickup: PowerUp = POWER_UP_SCENE.instantiate()
+	pickup.setup(choice, player)
+	pickup.position = at
+	pickups.add_child(pickup)
+	pickup.collected.connect(_on_power_up_collected)
+
+
+func _pick_power_up() -> PowerUpResource:
+	var total: float = 0.0
+	for p: PowerUpResource in POWER_UPS:
+		total += maxf(0.0, p.weight)
+	if total <= 0.0:
+		return null
+	var roll: float = run_rng.randf() * total
+	for p: PowerUpResource in POWER_UPS:
+		roll -= maxf(0.0, p.weight)
+		if roll <= 0.0:
+			return p
+	return POWER_UPS[POWER_UPS.size() - 1]
+
+
+func _on_power_up_collected(resource: PowerUpResource) -> void:
+	Sfx.play(&"levelup", -4.0)
+	player.camera.add_trauma(0.15)
+	Telemetry.event(&"powerup_take", {"id": String(resource.id)})
+	if resource.is_instant():
+		_collect_all_gems()
+		return
+	player.buffs.grant(resource.buff_id(), resource.duration)
+
+
+## The Collect power-up: every gem on the map homes in at once. Instant rather
+## than timed because a "magnet for 8s" would just be a worse Magnetism upgrade.
+func _collect_all_gems() -> void:
+	for child: Node in pickups.get_children():
+		if child is XpGem:
+			(child as XpGem).attract(player)
 
 
 func _spawn_burst(at: Vector2, tint: Color) -> void:

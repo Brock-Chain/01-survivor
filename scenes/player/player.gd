@@ -13,6 +13,9 @@ const ORBITAL_WEAPON: WeaponResource = preload("res://resources/weapons/orbital.
 @export var stats: Stats
 
 var health: Health
+## Temporary power-up effects. Never written into Stats — a six-second buff
+## leaking into a permanent modifier would be silent and unbounded.
+var buffs: BuffState = BuffState.new()
 ## Pause-safe clock: accumulates physics time, used for i-frame windows.
 var _time: float = 0.0
 
@@ -30,6 +33,7 @@ func _ready() -> void:
 	health.changed.connect(func(hp: int, max_hp: int) -> void: health_changed.emit(hp, max_hp))
 	health.died.connect(_on_died)
 	weapon.stats = stats
+	weapon.buffs = buffs
 	weapon.resource = BLASTER_WEAPON
 	magnet.area_entered.connect(_on_magnet_area_entered)
 	refresh_from_stats()
@@ -43,6 +47,10 @@ func _on_magnet_area_entered(area: Area2D) -> void:
 
 func _physics_process(delta: float) -> void:
 	_time += delta
+	for expired: StringName in buffs.tick(delta):
+		if expired == BuffState.SHIELD:
+			Sfx.play(&"click", -4.0)
+	health.shielded = buffs.has(BuffState.SHIELD)
 	var dir: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = dir * stats.move_speed
 	move_and_slide()
@@ -88,6 +96,14 @@ func apply_damage(amount: int, source: StringName = &"unknown") -> bool:
 
 
 func _update_invuln_visual() -> void:
+	if health.shielded:
+		# A shield must look different from i-frames, or the player cannot tell
+		# "briefly safe" from "protected".
+		visual.modulate = Color(0.6, 1.0, 1.0, 0.85 + 0.15 * sin(_time * 8.0))
+		return
+	visual.modulate.r = 1.0
+	visual.modulate.g = 1.0
+	visual.modulate.b = 1.0
 	if health.is_invulnerable(_time):
 		visual.modulate.a = 0.4 + 0.6 * absf(sin(_time * 30.0))
 	else:

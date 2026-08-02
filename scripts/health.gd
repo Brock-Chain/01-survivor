@@ -14,6 +14,10 @@ var invuln_duration: float
 ## run can observe the difficulty curve without the player dying two minutes in.
 var invincible: bool = false
 
+## Temporary protection from a Shield power-up. Kept SEPARATE from `invincible`
+## so a dev flag and a gameplay buff can never clobber each other's state.
+var shielded: bool = false
+
 var _invuln_until: float = -INF
 
 
@@ -25,7 +29,7 @@ func _init(p_max_hp: int, p_invuln_duration: float = 0.6) -> void:
 
 ## Returns true if damage was applied (not blocked by i-frames or death).
 func take_damage(amount: int, now: float) -> bool:
-	if invincible or hp <= 0 or now < _invuln_until:
+	if invincible or shielded or hp <= 0 or now < _invuln_until:
 		return false
 	hp = maxi(hp - amount, 0)
 	_invuln_until = now + invuln_duration

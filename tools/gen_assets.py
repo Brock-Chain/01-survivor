@@ -48,6 +48,7 @@ NEON = {
     # Health: warm white-cyan. Deliberately NOT the green of XP — the two must
     # never be confused when the screen is busy.
     "health": ((150, 255, 235), (255, 255, 255)),
+    "powerup": ((140, 255, 244), (255, 255, 255)),
     # Greyscale — tinted at runtime. Kept bright: `modulate` MULTIPLIES, so the
     # sprite's own value is a ceiling on how neon the tinted result can look.
     "enemy": ((214, 214, 214), (255, 255, 255)),
@@ -62,6 +63,21 @@ def _regular(n: int, cx: float, cy: float, r: float, rot: float = 0.0) -> list[t
              cy + r * math.sin(rot + i * math.tau / n)) for i in range(n)]
 
 
+def _plus(cx: float, cy: float, r: float) -> list[tuple[float, float]]:
+    """A thick cross — reads as 'boost' and is unmistakable at 14px."""
+    a = r * 0.36
+    return [(cx - a, cy - r), (cx + a, cy - r), (cx + a, cy - a), (cx + r, cy - a),
+            (cx + r, cy + a), (cx + a, cy + a), (cx + a, cy + r), (cx - a, cy + r),
+            (cx - a, cy + a), (cx - r, cy + a), (cx - r, cy - a), (cx - a, cy - a)]
+
+
+def _bolt(cx: float, cy: float, r: float) -> list[tuple[float, float]]:
+    """A lightning bolt — the universal 'faster' glyph."""
+    return [(cx + r * 0.25, cy - r), (cx - r * 0.55, cy + r * 0.15),
+            (cx - r * 0.05, cy + r * 0.15), (cx - r * 0.25, cy + r),
+            (cx + r * 0.6, cy - r * 0.2), (cx + r * 0.05, cy - r * 0.2)]
+
+
 def _chevron(cx: float, cy: float, r: float) -> list[tuple[float, float]]:
     """A V pointing up — the Lancer. Distinct from a triangle at 12px."""
     return [(cx, cy - r), (cx + r, cy + r * 0.75), (cx, cy + r * 0.2), (cx - r, cy + r * 0.75)]
@@ -74,6 +90,9 @@ SHAPES = {
     "diamond": lambda cx, cy, r: _regular(4, cx, cy, r, -math.pi / 2),
     "chevron": _chevron,
     "square": lambda cx, cy, r: _regular(4, cx, cy, r * 0.92, math.pi / 4),
+    "plus": _plus,
+    "bolt": _bolt,
+    "star": lambda cx, cy, r: _regular(12, cx, cy, r, -math.pi / 2),
 }
 
 
@@ -250,6 +269,12 @@ def main() -> None:
     # rather than a scaled-up enemy. Greyscale — boss.gd tints core and shards.
     neon_sprite("boss_core.png", 32, "hexagon", "enemy", radius=11.5,
                 core_ratio=0.54, glow=3.2, glow_alpha=0.6)
+
+    # Power-ups: one hue, four silhouettes (colour law - hue is allegiance).
+    for name, shape in (("pu_shield.png", "octagon"), ("pu_power.png", "plus"),
+                        ("pu_haste.png", "bolt"), ("pu_collect.png", "star")):
+        neon_sprite(name, 14, shape, "powerup", radius=5.0, core_ratio=0.5,
+                    glow=1.9, glow_alpha=0.8)
 
     write_floor()
 

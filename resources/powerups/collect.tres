@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PowerUpResource" format=3]
+
+[ext_resource type="Script" path="res://resources/power_up.gd" id="1_2jx3r"]
+[ext_resource type="Texture2D" path="res://assets/sprites/pu_collect.png" id="2_7j46e"]
+
+[resource]
+script = ExtResource("1_2jx3r")
+id = &"collect"
+display_name = "Collect"
+kind = 3
+duration = 0.0
+sprite = ExtResource("2_7j46e")
+weight = 0.8

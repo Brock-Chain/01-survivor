@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PowerUpResource" format=3]
+
+[ext_resource type="Script" path="res://resources/power_up.gd" id="1_clg7w"]
+[ext_resource type="Texture2D" path="res://assets/sprites/pu_shield.png" id="2_wm7pk"]
+
+[resource]
+script = ExtResource("1_clg7w")
+id = &"shield"
+display_name = "Shield"
+sprite = ExtResource("2_wm7pk")
