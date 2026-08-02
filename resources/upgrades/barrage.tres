@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_vqgw8"]
+
+[resource]
+script = ExtResource("1_vqgw8")
+rarity = 3
+id = &"barrage"
+display_name = "Barrage"
+description = "+2 projectiles"
+effect = 4
+magnitude = 2.0
+max_stacks = 1

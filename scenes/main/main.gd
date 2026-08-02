@@ -33,6 +33,7 @@ const HEALTH_DROP_CHANCE: float = 0.045
 const UPGRADE_LIST: Array[UpgradeResource] = [
 	preload("res://resources/upgrades/aegis.tres"),
 	preload("res://resources/upgrades/bandage.tres"),
+	preload("res://resources/upgrades/barrage.tres"),
 	preload("res://resources/upgrades/cadence.tres"),
 	preload("res://resources/upgrades/cannonball.tres"),
 	preload("res://resources/upgrades/carapace.tres"),
@@ -59,6 +60,7 @@ const UPGRADE_LIST: Array[UpgradeResource] = [
 	preload("res://resources/upgrades/relentless.tres"),
 	preload("res://resources/upgrades/reservoir.tres"),
 	preload("res://resources/upgrades/ricochet.tres"),
+	preload("res://resources/upgrades/scatter.tres"),
 	preload("res://resources/upgrades/scholar.tres"),
 	preload("res://resources/upgrades/second_wind.tres"),
 	preload("res://resources/upgrades/sharp_shots.tres"),

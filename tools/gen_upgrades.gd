@@ -50,11 +50,14 @@ func _init() -> void:
 		["siphon", "Siphon", "8% chance to recover 1 HP per kill", eff.LIFESTEAL, 0.08, 4, 0.9, U],
 		["carapace", "Carapace", "+2 max HP", eff.MAX_HP, 2.0, 4, 0.8, U],
 		["lodestone", "Lodestone", "+60px pickup range", eff.MAGNET, 60.0, 2, 0.6, U],
+		# A projectile source at Uncommon too: multishot is a signature mechanic and
+		# must not be something a player can finish a run without ever seeing.
+		["scatter", "Scatter", "+1 projectile, -20% damage", eff.PROJECTILE_COUNT, 1.0, 2, 1.2, U],
 		["relentless", "Relentless", "+8% move speed", eff.MOVE_SPEED, 0.08, 0, 0.4, U],
 
 		# ---- RARE -----------------------------------------------------------
 		["cannonball", "Cannonball", "+4 damage", eff.DAMAGE, 4.0, 3, 1.0, R],
-		["split_shot", "Split Shot", "+1 projectile", eff.PROJECTILE_COUNT, 1.0, 3, 1.1, R],
+		["split_shot", "Split Shot", "+1 projectile", eff.PROJECTILE_COUNT, 1.0, 3, 2.2, R],
 		["pierce", "Piercing Rounds", "Shots punch through +1 enemy", eff.PIERCE, 1.0, 3, 1.0, R],
 		["focus", "Focus", "+12% critical chance (2.5x damage)", eff.CRIT_CHANCE, 0.12, 5, 1.0, R],
 		["fusillade", "Fusillade", "28% faster firing", eff.FIRE_RATE, 0.28, 2, 0.9, R],
@@ -73,6 +76,7 @@ func _init() -> void:
 		["overclock", "Overclock", "Every 8th shot is a piercing mega-bolt", eff.OVERCLOCK, 8.0, 1, 1.0, L],
 		["second_wind", "Second Wind", "Survive one lethal hit and blast the screen clear", eff.SECOND_WIND, 1.0, 1, 1.0, L],
 		["chain_lightning", "Chain Lightning", "Shots arc to 2 nearby enemies", eff.CHAIN, 2.0, 1, 1.0, L],
+		["barrage", "Barrage", "+2 projectiles", eff.PROJECTILE_COUNT, 2.0, 1, 1.0, E],
 	]
 	_write(defs, &"")
 

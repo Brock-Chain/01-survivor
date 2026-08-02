@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_rogf4"]
+
+[resource]
+script = ExtResource("1_rogf4")
+rarity = 1
+id = &"scatter"
+display_name = "Scatter"
+description = "+1 projectile, -20% damage"
+effect = 4
+magnitude = 1.0
+max_stacks = 2
+weight = 1.2

@@ -3,53 +3,68 @@
 // as the "Neon" gameplay track (A Aeolian, i-bVI-bIII-bVII / iv-bVI-bVII-i), so
 // pressing START feels like the music TIGHTENS rather than switches.
 //
-// FOUR SECTIONS of 8 bars, gated by PATTERNED GAIN rather than by rests. Every
-// layer plays its 8-bar loop the whole time and is simply inaudible until its
-// section arrives — which means when a layer enters it is already mid-phrase and
-// in phase with everything else, instead of starting cold on a downbeat.
+// REVISED after playtest: "when it reaches its peak it's too abrupt, it should
+// be a slow consistent rise." The first version stepped in four 8-bar jumps and
+// stacked the arp AND lead together at bar 25, which landed as a wall.
 //
-//   bars  1-8   pad + a sparse call, almost nothing
-//   bars  9-16  + bass: the pulse arrives
-//   bars 17-24  + drums: it becomes a groove
-//   bars 25-32  + arp and lead: it finally slaps
+// Now EIGHT 4-bar steps, one new element at a time, so each increment is half
+// the size and twice as frequent:
 //
-// Then it drops back to nothing and climbs again. The reset IS the payoff — a
-// player who stays hears it build twice and notices the shape.
+//   1-4   pad alone            5-8   + the sparse call
+//   9-12  + bass               13-16 + hats
+//   17-20 + kick               21-24 + arp, filtered almost shut
+//   25-28 + clap, arp opens    29-32 + lead: the top of the climb
+//
+// And the filters open MONOTONICALLY across the whole minute rather than
+// snapping per section — that continuous opening is what makes it read as one
+// long rise instead of eight small ones. Reference feel: hypnotic and gradual,
+// closer to Veridis Quo than to a drop.
 setcps(0.5)
 stack(
-  // Pad — the constant. Swells slightly with each section rather than jumping.
+  // Pad — present from bar 1, swelling by a hair each step.
   note("<[a3,c4,e4] [a3,c4,f4] [g3,c4,e4] [g3,b3,d4] [a3,d4,f4] [a3,c4,f4] [g3,b3,d4] [a3,c4,e4]>")
     .s("triangle").room(0.75).size(0.9).attack(0.7).release(2.2)
-    .gain("<0.10!8 0.13!8 0.15!8 0.17!8>"),
+    .gain("<0.09!4 0.10!4 0.11!4 0.12!4 0.13!4 0.14!4 0.15!4 0.16!4>"),
 
-  // Sparse call, drenched in dotted-8th delay. Present from bar 1 so the opening
-  // is not silent, and it thins out once the busier layers take over.
+  // Sparse call — step 2. Thins out later so the busier layers have room.
   note("<[a5 ~ ~ ~] [~ ~ e5 ~] [~ c5 ~ ~] [~ ~ ~ a4] [~ e5 ~ ~] [~ ~ g5 ~] [~ d5 ~ ~] [~ ~ ~ ~]>")
     .s("sine").room(0.7).delay(0.4).delaytime(0.1875).delayfeedback(0.45)
-    .gain("<0.135!8 0.12!8 0.10!8 0.08!8>"),
+    .gain("<0!4 0.11!4 0.13!4 0.13!4 0.12!4 0.11!4 0.09!4 0.08!4>"),
 
-  // Bass — section 2. Roots with an approach tone into the next bar.
+  // Bass — step 3. Its filter opens continuously from nearly closed to open,
+  // which is most of the sensation of "rising" on its own.
   note("<[a1 a1 a2 a1 a1 a2 a1 g1] [f1 f1 f2 f1 f1 f2 f1 b1] [c2 c2 c3 c2 c2 c3 c2 a2] [g1 g1 g2 g1 g1 g2 g1 c2] [d2 d2 d3 d2 d2 d3 d2 c2] [f1 f1 f2 f1 f1 f2 f1 f2] [g1 g1 g2 g1 g1 g2 g1 g2] [a1 a1 a2 a1 a1 a2 a2 e2]>")
-    .s("sawtooth").lpf(480).lpq(6).release(0.09)
-    .gain("<0!8 0.30!8 0.36!8 0.40!8>"),
+    .s("sawtooth").lpq(6).release(0.09)
+    .lpf("<300!4 300!4 340!4 400!4 470!4 550!4 640!4 720!4>")
+    .gain("<0!8 0.22!4 0.26!4 0.30!4 0.34!4 0.37!4 0.40!4>"),
 
-  // Kick — section 3. Four on the floor, the moment it becomes a groove.
-  s("bd*4").gain("<0!16 0.34!8 0.40!8>"),
-  s("[~ hh]*4").gain("<0!16 0.08!8 0.11!8>").pan(sine.range(0.38, 0.62).fast(2)),
-  s("~ cp ~ cp").gain("<0!24 0.20!8>"),
-  // One crash on the downbeat of the final section: the "it slaps" marker.
-  s("<~!24 cr ~!7>").gain(0.22),
+  // Hats — step 4. Offbeat, so the pulse arrives before the downbeat does.
+  s("[~ hh]*4").pan(sine.range(0.38, 0.62).fast(2))
+    .gain("<0!12 0.05!4 0.07!4 0.09!4 0.10!4 0.11!4>"),
 
-  // Arp — section 4. The hook, held back for 48 seconds on purpose.
+  // Kick — step 5. The floor arrives under a groove that already exists.
+  s("bd*4").gain("<0!16 0.24!4 0.30!4 0.35!4 0.40!4>"),
+
+  // Arp — step 6, entering almost entirely filtered out and opening over three
+  // steps. It fades UP THROUGH THE FILTER rather than switching on.
   note("<[[a4 c5 e5 b5]*4] [[f4 a4 c5 e5]*4] [[c5 e5 g5 d5]*4] [[g4 b4 d5 a5]*4] [[d5 f5 a5 e5]*4] [[f4 a4 c5 f5]*4] [[g4 b4 d5 g5]*4] [[a4 c5 e5 a5]*4]>")
-    .s("square").lpf(sine.range(850, 3200).slow(8)).lpq(9).release(0.045)
+    .s("square").lpq(9).release(0.045)
     .delay(0.32).delaytime(0.1875).delayfeedback(0.33).pan(0.42)
-    .gain("<0!24 0.145!8>"),
+    .lpf("<700!20 700!4 1400!4 2400!4>")
+    .gain("<0!20 0.07!4 0.11!4 0.145!4>"),
 
-  // Lead — the last 8 bars only. Same harmonic-minor G# as the boss layer, so
-  // the menu quietly foreshadows the fight.
+  // Clap — step 7. The backbeat is the last rhythmic piece to arrive, not the
+  // first, so the groove assembles from the inside out.
+  s("~ cp ~ cp").gain("<0!24 0.14!4 0.20!4>"),
+
+  // Lead — step 8 only. Same harmonic-minor G# as the boss layer, so the menu
+  // quietly foreshadows the fight. Fades in across its own four bars instead of
+  // arriving at full, which is what made the old peak feel like a wall.
   note("<[a5 ~ ~ g#5] [a5 ~ c6 ~] [b5 ~ ~ a5] [g#5 ~ e5 ~] [f5 ~ ~ e5] [d5 ~ f5 ~] [e5 ~ g#5 ~] [a5 ~ ~ ~]>")
     .s("sawtooth").lpf(2800).lpq(4).release(0.2).room(0.3)
     .delay(0.22).delaytime(0.25).delayfeedback(0.28)
-    .gain("<0!24 0.16!8>")
+    .gain("<0!28 0.07 0.11 0.14 0.16>"),
+
+  // One crash, on the downbeat of the final step: the marker for the top.
+  s("<~!28 cr ~!3>").gain(0.18)
 )

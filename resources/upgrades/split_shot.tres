@@ -11,4 +11,4 @@ description = "+1 projectile"
 effect = 4
 magnitude = 1.0
 max_stacks = 3
-weight = 1.1
+weight = 2.2
