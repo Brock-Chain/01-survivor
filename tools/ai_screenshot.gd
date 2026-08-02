@@ -36,6 +36,9 @@ func _process(_delta: float) -> void:
 
 
 func _ready() -> void:
+	# The counter must survive anything that pauses the tree mid-capture
+	# (victory, a modal) — a frozen counter is an await that never resolves.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	var path: String = ""
 	var frames: PackedInt32Array = PackedInt32Array()
 	var scale: float = -1.0

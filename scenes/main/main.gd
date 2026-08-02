@@ -150,7 +150,10 @@ func _ready() -> void:
 	victory_screen.continued.connect(Music.resume_gameplay)
 	# Auto-pause when the window loses focus. Standard QOL, and it matters
 	# more here than usual: an unattended run keeps spawning and dies.
-	get_window().focus_exited.connect(_pause_if_playing)
+	# NOT in capture runs: the capture window opens unfocused, and the pause
+	# froze the frame counter — the sheet never landed.
+	if not _is_capture_run():
+		get_window().focus_exited.connect(_pause_if_playing)
 	hud.set_health(player.health.hp, player.health.max_hp)
 	hud.set_xp(xp_into_level, Progression.xp_required(level), level)
 	Music.play_gameplay()
@@ -213,6 +216,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		pause_panel.resume()
 	else:
 		_pause_if_playing()
+
+
+func _is_capture_run() -> bool:
+	for arg: String in OS.get_cmdline_user_args():
+		if arg.begins_with("--screenshot="):
+			return true
+	return false
 
 
 ## True while another screen owns the pause. Level-up, victory and game-over all
