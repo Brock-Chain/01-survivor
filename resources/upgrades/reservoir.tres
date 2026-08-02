@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_lup5e"]
+
+[resource]
+script = ExtResource("1_lup5e")
+rarity = 2
+id = &"reservoir"
+display_name = "Reservoir"
+description = "+4 max HP"
+effect = 1
+magnitude = 4.0
+max_stacks = 2
+weight = 0.7

@@ -5,6 +5,8 @@ extends CharacterBody2D
 
 signal died
 signal health_changed(hp: int, max_hp: int)
+## Second Wind fired. Main clears the screen — the player does not know how.
+signal second_wind(at: Vector2)
 
 ## Weapon data. The orbital is gated behind beating the Prism.
 const BLASTER_WEAPON: WeaponResource = preload("res://resources/weapons/blaster.tres")
@@ -16,6 +18,10 @@ var health: Health
 ## Temporary power-up effects. Never written into Stats — a six-second buff
 ## leaking into a permanent modifier would be silent and unbounded.
 var buffs: BuffState = BuffState.new()
+## Second Wind is once per RUN. Spending it here rather than in Stats keeps
+## the permanent modifiers free of run-scoped state.
+var _second_wind_spent: bool = false
+var _aegis_cd: float = 0.0
 ## Pause-safe clock: accumulates physics time, used for i-frame windows.
 var _time: float = 0.0
 
@@ -51,6 +57,7 @@ func _physics_process(delta: float) -> void:
 		if expired == BuffState.SHIELD:
 			Sfx.play(&"click", -4.0)
 	health.shielded = buffs.has(BuffState.SHIELD)
+	_tick_aegis(delta)
 	var dir: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = dir * stats.move_speed
 	move_and_slide()
@@ -82,10 +89,30 @@ func _check_contact_damage() -> void:
 				break
 
 
+## Aegis: a free shield on a timer. Runs only once the upgrade sets an interval.
+func _tick_aegis(delta: float) -> void:
+	if stats.aegis_interval <= 0.0:
+		return
+	_aegis_cd -= delta
+	if _aegis_cd <= 0.0:
+		_aegis_cd = stats.aegis_interval
+		buffs.grant(BuffState.SHIELD, 2.0)
+		Sfx.play(&"levelup", -12.0)
+
+
 ## Public damage entry point. Contact damage and enemy projectiles both come
 ## through here so i-frames, the hurt cue and screenshake can never disagree.
 ## Returns true if the damage actually landed.
 func apply_damage(amount: int, source: StringName = &"unknown") -> bool:
+	# Second Wind: survive the hit that would end the run, once. Checked BEFORE
+	# the damage lands so there is no frame where hp is 0 and death has fired.
+	if stats.second_wind and not _second_wind_spent and amount >= health.hp 			and not health.is_invulnerable(_time) and not health.shielded:
+		_second_wind_spent = true
+		buffs.grant(BuffState.SHIELD, 2.5)
+		camera.add_trauma(1.0)
+		Sfx.play(&"death", -4.0)
+		second_wind.emit(global_position)
+		return false
 	if not health.take_damage(amount, _time):
 		return false
 	Telemetry.event(&"damage", {"amt": amount, "hp": health.hp,

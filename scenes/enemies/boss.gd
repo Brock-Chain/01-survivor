@@ -143,9 +143,11 @@ func _fire() -> void:
 	_attack_cd = p1_interval if phase == 1 else p2_interval
 
 
-func take_hit(amount: int) -> void:
+func take_hit(amount: int, execute_below: float = 0.0) -> void:
 	var was_alive: bool = hp > 0
-	super.take_hit(amount)
+	# Bosses ignore Executioner — an instant-kill threshold on a 900 HP boss
+	# would delete the fight the run is built around.
+	super.take_hit(amount, 0.0)
 	if was_alive and hp > 0 and phase == 1 and hp <= max_hp / 2:
 		_enter_phase_two()
 

@@ -4,9 +4,9 @@
 
 [resource]
 script = ExtResource("1_74biv")
+rarity = 1
 id = &"momentum"
 display_name = "Momentum"
-description = "+7% move speed"
-magnitude = 0.07
-max_stacks = 0
-weight = 0.3
+description = "+14% move speed"
+magnitude = 0.14
+max_stacks = 4

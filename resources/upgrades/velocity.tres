@@ -1,13 +1,13 @@
-[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
 
-[ext_resource type="Script" path="res://resources/upgrade.gd" id="1"]
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_cudy2"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_cudy2")
 id = &"velocity"
 display_name = "Velocity"
-description = "+20% projectile speed"
+description = "+15% projectile speed"
 effect = 5
-magnitude = 0.2
+magnitude = 0.15
 max_stacks = 4
-weight = 0.8
+weight = 0.7

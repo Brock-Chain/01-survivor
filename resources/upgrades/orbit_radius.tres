@@ -4,11 +4,12 @@
 
 [resource]
 script = ExtResource("1_co33q")
+rarity = 1
 id = &"orbit_radius"
 display_name = "Wide Orbit"
-description = "+10px orbit radius"
+description = "+16px orbit radius"
 effect = 13
-magnitude = 10.0
-max_stacks = 4
-weight = 0.8
+magnitude = 16.0
+max_stacks = 3
+weight = 0.7
 requires_unlock = &"orbital"

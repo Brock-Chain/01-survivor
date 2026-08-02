@@ -4,10 +4,10 @@
 
 [resource]
 script = ExtResource("1_qet73")
+rarity = 1
 id = &"cadence"
 display_name = "Cadence"
-description = "5% faster firing"
+description = "15% faster firing"
 effect = 3
-magnitude = 0.05
-max_stacks = 0
-weight = 0.3
+magnitude = 0.15
+max_stacks = 4

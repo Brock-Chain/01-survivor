@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_hsi36"]
+
+[resource]
+script = ExtResource("1_hsi36")
+rarity = 4
+id = &"chain_lightning"
+display_name = "Chain Lightning"
+description = "Shots arc to 2 nearby enemies"
+effect = 25
+magnitude = 2.0
+max_stacks = 1

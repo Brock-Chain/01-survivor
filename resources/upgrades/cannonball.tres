@@ -1,13 +1,13 @@
-[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
 
-[ext_resource type="Script" path="res://resources/upgrade.gd" id="1"]
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_ivx3d"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_ivx3d")
+rarity = 2
 id = &"cannonball"
 display_name = "Cannonball"
-description = "+2 damage"
+description = "+4 damage"
 effect = 2
-magnitude = 2.0
-max_stacks = 2
-weight = 0.4
+magnitude = 4.0
+max_stacks = 3

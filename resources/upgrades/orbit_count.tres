@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_f454h")
+rarity = 2
 id = &"orbit_count"
 display_name = "Split Orbit"
 description = "+1 orbiting shard"

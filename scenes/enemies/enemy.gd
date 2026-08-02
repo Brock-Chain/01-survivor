@@ -20,6 +20,10 @@ var xp_value: int = 1
 ## Injected by the spawner. Falls back to our parent only if unset.
 var bolt_container: Node2D
 var _shoot_cd: float = 0.0
+## Cryo Rounds. Strongest slow wins and the longest duration wins, rather than
+## stacking — otherwise sustained fire freezes everything solid.
+var _slow_factor: float = 1.0
+var _slow_left: float = 0.0
 
 @onready var visual: Sprite2D = $Visual
 @onready var shape: CollisionShape2D = $CollisionShape2D
@@ -66,13 +70,34 @@ func _apply_elite_rim() -> void:
 	pulse.tween_property(rim, "modulate:a", 0.9, 0.5).set_trans(Tween.TRANS_SINE)
 
 
+## Applied by a Cryo projectile.
+func apply_slow(fraction: float, duration: float) -> void:
+	_slow_factor = minf(_slow_factor, maxf(0.25, 1.0 - fraction))
+	_slow_left = maxf(_slow_left, duration)
+	visual.modulate = stats.tint.lerp(Color(0.55, 0.85, 1.0), 0.55)
+
+
+func _tick_slow(delta: float) -> void:
+	if _slow_left <= 0.0:
+		return
+	_slow_left -= delta
+	if _slow_left <= 0.0:
+		_slow_factor = 1.0
+		visual.modulate = stats.tint
+
+
+func speed_now() -> float:
+	return stats.speed * _slow_factor
+
+
 func _physics_process(delta: float) -> void:
 	if not is_instance_valid(target):
 		return
+	_tick_slow(delta)
 	if stats.behavior == EnemyStats.Behavior.RANGED:
 		_act_ranged(delta)
 	else:
-		velocity = (target.global_position - global_position).normalized() * stats.speed
+		velocity = (target.global_position - global_position).normalized() * speed_now()
 	move_and_slide()
 
 
@@ -83,11 +108,11 @@ func _act_ranged(delta: float) -> void:
 	var dist: float = to_target.length()
 	var dir: Vector2 = to_target.normalized()
 	if dist > stats.attack_range * 1.15:
-		velocity = dir * stats.speed
+		velocity = dir * speed_now()
 	elif dist < stats.attack_range * 0.75:
-		velocity = -dir * stats.speed * 0.8
+		velocity = -dir * speed_now() * 0.8
 	else:
-		velocity = dir.orthogonal() * stats.speed * 0.35  # strafe, never static
+		velocity = dir.orthogonal() * speed_now() * 0.35  # strafe, never static
 
 	_shoot_cd -= delta
 	if _shoot_cd <= 0.0 and dist <= stats.attack_range * 1.3:
@@ -102,10 +127,15 @@ func _bolt_parent() -> Node:
 	return bolt_container if is_instance_valid(bolt_container) else get_parent()
 
 
-func take_hit(amount: int) -> void:
+## `execute_below` is Executioner: an enemy left under that fraction of its max
+## HP dies outright. Passed in per hit rather than read from a global, so the
+## enemy stays ignorant of who shot it.
+func take_hit(amount: int, execute_below: float = 0.0) -> void:
 	if hp <= 0:
 		return
 	hp -= amount
+	if hp > 0 and execute_below > 0.0 and float(hp) <= float(max_hp) * execute_below:
+		hp = 0
 	Sfx.play(&"hit", -8.0)
 	if hp <= 0:
 		died.emit(xp_value, global_position, stats.tint)

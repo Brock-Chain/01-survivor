@@ -19,7 +19,28 @@ enum Effect {
 	ORBITAL_COUNT,    ## magnitude = extra orbiting shards
 	ORBITAL_RADIUS,   ## magnitude = flat orbit radius (px)
 	ORBITAL_SPEED,    ## magnitude = fractional spin bonus
+
+	## --- EPIC: semi-unique, changes how a weapon behaves ---
+	RICOCHET,         ## magnitude = extra targets a shot bounces to
+	CRYO,             ## magnitude = slow fraction applied on hit
+	EXECUTE,          ## magnitude = HP fraction below which enemies die outright
+	GREED,            ## magnitude = XP bonus; also magnetises every gem
+	AEGIS,            ## magnitude = seconds between free shields
+	NOVA_ORBIT,       ## magnitude = detonation radius when an orbital kills
+
+	## --- LEGENDARY: unique, run-defining ---
+	PRISM_CORE,       ## magnitude = shards a shot splits into on impact
+	EVENT_HORIZON,    ## magnitude = implosion radius on kill
+	OVERCLOCK,        ## magnitude = every Nth shot is a mega-bolt
+	SECOND_WIND,      ## survive one lethal hit and clear the screen
+	CHAIN,            ## magnitude = enemies a shot arcs to
 }
+
+## Which tier this upgrade belongs to. The pool rolls a TIER per card and then
+## picks an upgrade from it, so a tier is a design slot rather than a multiplier:
+## a Rare damage upgrade is its own .tres with its own number, not a Common one
+## scaled up. That way "Legendary" can mean a different EFFECT, not a bigger one.
+@export var rarity: Rarity.Tier = Rarity.Tier.COMMON
 
 @export var id: StringName
 @export var display_name: String
@@ -83,3 +104,30 @@ func apply_to(stats: Stats) -> void:
 			stats.orbital_bonus_radius += magnitude
 		Effect.ORBITAL_SPEED:
 			stats.orbital_speed_mult *= 1.0 + magnitude
+		Effect.RICOCHET:
+			stats.ricochet += int(magnitude)
+		Effect.CRYO:
+			stats.cryo_slow = minf(0.75, stats.cryo_slow + magnitude)
+		Effect.EXECUTE:
+			stats.execute_below = minf(0.4, stats.execute_below + magnitude)
+		Effect.GREED:
+			stats.xp_mult *= 1.0 + magnitude
+			stats.greed = true
+		Effect.AEGIS:
+			# Stacking shortens the interval rather than adding a second timer.
+			stats.aegis_interval = (magnitude if stats.aegis_interval <= 0.0
+					else stats.aegis_interval * 0.65)
+		Effect.NOVA_ORBIT:
+			stats.nova_radius = maxf(stats.nova_radius, magnitude)
+		Effect.PRISM_CORE:
+			stats.prism_shards += int(magnitude)
+		Effect.EVENT_HORIZON:
+			stats.implode_radius = maxf(stats.implode_radius, magnitude)
+		Effect.OVERCLOCK:
+			# A second copy fires it more often, not twice.
+			stats.overclock_every = (int(magnitude) if stats.overclock_every <= 0
+					else maxi(3, stats.overclock_every - 3))
+		Effect.SECOND_WIND:
+			stats.second_wind = true
+		Effect.CHAIN:
+			stats.chain_targets += int(magnitude)

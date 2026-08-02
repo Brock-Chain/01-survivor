@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_f1cdx"]
+
+[resource]
+script = ExtResource("1_f1cdx")
+rarity = 3
+id = &"aegis"
+display_name = "Aegis"
+description = "A free 2s shield every 20s"
+effect = 19
+magnitude = 20.0
+max_stacks = 2
+weight = 0.9

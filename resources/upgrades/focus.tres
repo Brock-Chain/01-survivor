@@ -4,9 +4,9 @@
 
 [resource]
 script = ExtResource("1_mbsxh")
+rarity = 2
 id = &"focus"
 display_name = "Focus"
-description = "+8% critical chance (2.5x damage)"
+description = "+12% critical chance (2.5x damage)"
 effect = 10
-magnitude = 0.08
-max_stacks = 6
+magnitude = 0.12

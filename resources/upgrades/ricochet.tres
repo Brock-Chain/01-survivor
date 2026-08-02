@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_b80ae"]
+
+[resource]
+script = ExtResource("1_b80ae")
+rarity = 3
+id = &"ricochet"
+display_name = "Ricochet"
+description = "Shots bounce to a second target"
+effect = 15
+magnitude = 1.0
+max_stacks = 2

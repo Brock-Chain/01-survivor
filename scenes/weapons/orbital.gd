@@ -6,6 +6,8 @@ extends Area2D
 
 var damage: int = 1
 var hit_interval: float = 0.45
+## Nova Orbit: detonation radius when an orbital lands the killing blow.
+var nova_radius: float = 0.0
 
 ## enemy instance id -> seconds until this orb may hit it again.
 var _cooldowns: Dictionary = {}
@@ -45,4 +47,16 @@ func _try_hit(enemy: Enemy) -> void:
 	if _cooldowns.has(key):
 		return
 	_cooldowns[key] = hit_interval
+	var at: Vector2 = enemy.global_position
 	enemy.take_hit(damage)
+	# Detonate only on a KILL, not on every contact — a constant AoE would make
+	# the orbital a lawnmower rather than a reward for finishing something off.
+	if nova_radius > 0.0 and not is_instance_valid(enemy):
+		_nova(at)
+
+
+func _nova(at: Vector2) -> void:
+	for node: Node in get_tree().get_nodes_in_group(&"enemies"):
+		var other: Enemy = node as Enemy
+		if other != null and at.distance_to(other.global_position) <= nova_radius:
+			other.take_hit(damage)

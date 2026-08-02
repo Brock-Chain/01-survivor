@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_msbeh"]
+
+[resource]
+script = ExtResource("1_msbeh")
+rarity = 3
+id = &"nova_orbit"
+display_name = "Nova Orbit"
+description = "Orbitals detonate on kill"
+effect = 20
+magnitude = 60.0
+max_stacks = 1
+requires_unlock = &"orbital"

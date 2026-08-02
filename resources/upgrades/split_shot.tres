@@ -1,13 +1,14 @@
-[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
 
-[ext_resource type="Script" path="res://resources/upgrade.gd" id="1"]
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_m2yqd"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_m2yqd")
+rarity = 2
 id = &"split_shot"
 display_name = "Split Shot"
 description = "+1 projectile"
 effect = 4
 magnitude = 1.0
-max_stacks = 2
-weight = 0.5
+max_stacks = 3
+weight = 1.1

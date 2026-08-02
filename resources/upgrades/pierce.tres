@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_6fpgo")
+rarity = 2
 id = &"pierce"
 display_name = "Piercing Rounds"
 description = "Shots punch through +1 enemy"

@@ -1,13 +1,13 @@
-[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
 
-[ext_resource type="Script" path="res://resources/upgrade.gd" id="1"]
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_fyloc"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_fyloc")
 id = &"scholar"
 display_name = "Scholar"
-description = "+15% XP gained"
+description = "+10% XP gained"
 effect = 7
-magnitude = 0.15
-max_stacks = 3
+magnitude = 0.1
+max_stacks = 4
 weight = 0.8

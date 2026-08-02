@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_uktyg"]
+
+[resource]
+script = ExtResource("1_uktyg")
+rarity = 3
+id = &"greed"
+display_name = "Greed"
+description = "+50% XP, and gems come to you"
+effect = 18
+magnitude = 0.5
+max_stacks = 2
+weight = 0.9

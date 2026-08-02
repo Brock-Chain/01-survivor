@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_vnb4t"]
+
+[resource]
+script = ExtResource("1_vnb4t")
+rarity = 1
+id = &"honed_edge"
+display_name = "Honed Edge"
+description = "+2 damage"
+effect = 2
+magnitude = 2.0
+max_stacks = 4

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_gqwub"]
+
+[resource]
+script = ExtResource("1_gqwub")
+rarity = 4
+id = &"event_horizon"
+display_name = "Event Horizon"
+description = "Kills implode, dragging in and hurting neighbours"
+effect = 22
+magnitude = 70.0
+max_stacks = 1

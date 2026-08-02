@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_02von"]
+
+[resource]
+script = ExtResource("1_02von")
+rarity = 1
+id = &"carapace"
+display_name = "Carapace"
+description = "+2 max HP"
+effect = 1
+magnitude = 2.0
+max_stacks = 4
+weight = 0.8

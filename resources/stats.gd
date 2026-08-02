@@ -27,3 +27,18 @@ extends Resource
 @export var orbital_bonus_count: int = 0
 @export var orbital_bonus_radius: float = 0.0
 @export var orbital_speed_mult: float = 1.0
+
+## Epic / Legendary effects. Zero or false means "not taken", so every one of
+## these is inert until an upgrade turns it on — no branch runs for a player who
+## never picked it up.
+@export var ricochet: int = 0
+@export var cryo_slow: float = 0.0
+@export var execute_below: float = 0.0
+@export var greed: bool = false
+@export var aegis_interval: float = 0.0
+@export var nova_radius: float = 0.0
+@export var prism_shards: int = 0
+@export var implode_radius: float = 0.0
+@export var overclock_every: int = 0
+@export var second_wind: bool = false
+@export var chain_targets: int = 0

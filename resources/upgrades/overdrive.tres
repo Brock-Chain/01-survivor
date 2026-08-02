@@ -10,4 +10,4 @@ description = "+1 damage"
 effect = 2
 magnitude = 1.0
 max_stacks = 0
-weight = 0.35
+weight = 0.5

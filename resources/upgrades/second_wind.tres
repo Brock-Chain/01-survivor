@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_g4vul"]
+
+[resource]
+script = ExtResource("1_g4vul")
+rarity = 4
+id = &"second_wind"
+display_name = "Second Wind"
+description = "Survive one lethal hit and blast the screen clear"
+effect = 24
+magnitude = 1.0
+max_stacks = 1

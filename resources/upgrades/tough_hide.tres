@@ -1,13 +1,12 @@
-[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
 
-[ext_resource type="Script" path="res://resources/upgrade.gd" id="1"]
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_1p1dl"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_1p1dl")
 id = &"tough_hide"
 display_name = "Tough Hide"
-description = "+2 max HP"
+description = "+1 max HP"
 effect = 1
-magnitude = 2.0
-max_stacks = 5
-weight = 0.55
+magnitude = 1.0
+weight = 0.8

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_18y0u"]
+
+[resource]
+script = ExtResource("1_18y0u")
+rarity = 4
+id = &"overclock"
+display_name = "Overclock"
+description = "Every 8th shot is a piercing mega-bolt"
+effect = 23
+magnitude = 8.0
+max_stacks = 1

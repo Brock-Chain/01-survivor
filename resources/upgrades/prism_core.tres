@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_xkgvo"]
+
+[resource]
+script = ExtResource("1_xkgvo")
+rarity = 4
+id = &"prism_core"
+display_name = "Prism Core"
+description = "Shots split into a fan on impact"
+effect = 21
+magnitude = 3.0
+max_stacks = 1

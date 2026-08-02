@@ -1,12 +1,13 @@
 """Strudel stems -> a single self-contained HTML piano-roll you can SEE and HEAR.
 
-    python tools/score_viewer.py gameplay   # all gameplay_*.ogg stems, layered
+    python tools/score_viewer.py             # every track, one page, with a selector
+    python tools/score_viewer.py gameplay    # just the gameplay_*.ogg stems
     python tools/score_viewer.py title
-    python tools/score_viewer.py victory
 
-Writes .ai/score_<prefix>.html — one file, no CDN, no sidecar assets. The .ogg
-audio is embedded as a base64 data: URI and the note data as a JS literal, so the
-page works offline, survives being emailed, and needs no server.
+Writes .ai/score.html (all tracks) or .ai/score_<prefix>.html — one file, no CDN,
+no sidecar assets. The .ogg audio is embedded as a base64 data: URI and the note
+data as a JS literal, so the page works offline, survives being emailed, and
+needs no server.
 
 Where the notes come from: the Strudel renderer drops a sidecar
 `<name>.wav.events.json` next to every .wav it renders (audio_src/). That file is
@@ -14,17 +15,32 @@ the score — every scheduled event with its start, duration, hz, sound and the
 effect params it was given. This tool never re-renders anything; if a sidecar is
 missing it says so and tells you to run tools/build_music.py.
 
-Two things worth knowing about the drawing:
+Four things worth knowing:
 
 1. PITCH COMES FROM hz, NOT THE NOTE NAME. Names are optional in the sidecar
    (drum samples have none) and Strudel writes them lowercase with mixed
    accidental spellings. `69 + 12*log2(hz/440)` is unambiguous, sorts correctly,
    and lets synth and sample events share one layout pass.
 
-2. THE ROLL IS DRAWN TWICE. Grid + idle notes go onto an offscreen canvas once;
+2. dur_s IS THE SLOT, NOT THE SOUND. Strudel reports how much of the cycle an
+   event was handed, not how long it is audible. For a one-shot sample that is
+   meaningless — `s("bd*4")` gives every kick a 0.5s slot and a lone `cr` in
+   `<cr ~ ~ ~ ~ ~ ~ ~>` gets the whole 2s cycle, while the actual samples are a
+   tenth of that. So percussion is drawn as an ONSET MARKER (a diamond), never a
+   bar. For a synth the slot really is the gate, so it keeps its bar — with the
+   envelope's release drawn after it as a faded tail, because that part is heard
+   but is not part of the gate.
+
+3. THE ROLL IS DRAWN TWICE. Grid + idle notes go onto an offscreen canvas once;
    each animation frame just blits that and overdraws the handful of notes
    currently sounding. Redrawing every note every frame is what makes these
    viewers stutter, and the static layer never changes between resizes.
+
+4. THE CODE VIEW HIGHLIGHTS BARS, NOT NOTES. These .strudel files are authored
+   as `<[cell] [cell] ...>`, where one top-level cell is one cycle — so the
+   active cell is `floor(cycle * rate) % cellCount` and nothing more than a
+   bracket-depth scan is needed to find the cells. That is deliberately NOT a
+   Strudel parser, and the UI says so.
 """
 from __future__ import annotations
 
@@ -44,15 +60,23 @@ OUTDIR = ROOT / ".ai"
 
 DEFAULT_CPS = 0.5
 
+# Reading order for the selector; anything unknown is appended alphabetically.
+PREFERRED_TRACKS = ["gameplay", "track2", "track3", "title", "victory"]
+
 # Drum lanes read top-to-bottom the way a drummer sits behind the kit:
 # cymbals up high, kick on the floor. Anything unrecognised lands just above bd.
 PERC_ORDER = ["cr", "ho", "hc", "hh", "cb", "click", "metal", "east",
               "perc", "rs", "cp", "sn", "sd", "bd"]
 
 # Everything else in an event is an effect parameter and goes to the tooltip.
-CORE_KEYS = {"begin_s", "dur_s", "begin_cycle", "hz", "wave", "kind", "note", "s", "gain"}
+# `release` is pulled out here because it is drawn, not just described.
+CORE_KEYS = {"begin_s", "dur_s", "begin_cycle", "hz", "wave", "kind", "note", "s",
+             "gain", "release"}
 
 NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+
+JS_KEYWORDS = {"const", "let", "var", "function", "return", "if", "else",
+               "true", "false", "null", "await", "async", "new"}
 
 
 def midi_from_hz(hz: float | None) -> int | None:
@@ -89,22 +113,214 @@ def infer_cycle_seconds(events: list[dict], fallback: float) -> float:
     return ratios[len(ratios) // 2]
 
 
-def load_stem(ogg: Path, prefix: str) -> tuple[dict, str | None]:
-    """Returns (stem dict, warning). A stem with no sidecar still plays; it just
+# --------------------------------------------------------------------------
+# .strudel source -> tinted segments + the cycle cells to highlight
+# --------------------------------------------------------------------------
+
+def tokenize_js(src: str) -> tuple[list[tuple[str, int, int]], list[tuple[int, int]]]:
+    """A deliberately crude JS lexer: enough to tint the source and — the part
+    that actually matters — to know which spans are string literals.
+
+    Patterns must only ever be searched for INSIDE strings. These files discuss
+    their own patterns in prose (`// this used `<...>*4``), so a naive scan for
+    '<' finds commentary and highlights it forever.
+
+    Returns (tokens covering every character, content ranges of string literals).
+    """
+    toks: list[tuple[str, int, int]] = []
+    strings: list[tuple[int, int]] = []
+    i, n = 0, len(src)
+    while i < n:
+        ch = src[i]
+        if ch == "/" and i + 1 < n and src[i + 1] == "/":
+            j = src.find("\n", i)
+            j = n if j < 0 else j
+            toks.append(("cm", i, j))
+            i = j
+        elif ch == "/" and i + 1 < n and src[i + 1] == "*":
+            j = src.find("*/", i + 2)
+            j = n if j < 0 else j + 2
+            toks.append(("cm", i, j))
+            i = j
+        elif ch in "\"'`":
+            j = i + 1
+            while j < n:
+                if src[j] == "\\":
+                    j += 2
+                    continue
+                if src[j] == ch or (ch != "`" and src[j] == "\n"):
+                    break
+                j += 1
+            close = min(j, n)
+            toks.append(("st", i, min(close + 1, n)))
+            strings.append((i + 1, close))
+            i = min(close + 1, n)
+        elif ch.isdigit():
+            j = i
+            while j < n and (src[j].isdigit() or src[j] == "."):
+                j += 1
+            toks.append(("nu", i, j))
+            i = j
+        elif ch.isalpha() or ch in "_$":
+            j = i
+            while j < n and (src[j].isalnum() or src[j] in "_$"):
+                j += 1
+            k = j
+            while k < n and src[k] in " \t":
+                k += 1
+            word = src[i:j]
+            cls = "kw" if word in JS_KEYWORDS else ("fn" if k < n and src[k] == "(" else "id")
+            toks.append((cls, i, j))
+            i = j
+        else:
+            j = i
+            while j < n:
+                c = src[j]
+                if c in "\"'`_$" or c.isalnum() or (c == "/" and j + 1 < n and src[j + 1] in "/*"):
+                    break
+                j += 1
+            toks.append(("pn", i, max(j, i + 1)))
+            i = max(j, i + 1)
+    return toks, strings
+
+
+def split_cells(src: str, a: int, b: int) -> list[tuple[int, int]]:
+    """Top-level cells of a `<...>` body, by square-bracket depth. A cell is
+    either a bracket group or a bare token; a trailing modifier (`*4`, `!2`)
+    rides with the cell it modifies, since `[a b]*4` is still one bar."""
+    cells: list[tuple[int, int]] = []
+    k = a
+    while k < b:
+        if src[k].isspace():
+            k += 1
+            continue
+        start = k
+        if src[k] == "[":
+            depth = 0
+            while k < b:
+                if src[k] == "[":
+                    depth += 1
+                elif src[k] == "]":
+                    depth -= 1
+                    if depth == 0:
+                        k += 1
+                        break
+                k += 1
+        else:
+            while k < b and not src[k].isspace() and src[k] != "[":
+                k += 1
+        while k < b and not src[k].isspace() and src[k] != "[":
+            k += 1
+        cells.append((start, k))
+    return cells
+
+
+def find_slowcats(src: str, strings: list[tuple[int, int]]) -> list[dict]:
+    """Every `<...>` inside a string literal, with its top-level cells.
+
+    `rate` is how many cells are consumed per cycle: 1 normally, n for `<...>*n`
+    (a slowcat sped up is n items per cycle), 1/n for `<...>/n`. Without it,
+    `note("<a2 g2 ...>*8")` — a whole progression inside one bar — would light up
+    one cell per cycle and drift eight times too slowly.
+    """
+    pats: list[dict] = []
+    for s0, s1 in strings:
+        i = s0
+        while i < s1:
+            if src[i] != "<":
+                i += 1
+                continue
+            j, ang, sq = i + 1, 1, 0
+            while j < s1:
+                c = src[j]
+                if c == "[":
+                    sq += 1
+                elif c == "]":
+                    sq -= 1
+                elif sq == 0 and c == "<":
+                    ang += 1
+                elif sq == 0 and c == ">":
+                    ang -= 1
+                    if ang == 0:
+                        break
+                j += 1
+            if ang != 0 or j >= s1:
+                break                       # unbalanced — leave the rest alone
+            cells = split_cells(src, i + 1, j)
+            rate = 1.0
+            mod = re.match(r"\s*([*/])\s*(\d+(?:\.\d+)?)", src[j + 1:s1])
+            if mod:
+                v = float(mod.group(2)) or 1.0
+                rate = v if mod.group(1) == "*" else 1.0 / v
+            if cells:
+                pats.append({"cells": cells, "rate": rate})
+            i = j + 1
+    return pats
+
+
+def code_segments(src: str, toks: list[tuple[str, int, int]], pats: list[dict]) -> list[list]:
+    """Flatten source into [class, text] runs, splitting any run that straddles a
+    cell boundary so the JS can toggle a highlight by swapping a class on whole
+    spans — no re-tinting, no innerHTML churn, no layout shift per cycle.
+
+    Cell-bearing runs carry [class, text, patIndex, cellIndex, isFirstOfCell].
+    """
+    flat: list[tuple[int, int, int]] = []
+    owner = [-1] * (len(src) + 1)
+    for pi, pat in enumerate(pats):
+        for ci, (a, b) in enumerate(pat["cells"]):
+            idx = len(flat)
+            flat.append((pi, ci, a))
+            for k in range(a, b):
+                owner[k] = idx
+
+    segs: list[list] = []
+    for cls, a, b in toks:
+        k = a
+        while k < b:
+            o = owner[k]
+            j = k
+            while j < b and owner[j] == o:
+                j += 1
+            if o < 0:
+                segs.append([cls, src[k:j]])
+            else:
+                pi, ci, start = flat[o]
+                segs.append([cls, src[k:j], pi, ci, 1 if k == start else 0])
+            k = j
+    return segs
+
+
+def load_source(name: str) -> tuple[list[list] | None, list[dict], str | None]:
+    """(tinted segments, patterns, warning) for audio_src/<name>.strudel."""
+    path = SRC / f"{name}.strudel"
+    if not path.exists():
+        return None, [], f"{name}: no {path.name}"
+    try:
+        src = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return None, [], f"{name}: {path.name} unreadable ({exc.__class__.__name__})"
+    toks, strings = tokenize_js(src)
+    pats = find_slowcats(src, strings)
+    return code_segments(src, toks, pats), pats, None
+
+
+def load_stem(ogg: Path, prefix: str) -> tuple[dict, list[str]]:
+    """Returns (stem dict, warnings). A stem with no sidecar still plays; it just
     draws an empty roll with an explanation, which beats refusing to open."""
     name = ogg.stem
     events_path = SRC / f"{name}.wav.events.json"
-    warning = None
+    warnings: list[str] = []
     events: list[dict] = []
 
     if events_path.exists():
         try:
             events = json.loads(events_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError) as exc:
-            warning = f"{name}: sidecar unreadable ({exc.__class__.__name__}) - re-render it"
+            warnings.append(f"{name}: sidecar unreadable ({exc.__class__.__name__}) - re-render it")
             events = []
     else:
-        warning = f"{name}: no {events_path.name}"
+        warnings.append(f"{name}: no {events_path.name}")
 
     notes = []
     for e in events:
@@ -121,9 +337,14 @@ def load_stem(ogg: Path, prefix: str) -> tuple[dict, str | None]:
             "s": e.get("s") or e.get("wave") or "?",
             "k": e.get("kind", "synth"),
             "g": round(float(e.get("gain", 1.0)), 4),
+            "r": round(float(e.get("release") or 0.0), 4),
             "p": params,
         })
     notes.sort(key=lambda n: (n["t"], -(n["m"] or 0)))
+
+    code, pats, src_warning = load_source(name)
+    if src_warning:
+        warnings.append(src_warning)
 
     sounds = sorted({n["s"] for n in notes})
     stem = {
@@ -135,47 +356,33 @@ def load_stem(ogg: Path, prefix: str) -> tuple[dict, str | None]:
         "pitched": sum(1 for n in notes if n["m"] is not None),
         "perc": sum(1 for n in notes if n["m"] is None),
         "notes": notes,
-        "warning": warning,
+        "code": code,
+        "pats": [{"n": len(p["cells"]), "rate": round(p["rate"], 6)} for p in pats],
+        "cells": sum(len(p["cells"]) for p in pats),
     }
-    return stem, warning
+    return stem, warnings
 
 
-def build(prefix: str, cps: float, out: Path) -> int:
-    if not MUSIC.is_dir():
-        print(f"no music directory: {MUSIC}")
-        print("run:  python tools/build_music.py")
-        return 1
-
+def build_track(prefix: str, cps: float) -> tuple[dict | None, list[str]]:
+    """One track = every <prefix>*.ogg, layered. None when the prefix matches
+    nothing on disk."""
     oggs = sorted(MUSIC.glob(f"{prefix}*.ogg"))
     if not oggs:
-        have = sorted({p.stem.split("_")[0] for p in MUSIC.glob("*.ogg")})
-        print(f"no .ogg matching '{prefix}*' in {MUSIC}")
-        print(f"known prefixes: {', '.join(have) if have else '(none - run python tools/build_music.py)'}")
-        return 1
+        return None, []
 
     stems, warnings = [], []
+    audio = {}
     for ogg in oggs:
-        stem, warning = load_stem(ogg, prefix)
-        if warning:
-            warnings.append(warning)
-        stem["audio"] = "data:audio/ogg;base64," + base64.b64encode(ogg.read_bytes()).decode("ascii")
+        stem, warns = load_stem(ogg, prefix)
+        warnings.extend(warns)
+        audio[stem["name"]] = "data:audio/ogg;base64," + base64.b64encode(ogg.read_bytes()).decode("ascii")
         stems.append(stem)
-
-    if warnings:
-        print("  ! missing note data for:")
-        for w in warnings:
-            print(f"      {w}")
-        print("      the sidecar .wav.events.json is written at render time, next to the .wav")
-        print("      fix:  python tools/build_music.py --force")
-
-    if all(s["count"] == 0 for s in stems):
-        print(f"\nnothing to draw - not one of the {len(stems)} stem(s) has note data.")
-        print("run:  python tools/build_music.py --force")
-        return 1
 
     all_notes = [n for s in stems for n in s["notes"]]
     cycle_seconds = infer_cycle_seconds(
         [{"begin_s": n["t"], "begin_cycle": n["c"]} for n in all_notes], 1.0 / cps)
+    # Span stays slot-based on purpose: release tails are drawn but must not
+    # decide the loop length, or a 2.2s pad tail would invent a ninth cycle.
     span = max((n["t"] + n["d"] for n in all_notes), default=cycle_seconds)
     cycles = max(1, math.ceil(round(span / cycle_seconds, 3) - 1e-6))
     total = cycles * cycle_seconds
@@ -186,27 +393,69 @@ def build(prefix: str, cps: float, out: Path) -> int:
         "cps": round(1.0 / cycle_seconds, 6),
         "cycles": cycles,
         "total": round(total, 6),
-        "generated": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "stems": [{k: v for k, v in s.items() if k != "audio"} for s in stems],
+        "stems": stems,
     }
-    audio = {s["name"]: s["audio"] for s in stems}
+    return {"id": prefix, "label": prefix.upper(), "score": score, "audio": audio}, warnings
+
+
+def discover_prefixes() -> list[str]:
+    found = {p.stem.split("_")[0] for p in MUSIC.glob("*.ogg")}
+    return sorted(found, key=lambda p: (PREFERRED_TRACKS.index(p)
+                                        if p in PREFERRED_TRACKS else len(PREFERRED_TRACKS), p))
+
+
+def build(prefixes: list[str], cps: float, out: Path, page_title: str) -> int:
+    tracks, warnings = [], []
+    for prefix in prefixes:
+        track, warns = build_track(prefix, cps)
+        if track is None:
+            have = discover_prefixes()
+            print(f"no .ogg matching '{prefix}*' in {MUSIC}")
+            print(f"known prefixes: {', '.join(have) if have else '(none - run python tools/build_music.py)'}")
+            return 1
+        warnings.extend(warns)
+        tracks.append(track)
+
+    if warnings:
+        print("  ! missing source data:")
+        for w in warnings:
+            print(f"      {w}")
+        print("      sidecars (.wav.events.json) are written at render time, next to the .wav")
+        print("      fix:  python tools/build_music.py --force")
+
+    have_notes = [t for t in tracks if any(s["count"] for s in t["score"]["stems"])]
+    if not have_notes:
+        print(f"\nnothing to draw - not one stem in {len(tracks)} track(s) has note data.")
+        print("run:  python tools/build_music.py --force")
+        return 1
+
+    generated = datetime.now().strftime("%Y-%m-%d %H:%M")
+    meta = [{"id": t["id"], "label": t["label"],
+             "score": dict(t["score"], generated=generated)} for t in tracks]
+    audio = {t["id"]: t["audio"] for t in tracks}
 
     html = (TEMPLATE
-            .replace("__TITLE__", f"score - {prefix}")
-            .replace("__SCORE__", json.dumps(score, separators=(",", ":")))
+            .replace("__TITLE__", page_title)
+            .replace("__TRACKS__", json.dumps(meta, separators=(",", ":")))
             .replace("__AUDIO__", json.dumps(audio, separators=(",", ":"))))
 
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(html, encoding="utf-8")
 
-    kb = out.stat().st_size / 1024
+    size = out.stat().st_size
+    human = f"{size / 1048576:.2f} MB" if size >= 1048576 else f"{size / 1024:,.0f} KB"
     print(f"\n  {out}")
-    print(f"  {kb:,.0f} KB  |  {len(stems)} stems  |  {cycles} cycles @ cps "
-          f"{1.0 / cycle_seconds:.3f} = {total:.2f}s")
-    for s in stems:
-        detail = f"{s['pitched']} pitched" + (f" + {s['perc']} perc" if s["perc"] else "")
-        print(f"    {s['label']:<10} {s['count']:>4} notes  ({detail})  "
-              f"[{', '.join(s['sounds']) or 'none'}]")
+    print(f"  {human}  |  {len(tracks)} track(s)")
+    for t in tracks:
+        sc = t["score"]
+        print(f"\n  {t['label']}  -  {len(sc['stems'])} stems  |  {sc['cycles']} cycles "
+              f"@ cps {sc['cps']:.3f} = {sc['total']:.2f}s")
+        for s in sc["stems"]:
+            detail = f"{s['pitched']} pitched" + (f" + {s['perc']} perc" if s["perc"] else "")
+            src = (f"{len(s['pats'])} pat/{s['cells']} cells" if s["code"] is not None
+                   else "no .strudel")
+            print(f"    {s['label']:<10} {s['count']:>4} notes  ({detail})  "
+                  f"[{', '.join(s['sounds']) or 'none'}]  src: {src}")
     return 0
 
 
@@ -265,7 +514,24 @@ TEMPLATE = r"""<!doctype html>
   .spacer{flex:1}
   .hint{font:10px/1.6 var(--mono);color:var(--dim);letter-spacing:.06em}
 
+  select{
+    font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;
+    color:var(--cyan);background:#1a1f3a99;border:1px solid #78fff54d;
+    padding:8px 10px;border-radius:7px;cursor:pointer;
+  }
+  select:hover{border-color:var(--cyan)}
+  .picker{display:flex;align-items:center;gap:8px}
+  .picker label{font:10px/1 var(--mono);letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+  .tabs{display:flex;gap:0;border:1px solid #78fff52e;border-radius:8px;overflow:hidden}
+  .tabs button{border:0;border-radius:0;background:transparent}
+  .tabs button + button{border-left:1px solid #78fff52e}
+  .tabs button.on{background:#78fff51a;color:var(--cyan)}
+
   .stack{position:relative}
+  body.code .stack{display:none}
+  #codeview{display:none}
+  body.code #codeview{display:block}
+
   .block{
     position:relative;margin-bottom:10px;padding:0 0 6px;border-radius:12px;
     background:linear-gradient(180deg,#141830a8,#0d0f1e9e);
@@ -312,8 +578,39 @@ TEMPLATE = r"""<!doctype html>
   #tip .row span{color:var(--ink)}
   #tip .fx{margin-top:6px;padding-top:5px;border-top:1px solid #78fff51f;color:var(--cyan);font-size:10px}
 
+  /* ---- code view ---- */
+  .caption{
+    margin:0 0 10px;padding:9px 12px;border-radius:10px;
+    border:1px solid #ff4ab829;background:#ff4ab80a;
+    font:10px/1.7 var(--mono);color:var(--dim);letter-spacing:.06em;
+  }
+  .caption b{color:var(--magenta);font-weight:600}
+  pre.code{
+    margin:0;padding:13px 15px;overflow-x:auto;white-space:pre;
+    font:11.5px/1.62 var(--mono);letter-spacing:.01em;color:#c3cde6;
+  }
+  .tcm{color:#57608a;font-style:italic}
+  .tst{color:#78fff5}
+  .tnu{color:#f2c17b}
+  .tfn{color:#ff4ab8}
+  .tkw{color:#a98cff}
+  .tid{color:#c3cde6}
+  .tpn{color:#7f8aab}
+  .on-cell{background:#ff4ab826;border-radius:2px}
+  /* box-shadow, not border: a border on a span that toggles every cycle would
+     reflow the whole line of code once per bar. */
+  .on-cell.cs{box-shadow:-3px 0 0 0 var(--magenta),0 0 16px #ff4ab826}
+
   footer{margin-top:16px;font:10px/1.8 var(--mono);color:var(--dim);letter-spacing:.06em}
   footer b{color:var(--cyan);font-weight:400}
+  .legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin-bottom:6px}
+  .legend span{display:flex;align-items:center;gap:7px}
+  .sw{display:inline-block;flex:none}
+  .sw-gate{width:16px;height:8px;border-radius:2px;background:#78fff5cc}
+  .sw-tail{width:22px;height:8px;border-radius:2px;
+           background:linear-gradient(90deg,#78fff5cc 0 34%,#78fff566 34%,#78fff500)}
+  .sw-perc{width:9px;height:9px;background:#78fff5cc;transform:rotate(45deg)}
+  .sw-now{width:16px;height:8px;border-radius:2px;background:var(--magenta);box-shadow:0 0 10px #ff4ab8aa}
 </style>
 </head>
 <body>
@@ -324,10 +621,12 @@ TEMPLATE = r"""<!doctype html>
   </header>
 
   <div class="transport">
+    <div class="picker" id="picker"><label for="track">Track</label><select id="track"></select></div>
     <button id="play">&#9654; Play</button>
     <button id="stop">&#9632; Stop</button>
     <div class="clock"><span id="t">0:00.00</span> <small id="cyc">cycle 1.00</small></div>
     <button id="loop" class="tog on">Loop</button>
+    <div class="tabs"><button id="tabRoll" class="on">Roll</button><button id="tabCode">Code</button></div>
     <div class="spacer"></div>
     <div class="hint">click roll to seek &nbsp;&middot;&nbsp; hover a note for detail &nbsp;&middot;&nbsp; space = play/pause</div>
   </div>
@@ -338,36 +637,49 @@ TEMPLATE = r"""<!doctype html>
     <div id="head"></div>
   </div>
 
+  <div id="codeview">
+    <p class="caption">
+      the <b>.strudel</b> source, highlighted as it plays. the highlight is
+      <b>cycle-level, not note-level</b>: for every <b>&lt;...&gt;</b> pattern it marks the
+      cell that owns the current bar. it is a bracket scan, not a Strudel interpreter &mdash;
+      what happens inside a cell is not tracked.
+    </p>
+    <div id="codeblocks"></div>
+  </div>
+
   <footer id="foot"></footer>
 </div>
 
 <div id="tip"></div>
 
 <script>
-const SCORE = __SCORE__;
-const AUDIO = __AUDIO__;
+const TRACKS = __TRACKS__;   // [{id,label,score}] - notes + tinted source, no audio
+const AUDIO  = __AUDIO__;    // {trackId:{stemName:dataURI}} - kept apart so a switch can drop it
 
 const CYAN = "#78fff5", MAG = "#ff4ab8";
 const PAD = 46;              // left key-strip inside every canvas; keeps all rolls aligned
 const PERC_ORDER = ["cr","ho","hc","hh","cb","click","metal","east","perc","rs","cp","sn","sd","bd"];
 const NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 const BLACK = {1:1,3:1,6:1,8:1,10:1};
+const PERC_FLASH = 0.09;     // a one-shot has no gate to light up, so give it a blink
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
+const cy = a => `rgba(120,255,245,${a})`;
+const mg = a => `rgba(255,74,184,${a})`;
+const isPerc = n => n.m === null || n.m === undefined;
 
-let total = SCORE.total;
-const stems = SCORE.stems;
+let SCORE = null, stems = [], total = 0, trackId = null, view = "roll";
 
 /* ---------- layout: one row per pitch, then one lane per drum sound ---------- */
 function layout(stem){
   const rows = [], index = new Map();
-  const pitched = stem.notes.filter(n => n.m !== null && n.m !== undefined);
+  const pitched = stem.notes.filter(n => !isPerc(n));
   if (pitched.length){
     let lo = Infinity, hi = -Infinity;
     for (const n of pitched){ if (n.m < lo) lo = n.m; if (n.m > hi) hi = n.m; }
     lo -= 1; hi += 1;
     for (let m = hi; m >= lo; m--){ index.set("m" + m, rows.length); rows.push({kind:"pitch", m}); }
   }
-  const percSounds = [...new Set(stem.notes.filter(n => n.m === null || n.m === undefined).map(n => n.s))];
+  const percSounds = [...new Set(stem.notes.filter(isPerc).map(n => n.s))];
   percSounds.sort((a,b) => {
     const ia = PERC_ORDER.indexOf(a), ib = PERC_ORDER.indexOf(b);
     return (ia < 0 ? PERC_ORDER.length - 1 : ia) - (ib < 0 ? PERC_ORDER.length - 1 : ib);
@@ -380,50 +692,103 @@ function layout(stem){
   const gains = stem.notes.map(n => n.g);
   const gmax = Math.max(0.0001, ...gains), gmin = Math.min(...gains, gmax);
   for (const n of stem.notes){
-    n._row = index.get(n.m !== null && n.m !== undefined ? "m" + n.m : "s" + n.s) ?? 0;
+    n._row = index.get(isPerc(n) ? "s" + n.s : "m" + n.m) ?? 0;
     n._rel = gmax > gmin ? (n.g - gmin) / (gmax - gmin) : 1;
   }
   return {rows, rowH, height: Math.round(rows.length * rowH) + 8};
 }
 
-/* ---------- build the DOM ---------- */
+/* ---------- DOM: rebuilt from scratch on every track switch ---------- */
 const blocksEl = document.getElementById("blocks");
-for (const stem of stems){
-  stem.L = layout(stem);
-  const el = document.createElement("div");
-  el.className = "block";
-  const tags = stem.count
-    ? `<span class="tag n">${stem.count} notes</span>` +
-      stem.sounds.map(s => `<span class="tag">${s}</span>`).join("")
-    : `<span class="tag">no data</span>`;
-  el.innerHTML =
-    `<div class="bhead"><div class="bname">${stem.label}</div>${tags}<div class="spacer"></div>` +
-    `<button class="tog mute">Mute</button><button class="tog solo">Solo</button></div>` +
-    (stem.count
-      ? `<canvas></canvas>`
-      : `<div class="empty">no note data for <b>${stem.name}</b> &mdash; the sidecar ` +
-        `<b>audio_src/${stem.name}.wav.events.json</b> is written at render time.<br>` +
-        `run <b>python tools/build_music.py --force</b>, then rebuild this page.</div>`);
-  blocksEl.appendChild(el);
-  stem.el = el;
-  stem.canvas = el.querySelector("canvas");
-  stem.static = document.createElement("canvas");
-  stem.muted = false; stem.solo = false; stem.activeKey = "";
-  el.querySelector(".mute").onclick = e => { stem.muted = !stem.muted; e.target.classList.toggle("on", stem.muted); applyMix(); };
-  el.querySelector(".solo").onclick = e => { stem.solo = !stem.solo; e.target.classList.toggle("on", stem.solo); applyMix(); };
+const codeEl = document.getElementById("codeblocks");
+
+function buildBlocks(){
+  blocksEl.innerHTML = "";
+  for (const stem of stems){
+    stem.L = layout(stem);
+    const el = document.createElement("div");
+    el.className = "block";
+    const tags = stem.count
+      ? `<span class="tag n">${stem.count} notes</span>` +
+        stem.sounds.map(s => `<span class="tag">${s}</span>`).join("")
+      : `<span class="tag">no data</span>`;
+    el.innerHTML =
+      `<div class="bhead"><div class="bname">${stem.label}</div>${tags}<div class="spacer"></div>` +
+      `<button class="tog mute">Mute</button><button class="tog solo">Solo</button></div>` +
+      (stem.count
+        ? `<canvas></canvas>`
+        : `<div class="empty">no note data for <b>${stem.name}</b> &mdash; the sidecar ` +
+          `<b>audio_src/${stem.name}.wav.events.json</b> is written at render time.<br>` +
+          `run <b>python tools/build_music.py --force</b>, then rebuild this page.</div>`);
+    blocksEl.appendChild(el);
+    stem.el = el;
+    stem.canvas = el.querySelector("canvas");
+    stem.ctx = null;
+    stem.static = document.createElement("canvas");
+    stem.muted = false; stem.solo = false; stem.activeKey = "";
+    el.querySelector(".mute").onclick = e => { stem.muted = !stem.muted; e.target.classList.toggle("on", stem.muted); applyMix(); };
+    el.querySelector(".solo").onclick = e => { stem.solo = !stem.solo; e.target.classList.toggle("on", stem.solo); applyMix(); };
+    if (stem.canvas) wirePointer(stem);
+  }
 }
 
-document.getElementById("title").textContent = SCORE.prefix;
-document.getElementById("meta").innerHTML = [
-  `<i>${SCORE.cycles}</i> cycles`,
-  `cps <i>${SCORE.cps.toFixed(2)}</i>`,
-  `<i>${total.toFixed(2)}</i> s loop`,
-  `<i>${stems.reduce((a,s) => a + s.count, 0)}</i> events`,
-  `built <i>${SCORE.generated}</i>`,
-].join("");
+function buildCode(){
+  codeEl.innerHTML = "";
+  for (const stem of stems){
+    const el = document.createElement("div");
+    el.className = "block";
+    const pats = stem.pats || [];
+    el.innerHTML =
+      `<div class="bhead"><div class="bname">${stem.label}</div>` +
+      `<span class="tag">audio_src/${stem.name}.strudel</span><div class="spacer"></div>` +
+      (stem.code ? `<span class="tag n">${pats.length} &lt;&gt; pattern${pats.length === 1 ? "" : "s"}</span>` +
+                   `<span class="tag">${pats.reduce((a,p) => a + p.n, 0)} cells</span>` : "");
+    stem.cellSpans = null; stem.cellNow = null;
+    if (!stem.code){
+      el.innerHTML += `<div class="empty">no source for <b>${stem.name}</b> &mdash; ` +
+        `<b>audio_src/${stem.name}.strudel</b> was not found when this page was built.</div>`;
+    } else {
+      const pre = document.createElement("pre");
+      pre.className = "code";
+      const spans = pats.map(() => []);
+      for (const seg of stem.code){
+        const sp = document.createElement("span");
+        sp.className = "t" + seg[0] + (seg.length > 2 && seg[4] ? " cs" : "");
+        sp.textContent = seg[1];
+        pre.appendChild(sp);
+        if (seg.length > 2){
+          const bucket = spans[seg[2]];
+          (bucket[seg[3]] || (bucket[seg[3]] = [])).push(sp);
+        }
+      }
+      el.appendChild(pre);
+      stem.cellSpans = spans;
+      stem.cellNow = pats.map(() => -1);
+    }
+    codeEl.appendChild(el);
+  }
+}
+
+function fillMeta(){
+  document.getElementById("title").textContent = SCORE.prefix;
+  document.getElementById("meta").innerHTML = [
+    `<i>${SCORE.cycles}</i> cycles`,
+    `cps <i>${SCORE.cps.toFixed(2)}</i>`,
+    `<i>${total.toFixed(2)}</i> s loop`,
+    `<i>${stems.reduce((a,s) => a + s.count, 0)}</i> events`,
+    `built <i>${SCORE.generated}</i>`,
+  ].join("");
+}
+
 document.getElementById("foot").innerHTML =
-  `bar lines every <b>${SCORE.cycleSeconds.toFixed(2)}s</b> (1 cycle), faint lines mark quarters &nbsp;&middot;&nbsp; ` +
-  `note brightness = <b>gain</b> &nbsp;&middot;&nbsp; magenta = sounding now &nbsp;&middot;&nbsp; ` +
+  `<div class="legend">` +
+  `<span><i class="sw sw-gate"></i> synth gate (dur)</span>` +
+  `<span><i class="sw sw-tail"></i> + envelope release, faded</span>` +
+  `<span><i class="sw sw-perc"></i> one-shot onset &mdash; the sample sets its own length, not the slot</span>` +
+  `<span><i class="sw sw-now"></i> sounding now</span>` +
+  `</div>` +
+  `bar lines every <b id="footcyc"></b> (1 cycle), faint lines mark quarters &nbsp;&middot;&nbsp; ` +
+  `brightness = <b>gain</b> &nbsp;&middot;&nbsp; ` +
   `source: <b>audio_src/*.strudel</b> &rarr; renderer sidecars`;
 
 /* ---------- drawing ---------- */
@@ -478,11 +843,47 @@ function rrect(ctx, x, y, w, h, r){
   ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
 }
 
-function noteRect(stem, n){
-  const {rowH} = stem.L;
-  const x = t2x(n.t), w = Math.max(2.5, t2x(n.t + n.d) - x);
-  const y = 4 + n._row * rowH, h = Math.max(3, rowH - 1.6);
-  return [x, y, w, h];
+/* Geometry lives in one place because the roll, the hit test and the "sounding
+   now" overdraw must agree about what a note occupies. */
+function geom(stem, n){
+  const rowH = stem.L.rowH;
+  const y = 4 + n._row * rowH, h = Math.max(3, rowH - 1.6), cyy = y + rowH / 2;
+  if (isPerc(n)){
+    return {perc:true, cx: t2x(n.t), cy: cyy, r: Math.max(2.4, Math.min(5.5, rowH * 0.58)), y, h};
+  }
+  const x = t2x(n.t);
+  const gw = Math.max(2, t2x(n.t + n.d) - x);
+  const tw = n.r ? Math.max(0, t2x(n.t + n.d + n.r) - t2x(n.t + n.d)) : 0;
+  return {perc:false, x, y, h, gw, tw, cy: cyy};
+}
+
+function diamond(ctx, cx, cyy, r){
+  ctx.beginPath();
+  ctx.moveTo(cx, cyy - r); ctx.lineTo(cx + r, cyy);
+  ctx.lineTo(cx, cyy + r); ctx.lineTo(cx - r, cyy);
+  ctx.closePath();
+}
+
+/* `col` is a function alpha -> css colour, so idle (cyan) and sounding (magenta)
+   share one drawing routine and can never drift apart. */
+function drawNote(ctx, g, col, a){
+  if (g.perc){
+    ctx.fillStyle = col(a * 0.35);
+    ctx.fillRect(g.cx - 0.5, g.y, 1, g.h);          // onset line: readable when lanes get thin
+    ctx.fillStyle = col(a);
+    diamond(ctx, g.cx, g.cy, g.r); ctx.fill();
+    return;
+  }
+  if (g.tw > 0.7){
+    const th = Math.max(2, g.h * 0.42), x0 = g.x + g.gw;
+    const grad = ctx.createLinearGradient(x0, 0, x0 + g.tw, 0);
+    grad.addColorStop(0, col(a * 0.5));
+    grad.addColorStop(1, col(0));
+    ctx.fillStyle = grad;
+    ctx.fillRect(x0, g.cy - th / 2, g.tw, th);
+  }
+  ctx.fillStyle = col(a);
+  rrect(ctx, g.x, g.y, g.gw, g.h, 2); ctx.fill();
 }
 
 function drawStatic(stem){
@@ -529,21 +930,26 @@ function drawStatic(stem){
 
   // idle notes — alpha carries gain so the mix is visible, not just the rhythm
   for (const n of stem.notes){
-    const [x, y, w, h] = noteRect(stem, n);
-    ctx.fillStyle = `rgba(120,255,245,${(0.3 + 0.55 * n._rel).toFixed(3)})`;
-    rrect(ctx, x, y, w, h, 2); ctx.fill();
-    if (h >= 5){ ctx.fillStyle = "rgba(190,255,252,.5)"; ctx.fillRect(x, y, Math.min(2, w), h); }
+    const g = geom(stem, n);
+    drawNote(ctx, g, cy, +(0.3 + 0.55 * n._rel).toFixed(3));
+    if (!g.perc && g.h >= 5){ ctx.fillStyle = "rgba(190,255,252,.5)"; ctx.fillRect(g.x, g.y, Math.min(2, g.gw), g.h); }
   }
+}
+
+function noteEnd(n){
+  return isPerc(n) ? n.t + PERC_FLASH : n.t + Math.max(n.d, 0.03) + n.r;
 }
 
 function activeNotes(stem, t){
   const out = [];
-  for (const n of stem.notes) if (t >= n.t && t < n.t + Math.max(n.d, 0.05)) out.push(n);
+  for (const n of stem.notes) if (t >= n.t && t < noteEnd(n)) out.push(n);
   return out;
 }
 
 function paint(stem, t, force){
-  if (!stem.canvas) return;
+  // the rAF loop starts before the first successful relayout(), and a stem with
+  // no note data has no canvas at all — both reach here with no 2d context
+  if (!W || !stem.canvas || !stem.ctx) return;
   const act = activeNotes(stem, t);
   const key = act.length + ":" + act.map(n => n.t + "_" + n._row).join(",");
   if (!force && key === stem.activeKey) return;
@@ -553,10 +959,7 @@ function paint(stem, t, force){
   ctx.drawImage(stem.static, 0, 0, W, stem.L.height);
   ctx.save();
   ctx.shadowColor = MAG; ctx.shadowBlur = 9;
-  for (const n of act){
-    const [x, y, w, h] = noteRect(stem, n);
-    ctx.fillStyle = MAG; rrect(ctx, x, y, w, h, 2); ctx.fill();
-  }
+  for (const n of act) drawNote(ctx, geom(stem, n), mg, 1);
   ctx.restore();
 }
 
@@ -566,6 +969,7 @@ function measure(){
 }
 
 function relayout(){
+  if (!SCORE) return;
   W = measure();
   if (!W) return;   // laid out while hidden; the ResizeObserver below re-runs us
   drawRuler();
@@ -595,15 +999,17 @@ function b64buf(uri){
 
 async function prepare(){
   if (ready) return;
+  const id = trackId;
   ctxA = new (window.AudioContext || window.webkitAudioContext)();
   const master = ctxA.createGain(); master.gain.value = 0.9; master.connect(ctxA.destination);
   let longest = 0;
   for (const stem of stems){
     const g = ctxA.createGain(); g.connect(master); gains[stem.name] = g;
-    buffers[stem.name] = await ctxA.decodeAudioData(b64buf(AUDIO[stem.name]));
+    buffers[stem.name] = await ctxA.decodeAudioData(b64buf(AUDIO[id][stem.name]));
     longest = Math.max(longest, buffers[stem.name].duration);
   }
-  if (longest > total + 0.02){ total = longest; relayout(); }   // one-shots ring past the last cycle
+  if (trackId !== id) return;                                   // switched mid-decode
+  if (longest > total + 0.02){ total = longest; relayout(); }    // one-shots ring past the last cycle
   ready = true; applyMix();
 }
 
@@ -611,14 +1017,13 @@ function applyMix(){
   const anySolo = stems.some(s => s.solo);
   for (const stem of stems){
     const on = anySolo ? stem.solo : !stem.muted;
-    stem.el.classList.toggle("off", !on);
+    if (stem.el) stem.el.classList.toggle("off", !on);
     if (gains[stem.name]) gains[stem.name].gain.setTargetAtTime(on ? 1 : 0, ctxA.currentTime, 0.012);
   }
 }
 
 function now(){
-  if (!ready) return pausedAt;
-  if (!playing) return pausedAt;
+  if (!ready || !playing) return pausedAt;
   const t = ctxA.currentTime - startAt;
   return looping ? t % total : Math.min(t, total);
 }
@@ -638,7 +1043,9 @@ function spawn(offset){
 }
 
 async function play(){
+  const id = trackId;
   await prepare();
+  if (trackId !== id || !ready) return;      // a switch landed while we were decoding
   if (ctxA.state === "suspended") await ctxA.resume();
   spawn(pausedAt >= total - 0.01 ? 0 : pausedAt);
   playing = true;
@@ -647,8 +1054,8 @@ async function play(){
 }
 
 function pause(){
-  if (!playing) return;
-  pausedAt = now(); playing = false;
+  if (playing) pausedAt = now();
+  playing = false;
   sources.forEach(s => { try { s.stop(); } catch (e) {} });
   sources = [];
   document.getElementById("play").classList.remove("on");
@@ -660,6 +1067,50 @@ function seek(t){
   if (playing) spawn(pausedAt); else { moveHead(pausedAt); frame(true); }
 }
 
+/* ---------- track switching ---------- */
+/* The whole audio graph is torn down rather than reused. Keeping one context and
+   swapping buffers is tempting, but every switch would leave the previous
+   track's decoded PCM (tens of MB) reachable from `buffers`, and any source that
+   failed to stop keeps playing under the new track. Closing the context makes
+   both impossible. */
+function teardown(){
+  pause();
+  if (ctxA){ try { ctxA.close(); } catch (e) {} }
+  ctxA = null; gains = {}; buffers = {}; ready = false; pausedAt = 0;
+  for (const s of stems){ s.el = null; s.canvas = null; s.ctx = null; s.static = null; s.cellSpans = null; }
+  blocksEl.innerHTML = ""; codeEl.innerHTML = "";
+}
+
+function loadTrack(id){
+  teardown();
+  const t = TRACKS.find(x => x.id === id) || TRACKS[0];
+  trackId = t.id;
+  SCORE = t.score; stems = SCORE.stems; total = SCORE.total;
+  document.title = "score - " + t.label.toLowerCase();
+  buildBlocks(); buildCode(); fillMeta();
+  const fc = document.getElementById("footcyc");
+  if (fc) fc.textContent = SCORE.cycleSeconds.toFixed(2) + "s";
+  lastW = -1; W = 0;
+  relayout();
+  frame(true);
+}
+
+const sel = document.getElementById("track");
+sel.innerHTML = TRACKS.map(t => `<option value="${t.id}">${t.label}</option>`).join("");
+if (TRACKS.length < 2) document.getElementById("picker").style.display = "none";
+sel.onchange = () => loadTrack(sel.value);
+
+/* ---------- views ---------- */
+function showView(v){
+  view = v;
+  document.body.classList.toggle("code", v === "code");
+  document.getElementById("tabRoll").classList.toggle("on", v === "roll");
+  document.getElementById("tabCode").classList.toggle("on", v === "code");
+  if (v === "roll") relayout();     // the roll measures 0 while hidden, so it must re-measure here
+}
+document.getElementById("tabRoll").onclick = () => showView("roll");
+document.getElementById("tabCode").onclick = () => showView("code");
+
 document.getElementById("play").onclick = () => playing ? pause() : play();
 document.getElementById("stop").onclick = () => { pause(); seek(0); };
 document.getElementById("loop").onclick = e => {
@@ -667,6 +1118,7 @@ document.getElementById("loop").onclick = e => {
   if (playing){ const t = now(); spawn(t); }
 };
 addEventListener("keydown", e => {
+  if (e.target && e.target.tagName === "SELECT") return;   // space belongs to the dropdown there
   if (e.code === "Space"){ e.preventDefault(); playing ? pause() : play(); }
   else if (e.code === "Home"){ seek(0); }
   else if (e.code === "ArrowRight"){ seek(now() + SCORE.cycleSeconds); }
@@ -681,12 +1133,34 @@ function fmt(t){
   const m = Math.floor(t / 60), s = t - m * 60;
   return `${m}:${s.toFixed(2).padStart(5, "0")}`;
 }
+
+function paintCode(cycle){
+  for (const stem of stems){
+    if (!stem.cellSpans) continue;
+    for (let pi = 0; pi < stem.pats.length; pi++){
+      const p = stem.pats[pi], cells = stem.cellSpans[pi];
+      if (!p.n) continue;
+      const idx = ((Math.floor(cycle * p.rate) % p.n) + p.n) % p.n;
+      if (stem.cellNow[pi] === idx) continue;
+      const prev = cells[stem.cellNow[pi]];
+      if (prev) for (const sp of prev) sp.classList.remove("on-cell");
+      const next = cells[idx];
+      if (next) for (const sp of next) sp.classList.add("on-cell");
+      stem.cellNow[pi] = idx;
+    }
+  }
+}
+
 function frame(force){
+  if (!SCORE) return;
   const t = now();
-  moveHead(t);
   document.getElementById("t").textContent = fmt(t);
   document.getElementById("cyc").textContent = "cycle " + (t / SCORE.cycleSeconds + 1).toFixed(2);
-  for (const stem of stems) paint(stem, t, force);
+  paintCode(t / SCORE.cycleSeconds);
+  if (view === "roll" && W){
+    moveHead(t);
+    for (const stem of stems) paint(stem, t, force);
+  }
   if (!looping && playing && t >= total - 0.01) pause();
 }
 (function loopFrame(){ frame(false); requestAnimationFrame(loopFrame); })();
@@ -696,24 +1170,36 @@ const tip = document.getElementById("tip");
 function hit(stem, x, y){
   let best = null;
   for (const n of stem.notes){
-    const [nx, ny, nw, nh] = noteRect(stem, n);
-    if (x >= nx - 2 && x <= nx + nw + 2 && y >= ny - 1 && y <= ny + nh + 1) best = n;
+    const g = geom(stem, n);
+    if (g.perc){
+      if (Math.abs(x - g.cx) <= g.r + 2.5 && y >= g.cy - g.r - 2 && y <= g.cy + g.r + 2) best = n;
+    } else if (x >= g.x - 2 && x <= g.x + g.gw + 2 && y >= g.y - 1 && y <= g.y + g.h + 1) best = n;
   }
   return best;
 }
-for (const stem of stems){
-  if (!stem.canvas) continue;
+
+function num(v){
+  return typeof v === "number"
+    ? (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(3).replace(/0+$/, "").replace(/\.$/, ""))
+    : v;
+}
+
+function wirePointer(stem){
   stem.canvas.addEventListener("mousemove", e => {
     const r = stem.canvas.getBoundingClientRect();
     const n = hit(stem, e.clientX - r.left, e.clientY - r.top);
     if (!n){ tip.classList.remove("on"); return; }
-    const fx = Object.entries(n.p).map(([k, v]) =>
-      `${k} ${typeof v === "number" ? (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")) : v}`).join("  ");
+    const fx = Object.entries(n.p).map(([k, v]) => `${k} ${num(v)}`).join("  ");
+    const perc = isPerc(n);
     tip.innerHTML =
       `<h4>${n.n || n.s.toUpperCase()}</h4>` +
       `<div class="row">start <span>${n.t.toFixed(3)}s</span></div>` +
       `<div class="row">cycle <span>${(n.c + 1).toFixed(3)}</span></div>` +
-      `<div class="row">length <span>${n.d.toFixed(3)}s</span></div>` +
+      (perc
+        ? `<div class="row">slot <span>${n.d.toFixed(3)}s</span></div>` +
+          `<div class="row">length <span>the sample's own</span></div>`
+        : `<div class="row">gate <span>${n.d.toFixed(3)}s</span></div>` +
+          (n.r ? `<div class="row">release <span>${n.r.toFixed(3)}s</span></div>` : "")) +
       (n.hz ? `<div class="row">pitch <span>${n.n} &middot; ${n.hz} Hz &middot; midi ${n.m}</span></div>` : "") +
       `<div class="row">sound <span>${n.s} (${n.k})</span></div>` +
       `<div class="row">gain <span>${n.g}</span></div>` +
@@ -729,6 +1215,7 @@ for (const stem of stems){
     seek(x2t(e.clientX - r.left));
   });
 }
+
 ruler.addEventListener("click", e => {
   const r = ruler.getBoundingClientRect();
   seek(x2t(e.clientX - r.left));
@@ -745,7 +1232,8 @@ new ResizeObserver(() => {
 
 // width-independent changes (moving the window to a display with another dpr)
 addEventListener("resize", () => { clearTimeout(window._rt); window._rt = setTimeout(relayout, 120); });
-relayout();
+
+loadTrack(TRACKS[0].id);
 </script>
 </body>
 </html>
@@ -755,14 +1243,36 @@ relayout();
 def main() -> int:
     ap = argparse.ArgumentParser(
         description="Render Strudel stems + their renderer sidecars into one self-contained HTML piano roll.")
-    ap.add_argument("prefix", help="track prefix, e.g. 'gameplay' (matches gameplay*.ogg), 'title', 'victory'")
+    ap.add_argument("prefix", nargs="?", default=None,
+                    help="track prefix, e.g. 'gameplay' (matches gameplay*.ogg), 'title', 'victory'. "
+                         "Omit to build every track into one page with a selector.")
     ap.add_argument("--cps", type=float, default=DEFAULT_CPS,
                     help="fallback cycles-per-second when the sidecar cannot reveal it (default 0.5)")
-    ap.add_argument("--out", default=None, help="output .html path (default .ai/score_<prefix>.html)")
+    ap.add_argument("--out", default=None,
+                    help="output .html path (default .ai/score_<prefix>.html, or .ai/score.html for all)")
     args = ap.parse_args()
 
-    out = Path(args.out) if args.out else OUTDIR / f"score_{args.prefix}.html"
-    return build(args.prefix, args.cps, out)
+    if not MUSIC.is_dir():
+        print(f"no music directory: {MUSIC}")
+        print("run:  python tools/build_music.py")
+        return 1
+
+    if args.prefix:
+        prefixes = [args.prefix]
+        default_out = OUTDIR / f"score_{args.prefix}.html"
+        title = f"score - {args.prefix}"
+    else:
+        prefixes = discover_prefixes()
+        if not prefixes:
+            print(f"no .ogg files in {MUSIC}")
+            print("run:  python tools/build_music.py")
+            return 1
+        default_out = OUTDIR / "score.html"
+        title = "score - all tracks"
+        print(f"building all tracks: {', '.join(prefixes)}")
+
+    out = Path(args.out) if args.out else default_out
+    return build(prefixes, args.cps, out, title)
 
 
 if __name__ == "__main__":

@@ -61,6 +61,7 @@ func refresh() -> void:
 		# it must be ALLOWED to hit more often. Without this, Spin Up was a
 		# cosmetic upgrade that measured 1 pick in 10 offers.
 		orb.hit_interval = resource.interval / maxf(0.25, stats.orbital_speed_mult)
+		orb.nova_radius = stats.nova_radius
 
 
 func _physics_process(delta: float) -> void:

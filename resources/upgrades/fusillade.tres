@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_al4xh"]
+
+[resource]
+script = ExtResource("1_al4xh")
+rarity = 2
+id = &"fusillade"
+display_name = "Fusillade"
+description = "28% faster firing"
+effect = 3
+magnitude = 0.28
+max_stacks = 2
+weight = 0.9

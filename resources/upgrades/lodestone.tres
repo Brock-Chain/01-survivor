@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_t1tuf"]
+
+[resource]
+script = ExtResource("1_t1tuf")
+rarity = 1
+id = &"lodestone"
+display_name = "Lodestone"
+description = "+60px pickup range"
+effect = 6
+magnitude = 60.0
+max_stacks = 2
+weight = 0.6

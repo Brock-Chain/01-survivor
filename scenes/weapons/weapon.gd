@@ -16,6 +16,8 @@ var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var buffs: BuffState
 
 var _cooldown: float = 0.0
+## Overclock: shots since the last mega-bolt.
+var _shots: int = 0
 
 
 func _physics_process(delta: float) -> void:
@@ -59,12 +61,15 @@ func _fire_at(target: Enemy) -> void:
 	Sfx.play(&"shoot", -10.0)
 	var base_dir: Vector2 = (target.global_position - global_position).normalized()
 	var count: int = maxi(1, resource.count + stats.projectile_bonus)
+	_shots += 1
+	var mega: bool = stats.overclock_every > 0 and _shots % stats.overclock_every == 0
 	var crit: bool = stats.crit_chance > 0.0 and rng.randf() < stats.crit_chance
 	var base_damage: int = maxi(1, roundi((resource.damage + stats.damage_bonus) * _power_mult()))
 	var damage: int = roundi(base_damage * stats.crit_mult) if crit else base_damage
 	for i: int in count:
 		var offset_deg: float = (i - (count - 1) / 2.0) * resource.spread_deg
 		var projectile: Projectile = PROJECTILE_SCENE.instantiate()
+		projectile.apply_effects(stats, mega)
 		projectile.setup(base_dir.rotated(deg_to_rad(offset_deg)), resource.projectile_speed * stats.projectile_speed_mult,
 				damage, stats.pierce, crit)
 		projectile.position = global_position
