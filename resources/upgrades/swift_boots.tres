@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"swift_boots"
+display_name = "Swift Boots"
+description = "+12% move speed"
+effect = 0
+magnitude = 0.12
+max_stacks = 5
+weight = 1.0
