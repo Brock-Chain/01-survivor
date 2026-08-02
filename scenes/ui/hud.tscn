@@ -1,0 +1,65 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/hud.gd" id="1_hud"]
+
+[node name="Hud" type="CanvasLayer"]
+script = ExtResource("1_hud")
+
+[node name="TopLeft" type="VBoxContainer" parent="."]
+offset_left = 12.0
+offset_top = 10.0
+offset_right = 190.0
+offset_bottom = 60.0
+
+[node name="HpRow" type="HBoxContainer" parent="TopLeft"]
+theme_override_constants/separation = 8
+
+[node name="HpBar" type="ProgressBar" parent="TopLeft/HpRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 14)
+show_percentage = false
+value = 100.0
+
+[node name="HpLabel" type="Label" parent="TopLeft/HpRow"]
+unique_name_in_owner = true
+text = "6/6"
+
+[node name="TopRight" type="VBoxContainer" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -140.0
+offset_top = 10.0
+offset_right = -12.0
+offset_bottom = 60.0
+
+[node name="TimeLabel" type="Label" parent="TopRight"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "00:00"
+
+[node name="KillsLabel" type="Label" parent="TopRight"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "0 kills"
+
+[node name="Bottom" type="HBoxContainer" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = -26.0
+offset_right = -12.0
+offset_bottom = -10.0
+theme_override_constants/separation = 8
+
+[node name="LevelLabel" type="Label" parent="Bottom"]
+unique_name_in_owner = true
+text = "LV 1"
+
+[node name="XpBar" type="ProgressBar" parent="Bottom"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+show_percentage = false
+value = 0.0

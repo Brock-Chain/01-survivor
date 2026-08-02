@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
@@ -6,6 +6,9 @@
 [ext_resource type="PackedScene" path="res://scenes/enemies/enemy.tscn" id="4_enemy"]
 [ext_resource type="Resource" path="res://resources/enemies/chaser.tres" id="5_chaser"]
 [ext_resource type="PackedScene" path="res://scenes/ui/level_up_panel.tscn" id="6_lup"]
+[ext_resource type="Resource" path="res://resources/enemies/fast.tres" id="7_fast"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="8_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/game_over.tscn" id="9_go"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_h"]
 size = Vector2(1344, 32)
@@ -54,5 +57,10 @@ position = Vector2(640, 360)
 script = ExtResource("3_spawner")
 enemy_scene = ExtResource("4_enemy")
 chaser_stats = ExtResource("5_chaser")
+fast_stats = ExtResource("7_fast")
 
 [node name="LevelUpPanel" parent="." instance=ExtResource("6_lup")]
+
+[node name="Hud" parent="." instance=ExtResource("8_hud")]
+
+[node name="GameOver" parent="." instance=ExtResource("9_go")]

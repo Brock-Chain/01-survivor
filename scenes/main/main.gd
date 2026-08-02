@@ -38,6 +38,8 @@ var run_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 @onready var pickups: Node2D = $Pickups
 @onready var projectiles: Node2D = $Projectiles
 @onready var level_up_panel: LevelUpPanel = $LevelUpPanel
+@onready var hud: Hud = $Hud
+@onready var game_over: GameOverScreen = $GameOver
 
 
 func _ready() -> void:
@@ -48,13 +50,17 @@ func _ready() -> void:
 	spawner.arena = ARENA
 	spawner.enemy_spawned.connect(_on_enemy_spawned)
 	player.died.connect(_on_player_died)
+	player.health_changed.connect(hud.set_health)
 	player.weapon.container = projectiles
 	level_up_panel.upgrade_chosen.connect(_on_upgrade_chosen)
+	hud.set_health(player.health.hp, player.health.max_hp)
+	hud.set_xp(xp_into_level, Progression.xp_required(level), level)
 	print("01-survivor boot OK — Godot %s" % Engine.get_version_info()["string"])
 
 
 func _physics_process(delta: float) -> void:
 	time_survived += delta
+	hud.set_run(time_survived, kills)
 
 
 func _on_enemy_spawned(enemy: Enemy) -> void:
@@ -81,6 +87,7 @@ func _on_gem_collected(xp_value: int) -> void:
 	total_xp += gained
 	xp_into_level += gained
 	_check_level_up()
+	hud.set_xp(xp_into_level, Progression.xp_required(level), level)
 
 
 func _check_level_up() -> void:
@@ -111,4 +118,5 @@ func _on_upgrade_chosen(upgrade: UpgradeResource) -> void:
 
 
 func _on_player_died() -> void:
-	print("game over — survived %.1fs, %d kills" % [time_survived, kills])
+	get_tree().paused = true
+	game_over.show_results(time_survived, kills, level)

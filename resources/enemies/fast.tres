@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"fast"
+max_hp = 1
+speed = 110.0
+damage = 1
+xp_value = 2
+tint = Color(0.95, 0.6, 0.2, 1)
+size = 10.0
