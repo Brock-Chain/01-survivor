@@ -10,32 +10,35 @@
 // Fills sit on the LAST beat of bars 4 and 8 and build INTO the downbeat —
 // same rule the gameplay kit learned the hard way. A fill stranded mid-bar
 // parses as a mistake.
+// Mix note: gains trimmed 28% after the build reported the four stems
+// summing to a true peak of 0.99. Trimmed at the source, not by
+// normalising the .ogg, so the .strudel stays the source of truth.
 setcps(0.5)
 stack(
-  s("bd*4").gain(0.42),                            // the floor
+  s("bd*4").gain(0.302),                            // the floor
 
   // The machine push: extra kick on the "a" of beat 3, every bar.
-  s("[~ ~ [~ ~ ~ bd] ~]").gain(0.26),
+  s("[~ ~ [~ ~ ~ bd] ~]").gain(0.187),
 
   // Stacked backbeat.
-  s("~ sd ~ sd").gain(0.24),
-  s("~ cp ~ cp").gain(0.13),
+  s("~ sd ~ sd").gain(0.173),
+  s("~ cp ~ cp").gain(0.094),
 
   // Constant 16th churn, panned narrow so it never distracts.
-  s("hh*16").gain(0.045).pan(sine.range(0.38, 0.62).fast(4)),
+  s("hh*16").gain(0.032).pan(sine.range(0.38, 0.62).fast(4)),
 
   // Phrase turnarounds: beat 4 of bar 4 and of bar 8, always leading into the
   // next downbeat. Bar 8's is the longer of the two, because it hands the loop
   // back to the top.
   s(`<~ ~ ~ [~ ~ ~ [sd sd sd sd]]
-      ~ ~ ~ [~ ~ [sd sd] [sd sd sd sd]]>`).gain(0.19),
+      ~ ~ ~ [~ ~ [sd sd] [sd sd sd sd]]>`).gain(0.137),
 
   // Open hat as the release valve at the end of each half-phrase.
-  s("<~ ~ ~ [~ ~ ~ [~ ho]] ~ ~ ~ [~ ~ ~ [~ ho]]>").gain(0.11),
+  s("<~ ~ ~ [~ ~ ~ [~ ho]] ~ ~ ~ [~ ~ ~ [~ ho]]>").gain(0.079),
 
   // Metal hit marks the top of the B section (bar 5) — the only structural
   // signpost in the kit, so the player can feel the form without counting.
-  s("<~ ~ ~ ~ metal ~ ~ ~>").gain(0.13),
+  s("<~ ~ ~ ~ metal ~ ~ ~>").gain(0.094),
 
-  s("<cr ~ ~ ~ ~ ~ ~ ~>").gain(0.18)               // top of the loop
+  s("<cr ~ ~ ~ ~ ~ ~ ~>").gain(0.130)               // top of the loop
 )
