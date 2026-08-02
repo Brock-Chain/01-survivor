@@ -52,6 +52,10 @@ func _ready() -> void:
 		elif arg.begins_with("--shot-cols="):
 			cols = maxi(1, int(arg.get_slice("=", 1)))
 	if path.is_empty():
+		# Nothing to capture, so stop counting frames. This autoload ships inside
+		# the web build, where a per-frame callback that exists only for the AI is
+		# pure waste — small, but paid every frame of every player's run.
+		set_process(false)
 		return
 	if frames.is_empty():
 		frames = PackedInt32Array([DEFAULT_FRAME])
