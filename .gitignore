@@ -28,3 +28,4 @@ Desktop.ini
 # Strudel render intermediates (the .ogg build artifacts ARE committed)
 audio_src/*.wav
 audio_src/*.events.json
+audio_src/*.import
