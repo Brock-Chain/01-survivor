@@ -49,7 +49,10 @@ func spawn(stats: EnemyStats, hp_mult: float = 1.0, elite: bool = false) -> Enem
 
 	var pos: Vector2 = ring_position(rng.randf_range(0.0, TAU))
 
-	var enemy: Enemy = enemy_scene.instantiate()
+	# A type may bring its own scene (the Shard uses boss.gd at reduced scale).
+	var override: PackedScene = stats.resolve_scene()
+	var packed: PackedScene = override if override != null else enemy_scene
+	var enemy: Enemy = packed.instantiate()
 	enemy.setup(stats, target, hp_mult, elite)
 	enemy.bolt_container = bolt_container
 	enemy.position = pos

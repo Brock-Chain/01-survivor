@@ -31,7 +31,6 @@ func _ready() -> void:
 	health.died.connect(_on_died)
 	weapon.stats = stats
 	weapon.resource = BLASTER_WEAPON
-	orbitals.setup(stats, ORBITAL_WEAPON, Meta.state.unlocks)
 	magnet.area_entered.connect(_on_magnet_area_entered)
 	refresh_from_stats()
 	health_changed.emit(health.hp, health.max_hp)
@@ -49,6 +48,14 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_check_contact_damage()
 	_update_invuln_visual()
+
+
+## Main calls this once, after _ready. Unlocks are passed DOWN rather than read
+## from the Meta autoload: reaching up couples the player scene to save state and
+## makes the whole scene chain uncompilable in a tool script (authoring the Shard
+## died on "Identifier not found: Meta"). Same rule as the Resources.
+func apply_unlocks(unlocks: Array[StringName]) -> void:
+	orbitals.setup(stats, ORBITAL_WEAPON, unlocks)
 
 
 ## Re-read anything derived from stats. Main calls this after upgrades apply.

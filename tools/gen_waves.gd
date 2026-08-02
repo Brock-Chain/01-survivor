@@ -38,7 +38,17 @@ func _init() -> void:
 	lancer.attack_interval = 1.9
 	lancer.bolt_speed = 140.0
 
-	for e: EnemyStats in [drifter, dart, bulwark, lancer]:
+	# THE SHARD — a Prism at ~60% scale with a fraction of the health, entering as
+	# a REGULAR enemy only after the player has already beaten the real thing.
+	# Playtest 2026-08-02: "fighting them feels fun", so the boss encounter
+	# becomes recurring instead of a one-off. Capped at 4 alive: the fight is fun
+	# in small numbers and miserable as a swarm, and that cap is now data
+	# (EnemyStats.max_alive) rather than a rule someone has to remember.
+	var shard := _enemy(&"shard", 90, 30.0, 2, 40, Color(1, 0.42, 0.85), 19.0, "")
+	shard.scene_path = "res://scenes/enemies/shard.tscn"
+	shard.max_alive = 4
+
+	for e: EnemyStats in [drifter, dart, bulwark, lancer, shard]:
 		_save(e, "%s/%s.tres" % [ENEMIES, e.id])
 
 	# start, interval, hp_mult, elite%, intensity, types, weights
@@ -48,10 +58,10 @@ func _init() -> void:
 		_wave(&"ranged", 95.0, 0.40, 1.6, 0.04, 1, [drifter, dart, lancer], [3.0, 2.0, 2.6]),
 		_wave(&"swarm", 150.0, 0.31, 2.0, 0.07, 2, [drifter, dart, lancer, bulwark], [2.6, 3.0, 3.0, 1.1]),
 		_wave(&"surge", 220.0, 0.24, 2.6, 0.10, 2, [drifter, dart, lancer, bulwark], [2.0, 3.5, 3.4, 1.5]),
-		_wave(&"endless_1", 300.0, 0.21, 3.4, 0.14, 2, [drifter, dart, lancer, bulwark], [1.8, 3.5, 3.6, 1.8]),
-		_wave(&"endless_2", 420.0, 0.19, 4.4, 0.17, 2, [drifter, dart, lancer, bulwark], [2.0, 3.5, 2.6, 1.8]),
-		_wave(&"endless_3", 600.0, 0.21, 5.8, 0.20, 2, [dart, lancer, bulwark], [3.0, 2.8, 2.0]),
-		_wave(&"endless_4", 900.0, 0.19, 7.6, 0.24, 2, [dart, lancer, bulwark], [3.0, 3.0, 2.4]),
+		_wave(&"endless_1", 300.0, 0.21, 3.4, 0.14, 2, [drifter, dart, lancer, bulwark, shard], [1.8, 3.5, 3.6, 1.8, 0.9]),
+		_wave(&"endless_2", 420.0, 0.19, 4.4, 0.17, 2, [drifter, dart, lancer, bulwark, shard], [2.0, 3.5, 2.6, 1.8, 1.2]),
+		_wave(&"endless_3", 600.0, 0.21, 5.8, 0.20, 2, [dart, lancer, bulwark, shard], [3.0, 2.8, 2.0, 1.5]),
+		_wave(&"endless_4", 900.0, 0.19, 7.6, 0.24, 2, [dart, lancer, bulwark, shard], [3.0, 3.0, 2.4, 1.8]),
 	]
 	for w: WaveResource in waves:
 		_save(w, "%s/%s.tres" % [WAVES, w.id])
@@ -63,7 +73,7 @@ func _init() -> void:
 	schedule.max_concurrent_bosses = 6
 	schedule.boss_spawn_throttle = 0.5
 	_save(schedule, "res://resources/run_schedule.tres")
-	print("gen_waves: 4 enemies + %d waves + schedule" % waves.size())
+	print("gen_waves: 5 enemies + %d waves + schedule" % waves.size())
 	quit(0)
 
 
@@ -78,7 +88,7 @@ func _enemy(id: StringName, hp: int, speed: float, dmg: int, xp: int,
 	e.tint = tint
 	e.size = size
 	var tex: String = "res://assets/sprites/%s.png" % sprite
-	if ResourceLoader.exists(tex):
+	if sprite != "" and ResourceLoader.exists(tex):
 		e.sprite = load(tex)
 	return e
 

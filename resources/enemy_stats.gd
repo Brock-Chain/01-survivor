@@ -11,6 +11,30 @@ enum Behavior { CHASE, RANGED }
 @export var behavior: Behavior = Behavior.CHASE
 ## Per-type silhouette. Null keeps the scene's default (the Drifter hexagon).
 @export var sprite: Texture2D
+## Per-type scene, as a PATH rather than a PackedScene. Empty uses the spawner's
+## default. Set this when a type needs BEHAVIOUR the shared Enemy script lacks —
+## the Shard is a shrunken Prism, so it wants boss.gd, not a new archetype.
+##
+## A path, not a typed PackedScene, because an authoring tool that only wants to
+## write numbers would otherwise have to LOAD the whole gameplay scene graph —
+## and that chain reaches player.gd, which legitimately uses the Sfx/Telemetry
+## autoloads that do not exist in a `-s` tool run. Autoloads in node scripts are
+## fine; pulling node scripts into a data tool is not.
+@export_file("*.tscn") var scene_path: String = ""
+
+var _scene_cache: PackedScene
+
+
+## Resolved once, at runtime, where the autoloads actually exist.
+func resolve_scene() -> PackedScene:
+	if scene_path.is_empty():
+		return null
+	if _scene_cache == null:
+		_scene_cache = load(scene_path) as PackedScene
+	return _scene_cache
+## Maximum of this type alive at once. 0 = unlimited. Exists because a type can
+## be fun in small numbers and miserable in a swarm.
+@export var max_alive: int = 0
 ## RANGED only: distance it tries to hold, and how often it fires.
 @export var attack_range: float = 190.0
 @export var attack_interval: float = 2.4

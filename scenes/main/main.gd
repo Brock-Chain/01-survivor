@@ -105,6 +105,7 @@ func _ready() -> void:
 	player.health_changed.connect(hud.set_health)
 	player.weapon.container = projectiles
 	player.weapon.rng = run_rng
+	player.apply_unlocks(Meta.state.unlocks)
 	level_up_panel.upgrade_chosen.connect(_on_upgrade_chosen)
 	hud.set_health(player.health.hp, player.health.max_hp)
 	hud.set_xp(xp_into_level, Progression.xp_required(level), level)

@@ -61,6 +61,8 @@ var _wave: WaveResource
 var _next_boss_event: int = 0
 var _intensity: int = -1
 var _won: bool = false
+## type id -> living count, for EnemyStats.max_alive.
+var _alive_by_type: Dictionary = {}
 
 
 func _physics_process(delta: float) -> void:
@@ -117,6 +119,21 @@ func _tick_spawns(delta: float) -> void:
 	if bosses_alive > 0:
 		interval /= maxf(0.05, schedule.boss_spawn_throttle)
 	_cooldown = interval
+
+
+## Per-type cap. Some types are fun in small numbers and miserable in a swarm.
+func _has_room_for(stats: EnemyStats) -> bool:
+	if stats.max_alive <= 0:
+		return true
+	return int(_alive_by_type.get(stats.id, 0)) < stats.max_alive
+
+
+## Counted on spawn, released on tree_exited — which fires however the enemy
+## leaves (killed, freed on restart), so the count cannot drift.
+func _track(id: StringName, enemy: Enemy) -> void:
+	_alive_by_type[id] = int(_alive_by_type.get(id, 0)) + 1
+	enemy.tree_exited.connect(func() -> void:
+		_alive_by_type[id] = maxi(0, int(_alive_by_type.get(id, 0)) - 1))
 
 
 func _check_boss_event() -> void:

@@ -2,11 +2,25 @@
 // Four-on-the-floor: the synthwave staple, and it doubles as the game's
 // heartbeat. Hats sit OFF the beat — straight 8ths would plod; the offbeat is
 // what gives the genre its lift.
+//
+// Playtest note (2026-08-02): "there's a snare or two that feel like they are
+// in the middle of nowhere". They were: the open-hat turnaround fired on the
+// 4th and 3rd-and-4th sixteenths of bars 4 and 8, which reads as a mistake
+// rather than a fill because it lands off the backbeat with nothing leading
+// into it. Fills now sit on the LAST beat of the phrase and build INTO the
+// downbeat, which is what makes a fill parse as intentional.
 setcps(0.5)
 stack(
   s("bd*4").gain(0.50),                          // four on the floor
   s("~ cp ~ cp").gain(0.30),                     // backbeat on 2 and 4
   s("[~ hh]*4").gain(0.12).pan(sine.range(0.38, 0.62).fast(2)),
-  s("<~ ~ ~ [~ ~ ~ ho] ~ ~ ~ [~ ~ ho ho]>").gain(0.17),  // bar-8 turnaround
+
+  // Turnaround: a 16th run on beat 4 of bars 4 and 8 — leading into the next
+  // downbeat, never stranded mid-bar.
+  s("<~ ~ ~ [~ ~ ~ [hh hh]] ~ ~ ~ [~ ~ [hh hh] [sn sn]]>").gain(0.20),
+
+  // Open hat on the "and" of 4, every other bar: the classic lift.
+  s("<~ [~ ~ ~ [~ ho]]>").gain(0.16),
+
   s("<cr ~ ~ ~ ~ ~ ~ ~>").gain(0.20)             // marks the top of the loop
 )

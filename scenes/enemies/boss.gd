@@ -21,20 +21,24 @@ signal phase_changed(phase: int)
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/enemies/enemy_projectile.tscn")
 
 const SHARD_COUNT: int = 3
-const SHARD_ORBIT: float = 40.0
 const SHARD_SPIN: float = 1.15
-
-## Long enough to actually react to at player move speed.
-const TELEGRAPH: float = 0.62
-const P1_INTERVAL: float = 1.75
-const P2_INTERVAL: float = 1.15
-const SPREAD_P1: int = 15
-const SPREAD_P2: int = 22
-const BOLT_SPEED: float = 122.0
 const DASH_SPEED: float = 250.0
 const DASH_TIME: float = 0.55
 
 @export var boss_stats: EnemyStats
+
+## Attack shape is per-scene, not per-class: the Shard is the same fight at a
+## smaller scale, so it reuses this script with gentler numbers rather than
+## getting a script of its own.
+@export_group("Attack")
+## Long enough to actually react to at player move speed.
+@export var telegraph: float = 0.62
+@export var p1_interval: float = 1.75
+@export var p2_interval: float = 1.15
+@export var spread_p1: int = 15
+@export var spread_p2: int = 22
+@export var bolt_speed: float = 122.0
+@export var shard_orbit: float = 40.0
 
 var phase: int = 1
 
@@ -83,7 +87,7 @@ func _orbit_shards() -> void:
 		var shard: Sprite2D = _shards[i]
 		if is_instance_valid(shard):
 			shard.position = Vector2.RIGHT.rotated(
-					_spin + TAU * float(i) / float(SHARD_COUNT)) * SHARD_ORBIT
+					_spin + TAU * float(i) / float(SHARD_COUNT)) * shard_orbit
 
 
 func _move(delta: float) -> void:
@@ -111,18 +115,18 @@ func _attack(delta: float) -> void:
 ## The tell: shards flare to white and a cue plays. Nothing can hurt the player
 ## until this finishes.
 func _begin_telegraph() -> void:
-	_telegraph_left = TELEGRAPH
+	_telegraph_left = telegraph
 	Sfx.play(&"levelup", -12.0)
 	for shard: Sprite2D in _shards:
 		if not is_instance_valid(shard):
 			continue
 		var t: Tween = create_tween()
-		t.tween_property(shard, "modulate", Color(1, 1, 1, 1), TELEGRAPH * 0.7)
-		t.tween_property(shard, "modulate", stats.tint, TELEGRAPH * 0.3)
+		t.tween_property(shard, "modulate", Color(1, 1, 1, 1), telegraph * 0.7)
+		t.tween_property(shard, "modulate", stats.tint, telegraph * 0.3)
 
 
 func _fire() -> void:
-	var count: int = SPREAD_P1 if phase == 1 else SPREAD_P2
+	var count: int = spread_p1 if phase == 1 else spread_p2
 	# Offset the ring by half a step off the player's bearing, so a gap always
 	# sits where they are standing and weaving is a real choice, not a coin flip.
 	var base: float = (target.global_position - global_position).angle() + _ring_offset
@@ -130,13 +134,13 @@ func _fire() -> void:
 	for i: int in count:
 		var angle: float = base + TAU * (float(i) + 0.5) / float(count)
 		var bolt: EnemyProjectile = PROJECTILE_SCENE.instantiate()
-		bolt.setup(Vector2.RIGHT.rotated(angle) * BOLT_SPEED, damage)
+		bolt.setup(Vector2.RIGHT.rotated(angle) * bolt_speed, damage)
 		bolt.global_position = global_position
 		_bolt_parent().add_child(bolt)
 	if phase == 2:
 		_dash_dir = (target.global_position - global_position).normalized()
 		_dash_left = DASH_TIME
-	_attack_cd = P1_INTERVAL if phase == 1 else P2_INTERVAL
+	_attack_cd = p1_interval if phase == 1 else p2_interval
 
 
 func take_hit(amount: int) -> void:
