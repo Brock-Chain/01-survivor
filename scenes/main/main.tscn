@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="1_main"]
 [ext_resource type="Texture2D" path="res://assets/sprites/floor.png" id="0_floor"]
@@ -12,6 +12,7 @@
 [ext_resource type="Resource" path="res://resources/run_schedule.tres" id="11_sched"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/boss.tscn" id="12_boss"]
 [ext_resource type="PackedScene" path="res://scenes/ui/victory.tscn" id="13_vic"]
+[ext_resource type="PackedScene" path="res://scenes/ui/pause_panel.tscn" id="14_pause"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_h"]
 size = Vector2(1344, 32)
@@ -78,3 +79,5 @@ boss_scene = ExtResource("12_boss")
 [node name="GameOver" parent="." instance=ExtResource("9_go")]
 
 [node name="Victory" parent="." instance=ExtResource("13_vic")]
+
+[node name="PausePanel" parent="." instance=ExtResource("14_pause")]

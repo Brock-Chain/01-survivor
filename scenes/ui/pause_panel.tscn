@@ -1,0 +1,114 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/pause_panel.gd" id="1_pp"]
+
+[node name="PausePanel" type="CanvasLayer"]
+process_mode = 2
+visible = false
+script = ExtResource("1_pp")
+
+[node name="Dim" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.02, 0.02, 0.06, 0.8)
+
+[node name="Center" type="CenterContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+
+[node name="Margin" type="MarginContainer" parent="Center/Panel"]
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 14
+
+[node name="VBox" type="VBoxContainer" parent="Center/Panel/Margin"]
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Center/Panel/Margin/VBox"]
+theme_override_colors/font_color = Color(0.62, 1, 0.95, 1)
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+text = "PAUSED"
+
+[node name="StatsLabel" type="Label" parent="Center/Panel/Margin/VBox"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(0.55, 0.7, 0.86, 1)
+theme_override_font_sizes/font_size = 12
+horizontal_alignment = 1
+text = "LEVEL 1"
+
+[node name="BuildLabel" type="Label" parent="Center/Panel/Margin/VBox"]
+theme_override_colors/font_color = Color(0.42, 0.55, 0.72, 1)
+theme_override_font_sizes/font_size = 10
+horizontal_alignment = 1
+text = "YOUR BUILD"
+
+[node name="Grid" type="GridContainer" parent="Center/Panel/Margin/VBox"]
+unique_name_in_owner = true
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 6
+columns = 3
+
+[node name="AudioRow" type="HBoxContainer" parent="Center/Panel/Margin/VBox"]
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="MusicLabel" type="Label" parent="Center/Panel/Margin/VBox/AudioRow"]
+theme_override_colors/font_color = Color(0.55, 0.7, 0.86, 1)
+theme_override_font_sizes/font_size = 11
+text = "MUSIC"
+
+[node name="MusicSlider" type="HSlider" parent="Center/Panel/Margin/VBox/AudioRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 16)
+max_value = 1.0
+step = 0.05
+value = 0.8
+
+[node name="SfxLabel" type="Label" parent="Center/Panel/Margin/VBox/AudioRow"]
+theme_override_colors/font_color = Color(0.55, 0.7, 0.86, 1)
+theme_override_font_sizes/font_size = 11
+text = "SFX"
+
+[node name="SfxSlider" type="HSlider" parent="Center/Panel/Margin/VBox/AudioRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 16)
+max_value = 1.0
+step = 0.05
+value = 0.8
+
+[node name="MuteButton" type="Button" parent="Center/Panel/Margin/VBox/AudioRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(76, 24)
+theme_override_font_sizes/font_size = 11
+text = "MUTE (M)"
+
+[node name="Buttons" type="HBoxContainer" parent="Center/Panel/Margin/VBox"]
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="ResumeButton" type="Button" parent="Center/Panel/Margin/VBox/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(118, 30)
+text = "Resume"
+
+[node name="RestartButton" type="Button" parent="Center/Panel/Margin/VBox/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 30)
+text = "Restart"
+
+[node name="QuitButton" type="Button" parent="Center/Panel/Margin/VBox/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 30)
+text = "Menu"
+
+[node name="Hint" type="Label" parent="Center/Panel/Margin/VBox"]
+theme_override_colors/font_color = Color(0.36, 0.46, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+horizontal_alignment = 1
+text = "ESC / P  resume    ·    M  mute    ·    R  restart"

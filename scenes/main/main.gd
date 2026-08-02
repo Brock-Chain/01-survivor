@@ -109,6 +109,7 @@ var _tele_t: float = 0.0
 @onready var level_up_panel: LevelUpPanel = $LevelUpPanel
 @onready var hud: Hud = $Hud
 @onready var game_over: GameOverScreen = $GameOver
+@onready var pause_panel: PausePanel = $PausePanel
 
 
 func _ready() -> void:
@@ -142,6 +143,9 @@ func _ready() -> void:
 	level_up_panel.upgrade_chosen.connect(_on_upgrade_chosen)
 	# Continuing into endless brings the layers back where they were.
 	victory_screen.continued.connect(Music.resume_gameplay)
+	# Auto-pause when the window loses focus. Standard QOL, and it matters
+	# more here than usual: an unattended run keeps spawning and dies.
+	get_window().focus_exited.connect(_pause_if_playing)
 	hud.set_health(player.health.hp, player.health.max_hp)
 	hud.set_xp(xp_into_level, Progression.xp_required(level), level)
 	Music.play_gameplay()
@@ -172,6 +176,45 @@ func _apply_dev_flags() -> void:
 		print("[meta] dir=%s runs=%d wins=%d best_time=%.0f best_kills=%d unlocks=%s"
 				% [OS.get_user_data_dir(), Meta.state.runs_played, Meta.state.victories,
 				Meta.state.best_time, Meta.state.best_kills, str(Meta.state.unlocks)])
+
+
+## Input lives in _unhandled_input, not _physics_process, because a paused tree
+## runs no physics — pause would be unable to un-pause itself.
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed(&"mute"):
+		get_viewport().set_input_as_handled()
+		Audio.set_muted(not Audio.muted)
+		if pause_panel.visible:
+			pause_panel._refresh_mute()
+		return
+	if event.is_action_pressed(&"restart") and not _modal_open():
+		get_viewport().set_input_as_handled()
+		get_tree().paused = false
+		get_tree().reload_current_scene()
+		return
+	if not event.is_action_pressed(&"pause"):
+		return
+	# Never steal the key from a screen that already owns the pause state.
+	if _modal_open():
+		return
+	get_viewport().set_input_as_handled()
+	if pause_panel.visible:
+		pause_panel.resume()
+	else:
+		_pause_if_playing()
+
+
+## True while another screen owns the pause. Level-up, victory and game-over all
+## pause the tree themselves, and two owners of one flag is a stuck game.
+func _modal_open() -> bool:
+	return level_up_panel.visible or victory_screen.visible or game_over.visible
+
+
+func _pause_if_playing() -> void:
+	if _modal_open() or pause_panel.visible or get_tree().paused:
+		return
+	get_tree().paused = true
+	pause_panel.show_build(UPGRADE_LIST, stacks, level, time_survived, kills)
 
 
 func _physics_process(delta: float) -> void:
