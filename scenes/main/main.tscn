@@ -1,13 +1,55 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://scenes/enemies/spawner.gd" id="3_spawner"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/enemy.tscn" id="4_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/chaser.tres" id="5_chaser"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_h"]
+size = Vector2(1344, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_v"]
+size = Vector2(32, 784)
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
 
-[node name="BootLabel" type="Label" parent="."]
-offset_left = 16.0
-offset_top = 16.0
-offset_right = 400.0
-offset_bottom = 48.0
-text = "01-survivor: it runs."
+[node name="Floor" type="ColorRect" parent="."]
+offset_right = 1280.0
+offset_bottom = 720.0
+color = Color(0.086, 0.094, 0.121, 1)
+
+[node name="Walls" type="StaticBody2D" parent="."]
+collision_layer = 16
+collision_mask = 0
+
+[node name="Top" type="CollisionShape2D" parent="Walls"]
+position = Vector2(640, -16)
+shape = SubResource("RectangleShape2D_h")
+
+[node name="Bottom" type="CollisionShape2D" parent="Walls"]
+position = Vector2(640, 736)
+shape = SubResource("RectangleShape2D_h")
+
+[node name="Left" type="CollisionShape2D" parent="Walls"]
+position = Vector2(-16, 360)
+shape = SubResource("RectangleShape2D_v")
+
+[node name="Right" type="CollisionShape2D" parent="Walls"]
+position = Vector2(1296, 360)
+shape = SubResource("RectangleShape2D_v")
+
+[node name="Pickups" type="Node2D" parent="."]
+
+[node name="Enemies" type="Node2D" parent="."]
+
+[node name="Projectiles" type="Node2D" parent="."]
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector2(640, 360)
+
+[node name="Spawner" type="Node" parent="."]
+script = ExtResource("3_spawner")
+enemy_scene = ExtResource("4_enemy")
+chaser_stats = ExtResource("5_chaser")
