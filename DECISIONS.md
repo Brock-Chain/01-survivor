@@ -35,10 +35,32 @@ happen.
   ship rather than before v1.1's work, so that the postmortem is written about a game people have
   actually played. Recorded as hub D15. D6 still binds: v1.1 is what reaches itch.io.
 
+- **2026-08-02 — Enemy cap is a safety bound, not a difficulty lever.** `Difficulty.MAX_ALIVE = 110`,
+  enforced by a pure `should_spawn()` so boundedness is unit-testable rather than only observable by
+  playing for ten minutes. Pressure still comes from `spawn_interval` and `hp_mult`. At the cap the
+  spawner burns its cooldown instead of queueing a backlog to dump later.
+
+- **2026-08-02 — Uncollected XP gems home to the player instead of expiring.** Bounding gem lifetime
+  was required; expiry was rejected because losing XP to a timer reads as a bug to the player. After
+  `IDLE_TIMEOUT` a gem gives up and flies home, so every gem is eventually collected and the live set
+  is bounded by spawn rate × (timeout + travel). The magnet upgrade still buys *immediacy*, which is
+  what actually made it feel good.
+
+- **2026-08-02 — Dev flags added (`--dev-godmode`, `--dev-stats`, `--dev-autopick`).** Not planned,
+  but the M0 gate requires a 10-minute soak and that is impossible headless: the player dies in
+  ~2 minutes, and the level-up panel pauses the tree forever with no input to dismiss it. Read from
+  user args after a bare `--`, same convention as `ai_screenshot.gd`; inert in normal play. Expected
+  to earn their keep balancing the Run Director and the boss in M2.
+
+- **2026-08-02 — HP-scaling and XP-rounding math extracted to pure functions.** `EnemyStats.
+  effective_hp()` and `Progression.xp_gain()` were inline expressions in `Enemy.setup` and
+  `Main._on_gem_collected`. Moved out so they are testable without instancing a scene (hub D12).
+  Both floor at 1: a 0-HP enemy is unkillable because `take_hit` early-returns on `hp <= 0`, and a
+  0-XP gem reads as a bug.
+
 ## Known-open at time of writing (2026-08-02)
 
-Not deviations — outstanding findings from an interrupted code-review session, recorded here so they
-aren't lost again:
+**All five resolved in M0 (commit `0b3cdf3`).** Kept for the record:
 
 1. `scenes/player/player.tscn` — `resource_local_to_scene = true` on the Stats sub-resource. Fixed in
    the working tree, **never committed**. The session ended between capturing the lesson in

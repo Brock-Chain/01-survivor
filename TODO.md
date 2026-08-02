@@ -22,17 +22,25 @@ for why the v1 declaration lapsed (hub D14 superseded D4).
 ### M0 — Fix pass
 The five open findings in `DECISIONS.md`, plus the missing damage test.
 
-- [ ] Commit the pending `player.tscn` `resource_local_to_scene` fix
-- [ ] `enemy.tscn` — `resource_local_to_scene` on the RectangleShape2D (shared-hitbox bug)
-- [ ] `main.gd` — push HUD state after chained level-ups
-- [ ] `spawner.gd` — cap live enemies
-- [ ] `xp_gem.gd` — bound gem lifetime
-- [ ] `tests/unit/test_damage.gd` — the acceptance criterion v1 named but never wrote
-- [ ] Audit sweep: every `.tscn` sub-resource that gets mutated at runtime is `resource_local_to_scene`
+- [x] Commit the pending `player.tscn` `resource_local_to_scene` fix
+- [x] `enemy.tscn` — `resource_local_to_scene` on the RectangleShape2D (shared-hitbox bug)
+- [x] `main.gd` — push HUD state after chained level-ups
+- [x] `spawner.gd` — cap live enemies (`Difficulty.MAX_ALIVE` + pure `should_spawn`)
+- [x] `xp_gem.gd` — bound gem lifetime (auto-home after `IDLE_TIMEOUT`)
+- [x] `tests/unit/test_damage.gd` — the acceptance criterion v1 named but never wrote
+- [x] Audit sweep: every `.tscn` sub-resource that gets mutated at runtime is `resource_local_to_scene`
+- [x] Dev flags `--dev-godmode` / `--dev-stats` / `--dev-autopick`
 
-**Gate:** GUT green · headless smoke free of `SCRIPT ERROR`/`ERROR` · a 10-minute run shows bounded
-entity counts · **a Windows build and a locally-served web build both produced successfully**
-(proving the export path; publishing waits for M7).
+**Gate: PASSED 2026-08-02.** 35/35 GUT green · headless smoke clean · 10-minute fixed-timestep soak
+holds enemies at exactly the 110 cap, pickups 0–1, projectiles 0–2 · Web + Windows exports both
+produce, and the web build boots and plays at `localhost:8060`.
+
+Soak command (keep — needed again for M2 balancing):
+```
+<console.exe> --headless --path . res://scenes/main/main.tscn --fixed-fps 60 --quit-after 36000 -- --dev-godmode --dev-stats --dev-autopick
+```
+`--fixed-fps` matters: game time accrues from real delta, so without it a headless run burns frames
+without advancing the clock. Launch `main.tscn` directly — the title screen waits for a click.
 
 ### M1 — Visual identity ⭐ HARD GATE
 Regenerate every sprite in the neon-geometric style; apply the colour law from BRIEF §5.
@@ -116,6 +124,7 @@ seam at a loop point or layer change.
 - [x] **v1.0 M5** Game loop — HUD, game over, restart, difficulty ramp, fast enemy
 - [x] **v1.0 M6** Juice & assets — generated assets, audio buses, SFX/music, juice pass
 - [ ] **v1.0 M7** superseded by v1.1 (hub D15 — v1.1 is a continuation; the ship gate moves to v1.1 M7)
-- [ ] v1.1: **M0** · M1 · M2 · M3 · M4 · M5 · M6 · M7
+- [x] **v1.1 M0** Fix pass (2026-08-02) — 5 findings closed, growth bounded and proven, 35 tests green, both builds produce
+- [ ] v1.1: **M1** ← next · M2 · M3 · M4 · M5 · M6 · M7
 
 *Checkboxes are updated at session end. A milestone list that lies is worse than none.*
