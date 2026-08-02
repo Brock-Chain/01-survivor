@@ -190,6 +190,43 @@ on almost everything.
   worse, would have made upgrade-pool unit tests depend on the player's real save file. Unlocks now
   cross as a value — the same rule already established for RunState/MetaState.
 
+## V1.Final scope + rarity — 2026-08-02
+
+- **This version is V1.Final, shipping as "PRISM".** The name was already inside the game — the boss
+  is The Prism, its lesser form is the Shard, and the whole visual identity is light, geometry and
+  separated colour, which is literally the colour law. Named things that come from the work read as
+  earned rather than applied. Cycle: M6 → M6.5 → grill → one apply pass → M7 → hub capture → V2.
+
+- **Rarity replaced "make levels expensive" as the fix for dead upgrades.** The measured problem was
+  57 levels in six minutes, so a pick cost nothing and a weak upgrade was noise rather than a
+  rejection. Making levels merely costlier would have fixed the symptom; rarity fixes the cause,
+  because a *Common* that is weak is correct rather than disappointing. XP is still ~30% steeper to
+  support it.
+
+- **Rarity rolls per CARD, not per level-up.** A screen reading Common/Common/Epic is what makes the
+  Epic land; if every card were Legendary none of them would be. Odds improve with progress and
+  SATURATE at level 30 so a long endless run cannot drift into all-Legendary screens.
+
+- **The draw falls DOWN on exhaustion, never up.** Being handed a Legendary because the Commons ran
+  out would make the rarest thing in the game a consolation prize.
+
+- **A tier is a design slot, not a multiplier.** A Rare damage upgrade is its own entry with its own
+  number rather than a Common one scaled up — which is what lets Legendary mean a different EFFECT
+  instead of a bigger one.
+
+- **Rarity colours live on the card frame only; the arena colour law is untouched.** The law governs
+  entities, where hue must answer "can this hurt me" in a glance. A paused menu is a different
+  context, and the grey/green/blue/purple/gold convention is cheaper to adopt than to retrain —
+  rendered as neon LED so it belongs to this game. Border width and glow scale with tier so the
+  ladder survives a screenshot; only Legendary animates, because if everything pulsed nothing would.
+
+- **Two mechanic traps.** Prism Core and Chain Lightning spawn projectiles, so children are created
+  INERT — otherwise one shot recurses into thousands. And bosses are immune to Executioner: an
+  instant-kill threshold on a 900 HP boss would delete the fight the run is built around.
+
+- **The second boss is deferred to the M6.5 apply pass**, so it can be designed with the review's
+  findings in hand rather than before them.
+
 ## Known-open at time of writing (2026-08-02)
 
 **All five resolved in M0 (commit `0b3cdf3`).** Kept for the record:

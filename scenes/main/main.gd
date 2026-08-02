@@ -138,6 +138,8 @@ func _ready() -> void:
 	player.weapon.rng = run_rng
 	player.apply_unlocks(Meta.state.unlocks)
 	level_up_panel.upgrade_chosen.connect(_on_upgrade_chosen)
+	# Continuing into endless brings the layers back where they were.
+	victory_screen.continued.connect(Music.resume_gameplay)
 	hud.set_health(player.health.hp, player.health.max_hp)
 	hud.set_xp(xp_into_level, Progression.xp_required(level), level)
 	Music.play_gameplay()

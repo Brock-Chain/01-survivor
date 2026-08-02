@@ -1,6 +1,6 @@
 # 01-survivor — TODO
 
-**v1.1 in progress.** [BRIEF.md](BRIEF.md) is the spec — prime directive, defect definition, gates
+**V1.Final — shipping as "PRISM".** [BRIEF.md](BRIEF.md) is the spec — prime directive, defect definition, gates
 and acceptance criteria. This file is the running checklist. Deviations go in
 [DECISIONS.md](DECISIONS.md).
 
@@ -114,14 +114,31 @@ soak-verified; the feel half needs a playtest with the orbital unlocked.*
 **Gate:** each type identifiable by silhouette and colour alone at 12 px, in a crowd.
 
 ### M6 — Audio
-- [ ] Compose in Strudel: title, gameplay (as intensity stems), boss, victory
-- [ ] Render → tail-fold → OGG pipeline as a committed tool
-- [ ] Stem crossfade driven by the Run Director's intensity signal
-- [ ] Full SFX pass, replacing the generated WAVs
+- [x] Compose in Strudel: 3 interchangeable tracks as intensity stems, title, victory
+- [x] Render → tail-fold → OGG pipeline (`tools/build_music.py`), track-discovering
+- [x] Stem crossfade driven by the Run Director's intensity signal
+- [x] Track rotation (one per run) + in-menu selector for testing
+- [x] Title theme: 64s slow burn that escalates in four sections, then resets
+- [x] Victory merges — ducks the stems and lands on the next bar line
+- [x] Score viewer (`tools/score_viewer.py`) — piano roll + live Strudel code view
+- [ ] Full SFX pass: replace the 8 stdlib WAVs, add ~8 missing cues, pitch-varied sets
 - [ ] Volume / mute options
 
 **Gate:** five consecutive runs without the music grating · every action has a sound · no audible
 seam at a loop point or layer change.
+
+### M6.25 — Upgrade rarity ✅ (added mid-cycle from playtest direction)
+- [x] 5 tiers, per-card roll, odds improving with progress, saturating at level 30
+- [x] Pity floor: guaranteed Rare-or-better after 6 barren level-ups
+- [x] Superlinear XP curve — ~30% fewer levels (39 vs 55 on a 6000 XP run)
+- [x] 36 upgrades across the tiers, incl. 6 Epic + 5 Legendary unique mechanics
+- [x] Neon-LED rarity frames; arena colour law untouched (menu is a separate context)
+
+### M6.4 — Remaining content
+- [ ] Splitter (dies into two Darts)
+- [ ] Ram (telegraphs, then dashes in a straight line)
+- [ ] Rename everything to **PRISM**
+- [ ] *(second boss deferred — built alongside the M6.5 findings)*
 
 ### M6.5 — Design review before ship ⭐ REQUESTED BY THE HUMAN
 Before M7, stop and assess the whole game as a game, not as a checklist.

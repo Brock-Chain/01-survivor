@@ -43,6 +43,12 @@ const FADE_IN: float = 1.1
 ## layer arriving quickly reads as intent.
 const FADE_OUT: float = 2.2
 
+## One bar at cps 0.5. Used to land the victory stinger ON the beat instead of
+## wherever the killing blow happened to fall.
+const CYCLE_SECONDS: float = 2.0
+## Fast enough to clear the way for the stinger, slow enough not to click.
+const VICTORY_DUCK: float = 0.45
+
 var intensity: int = -1
 
 var _stems: Array[AudioStreamPlayer] = []
@@ -158,21 +164,55 @@ func set_intensity(level: int) -> void:
 
 
 func _fade(index: int, target_db: float) -> void:
+	var rising: bool = target_db > _stems[index].volume_db
+	_fade_over(index, target_db, FADE_IN if rising else FADE_OUT)
+
+
+func _fade_over(index: int, target_db: float, seconds: float) -> void:
 	var player: AudioStreamPlayer = _stems[index]
 	if is_equal_approx(player.volume_db, target_db):
 		return
 	var old: Tween = _fades[index]
 	if old != null and old.is_valid():
 		old.kill()  # otherwise a fast intensity flip leaves two tweens fighting
-	var rising: bool = target_db > player.volume_db
 	var tween: Tween = create_tween()
-	tween.tween_property(player, "volume_db", target_db,
-			FADE_IN if rising else FADE_OUT)
+	tween.tween_property(player, "volume_db", target_db, seconds)
 	_fades[index] = tween
 
 
+## Victory has to MERGE with whatever is playing, not collide with it. Two
+## problems, two fixes:
+##
+## 1. Key. The stinger resolves to A major, but the tracks rotate through A
+##    Aeolian, D Phrygian and A Dorian — an A-major cadence over D Phrygian is
+##    simply wrong. So the gameplay stems duck out rather than playing under it.
+##    Three per-track stingers would also solve this; ducking solves it once.
+## 2. Phase. A stinger that starts on the frame the boss died lands off the beat
+##    and reads as a sound effect. Delaying to the next bar line makes it read as
+##    the music arriving.
 func play_victory() -> void:
+	for i: int in _stems.size():
+		_fade_over(i, SILENT_DB, VICTORY_DUCK)
+	var wait: float = _time_to_next_bar()
+	if wait > 0.02:
+		# process_always, because victory pauses the tree.
+		await get_tree().create_timer(wait).timeout
 	_victory.play()
+
+
+## Bring the layers back after the player chooses Continue.
+func resume_gameplay() -> void:
+	for i: int in _stems.size():
+		_fade_over(i, STEM_DB if i <= intensity else SILENT_DB, FADE_IN)
+
+
+## Seconds until the next bar line. The stems all started together and loop at
+## exactly 16.00s, so any one of them reports the shared phase.
+func _time_to_next_bar() -> float:
+	if _stems.is_empty() or not _stems[0].playing:
+		return 0.0
+	var pos: float = _stems[0].get_playback_position()
+	return CYCLE_SECONDS - fposmod(pos, CYCLE_SECONDS)
 
 
 func _stop_gameplay() -> void:

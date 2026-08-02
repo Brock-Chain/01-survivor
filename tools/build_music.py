@@ -45,6 +45,9 @@ BLOCK = 65536
 #   title.strudel                   ->  an 8-cycle loop
 #   victory.strudel                 ->  a 4-cycle ONE-SHOT (keeps its ring-out)
 ONE_SHOTS = {"victory": 4}
+## Pieces whose length is not the default 8 cycles. The title is a 64-second
+## slow burn that rewards leaving the menu running, so it needs 32.
+CYCLES = {"title": 32}
 
 
 def discover() -> dict[str, tuple[int, bool]]:
@@ -54,7 +57,7 @@ def discover() -> dict[str, tuple[int, bool]]:
         if name in ONE_SHOTS:
             pieces[name] = (ONE_SHOTS[name], False)
         else:
-            pieces[name] = (8, True)
+            pieces[name] = (CYCLES.get(name, 8), True)
     return pieces
 
 
