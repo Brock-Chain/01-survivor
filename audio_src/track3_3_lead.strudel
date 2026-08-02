@@ -16,10 +16,23 @@
 // collapsing onto the tonic. The rest in slot 2 of every cell, doubled by *2,
 // gives the motif a limp — long, gap, short-short — which is what makes it
 // read as something walking toward you rather than a tune.
+// HARMONY FIX: this used `<...>*2`. On a slowcat, *n means n ITEMS PER
+// CYCLE, so the whole 8-chord progression raced past 2x while the bass
+// made one pass — verified from the events sidecar: the bass changed chord
+// every cycle while this layer played the entire scale in every cycle. It
+// sounded merely blurry rather than wrong only because everything is
+// diatonic. The multiplier now lives INSIDE each cell, so the note count and
+// rhythm are unchanged but each chord is locked to its own bar.
 setcps(0.5)
 stack(
-  note(`<[a5 ~ g#5 a5] [b5 ~ a5 g5] [g5 ~ e5 d5] [f#5 ~ e5 d5]
-         [b5 ~ a5 f#5] [c6 ~ b5 g5] [d6 ~ c6 a5] [b5 ~ g#5 a5]>*2`)
+  note(`<[[a5 ~ g#5 a5]*2]
+         [[b5 ~ a5 g5]*2]
+         [[g5 ~ e5 d5]*2]
+         [[f#5 ~ e5 d5]*2]
+         [[b5 ~ a5 f#5]*2]
+         [[c6 ~ b5 g5]*2]
+         [[d6 ~ c6 a5]*2]
+         [[b5 ~ g#5 a5]*2]>`)
     .s("sawtooth").lpf(3200).lpq(4)
     .gain(0.2).attack(0.012).release(0.2)
     .room(0.4).size(0.9)

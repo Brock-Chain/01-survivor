@@ -3,10 +3,23 @@
 // a bare triad arp reads as an exercise, the 9th reads as a choice.
 // The filter sweep completes exactly once per loop, so the build is
 // predictable: the player learns the shape of the bar without noticing.
+// HARMONY FIX: this used `<...>*4`. On a slowcat, *n means n ITEMS PER
+// CYCLE, so the whole 8-chord progression raced past 4x while the bass
+// made one pass — verified from the events sidecar: the bass changed chord
+// every cycle while this layer played the entire scale in every cycle. It
+// sounded merely blurry rather than wrong only because everything is
+// diatonic. The multiplier now lives INSIDE each cell, so the note count and
+// rhythm are unchanged but each chord is locked to its own bar.
 setcps(0.5)
 stack(
-  note(`<[a4 c5 e5 b5] [f4 a4 c5 e5] [c5 e5 g5 d5] [g4 b4 d5 a5]
-         [d5 f5 a5 e5] [f4 a4 c5 f5] [g4 b4 d5 g5] [a4 c5 e5 a5]>*4`)
+  note(`<[[a4 c5 e5 b5]*4]
+         [[f4 a4 c5 e5]*4]
+         [[c5 e5 g5 d5]*4]
+         [[g4 b4 d5 a5]*4]
+         [[d5 f5 a5 e5]*4]
+         [[f4 a4 c5 f5]*4]
+         [[g4 b4 d5 g5]*4]
+         [[a4 c5 e5 a5]*4]>`)
     .s("square")
     .lpf(sine.range(850, 3400).slow(8)).lpq(9)
     .gain(0.155).release(0.045)

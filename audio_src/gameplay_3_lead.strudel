@@ -3,14 +3,27 @@
 // to G# turns the bVII into V/i, and that leading tone is the single clearest
 // signal in tonal music that something is bearing down on you.
 // Paired with a 16th octave pulse: the engine underneath the melody.
+// HARMONY FIX: this used `<...>*2`. On a slowcat, *n means n ITEMS PER
+// CYCLE, so the whole 8-chord progression raced past 2x while the bass
+// made one pass — verified from the events sidecar: the bass changed chord
+// every cycle while this layer played the entire scale in every cycle. It
+// sounded merely blurry rather than wrong only because everything is
+// diatonic. The multiplier now lives INSIDE each cell, so the note count and
+// rhythm are unchanged but each chord is locked to its own bar.
 setcps(0.5)
 stack(
-  note(`<[a5 ~ ~ g#5] [a5 ~ c6 ~] [b5 ~ ~ a5] [g#5 ~ e5 ~]
-         [f5 ~ ~ e5] [d5 ~ f5 ~] [e5 ~ g#5 ~] [a5 ~ ~ ~]>*2`)
+  note(`<[[a5 ~ ~ g#5]*2]
+         [[a5 ~ c6 ~]*2]
+         [[b5 ~ ~ a5]*2]
+         [[g#5 ~ e5 ~]*2]
+         [[f5 ~ ~ e5]*2]
+         [[d5 ~ f5 ~]*2]
+         [[e5 ~ g#5 ~]*2]
+         [[a5 ~ ~ ~]*2]>`)
     .s("sawtooth").lpf(3000).lpq(4)
     .gain(0.185).release(0.18).attack(0.01)
     .room(0.3).delay(0.22).delaytime(0.25).delayfeedback(0.28),
 
-  note("<a2 a2 a2 a2 d3 d3 e3 e3>*8")
+  note("<[a2*8] [f2*8] [c3*8] [g2*8] [d3*8] [f2*8] [g2*8] [a2*8]>")  // roots follow the bass, 16ths within each bar
     .s("square").lpf(430).gain(0.085).release(0.028)
 )

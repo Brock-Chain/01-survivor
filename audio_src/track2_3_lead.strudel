@@ -25,7 +25,7 @@ stack(
          [eb5 ~ ~ eb5 g5 ~ bb5 ~]
          [eb5 eb5 ~ eb5 d5 ~ ~ ~]>`)
     .s("sawtooth").lpf(3200).lpq(5)
-    .gain(0.145).attack(0.008).release(0.22)
+    .gain(0.25).attack(0.008).release(0.22)
     .room(0.28).delay(0.2).delaytime(0.25).delayfeedback(0.26),
 
   // Siren drone: one sustained root per bar with slow vibrato, filtered dark.
@@ -34,6 +34,6 @@ stack(
   // why the boss tier suddenly feels like the room got smaller.
   note("<d3 eb3 d3 c3 g3 bb3 eb3 d3>")
     .s("sawtooth").lpf(520).lpq(9)
-    .gain(0.055).attack(0.5).release(1.1)
+    .gain(0.09).attack(0.5).release(1.1)
     .vib(5).vibmod(0.25)
 )

@@ -6,7 +6,7 @@ setcps(0.5)
 stack(
   note("<[a3,c4,e4] [d4,f4,a4] [e4,g#4,b4] [a4,c#5,e5]>")
     .s("sawtooth").lpf(3200).lpq(3).gain(0.20).release(0.6).room(0.45),
-  note("<[a2 a2 e3 a2] [d3 d3 a3 d3] [e3 e3 b3 e3] [a3 a3 a3 a3]>*2")
+  note("<[[a2 a2 e3 a2]*2] [[d3 d3 a3 d3]*2] [[e3 e3 b3 e3]*2] [[a3 a3 a3 a3]*2]>")
     .s("square").lpf(700).gain(0.20).release(0.08),
   note("<[a5 ~ c#6 ~] [~ d6 ~ ~] [~ ~ b5 ~] [a6 ~ ~ ~]>")
     .s("triangle").gain(0.17).room(0.5).delay(0.3).delaytime(0.25),

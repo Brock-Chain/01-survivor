@@ -12,10 +12,23 @@
 // Delay is a dotted 8th (0.375s at cps 0.5) with high feedback: the echoes
 // land between the 16ths and fill the space the original track packed with
 // notes. Space instead of density is the whole brief for this track.
+// HARMONY FIX: this used `<...>*4`. On a slowcat, *n means n ITEMS PER
+// CYCLE, so the whole 8-chord progression raced past 4x while the bass
+// made one pass — verified from the events sidecar: the bass changed chord
+// every cycle while this layer played the entire scale in every cycle. It
+// sounded merely blurry rather than wrong only because everything is
+// diatonic. The multiplier now lives INSIDE each cell, so the note count and
+// rhythm are unchanged but each chord is locked to its own bar.
 setcps(0.5)
 stack(
-  note(`<[a4 e5 c5 b4] [g4 d5 b4 a4] [c5 g5 e5 d5] [d5 a5 f#5 e5]
-         [b4 f#5 d5 a4] [c5 g5 e5 d5] [d5 a5 f#5 e5] [a4 e5 c5 b4]>*4`)
+  note(`<[[a4 e5 c5 b4]*4]
+         [[g4 d5 b4 a4]*4]
+         [[c5 g5 e5 d5]*4]
+         [[d5 a5 f#5 e5]*4]
+         [[b4 f#5 d5 a4]*4]
+         [[c5 g5 e5 d5]*4]
+         [[d5 a5 f#5 e5]*4]
+         [[a4 e5 c5 b4]*4]>`)
     .s("square")
     .lpf(sine.range(900, 3600).slow(8)).lpq(8)   // one full sweep per loop
     .gain(0.17).release(0.05)

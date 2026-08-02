@@ -9,18 +9,21 @@
 // rather than a fill because it lands off the backbeat with nothing leading
 // into it. Fills now sit on the LAST beat of the phrase and build INTO the
 // downbeat, which is what makes a fill parse as intentional.
+// Level-match note: gains trimmed 20%. Tracks ROTATE between runs, so a mix
+// peaking at 0.96 next to one at 0.79 is an audible jump in loudness when the
+// track changes. All three now land in the same range.
 setcps(0.5)
 stack(
-  s("bd*4").gain(0.50),                          // four on the floor
-  s("~ cp ~ cp").gain(0.30),                     // backbeat on 2 and 4
-  s("[~ hh]*4").gain(0.12).pan(sine.range(0.38, 0.62).fast(2)),
+  s("bd*4").gain(0.400),                          // four on the floor
+  s("~ cp ~ cp").gain(0.240),                     // backbeat on 2 and 4
+  s("[~ hh]*4").gain(0.096).pan(sine.range(0.38, 0.62).fast(2)),
 
   // Turnaround: a 16th run on beat 4 of bars 4 and 8 — leading into the next
   // downbeat, never stranded mid-bar.
-  s("<~ ~ ~ [~ ~ ~ [hh hh]] ~ ~ ~ [~ ~ [hh hh] [sn sn]]>").gain(0.20),
+  s("<~ ~ ~ [~ ~ ~ [hh hh]] ~ ~ ~ [~ ~ [hh hh] [sn sn]]>").gain(0.160),
 
   // Open hat on the "and" of 4, every other bar: the classic lift.
-  s("<~ [~ ~ ~ [~ ho]]>").gain(0.16),
+  s("<~ [~ ~ ~ [~ ho]]>").gain(0.128),
 
-  s("<cr ~ ~ ~ ~ ~ ~ ~>").gain(0.20)             // marks the top of the loop
+  s("<cr ~ ~ ~ ~ ~ ~ ~>").gain(0.160)             // marks the top of the loop
 )
