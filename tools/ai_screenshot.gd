@@ -20,5 +20,6 @@ func _ready() -> void:
 	await RenderingServer.frame_post_draw
 	var img: Image = get_viewport().get_texture().get_image()
 	var err: int = img.save_png(path)
-	print("[ai_screenshot] saved=%s err=%d" % [path, err])
+	print("[ai_screenshot] saved=%s err=%d frames=%d args=%s"
+			% [path, err, frames, str(OS.get_cmdline_user_args())])
 	get_tree().quit()

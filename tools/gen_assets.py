@@ -12,7 +12,7 @@ import struct
 import wave
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
 SPRITES = ROOT / "assets" / "sprites"
@@ -21,106 +21,95 @@ MUSIC = ROOT / "assets" / "audio" / "music"
 SR = 22050
 
 # ---------------------------------------------------------------- sprites ---
+# Neon-geometric: filled shapes with a BAKED glow halo. Baked, not an engine
+# glow post-process, because GL Compatibility glow support on a single-threaded
+# web export is not something we want the art direction to depend on.
+#
+# Shapes are drawn supersampled and downsampled with LANCZOS, so the edges carry
+# their own antialiasing. The viewport is 640x360 in a 1280x720 window — an exact
+# 2x integer scale — so nearest-neighbour filtering displays these cleanly.
+#
+# COLOUR LAW (see BRIEF.md): hue encodes allegiance, silhouette encodes type.
+#   cyan = yours · magenta->orange = can hurt you · yellow = enemy fire · green = pickup
+# Enemy sprites are GREYSCALE on purpose: enemy.gd tints them via `modulate`, and
+# a white core would multiply to the flat tint. White core + grey halo modulates
+# into a saturated core with a dim halo, which is what reads as neon.
 
-PALETTES = {
-    ".": None,  # transparent
-    "W": (238, 244, 255),
-    "w": (196, 210, 235),
-    "B": (90, 140, 220),
-    "b": (40, 70, 130),
-    "K": (20, 24, 34),
-    "G": (90, 230, 240),
-    "g": (30, 140, 160),
-    "Y": (255, 235, 140),
-    "y": (230, 180, 60),
-    "R": (235, 90, 80),
-    "F1": (26, 29, 39),
-    "F2": (30, 34, 45),
+SS = 8  # supersample factor
+
+NEON = {
+    "player": ((120, 255, 245), (235, 255, 253)),   # cyan, white-hot core
+    "bullet": ((110, 245, 255), (240, 255, 255)),
+    "orbital": ((150, 235, 255), (245, 255, 255)),
+    "gem": ((120, 255, 190), (240, 255, 230)),      # green-cyan pickup
+    # Greyscale — tinted at runtime. Kept bright: `modulate` MULTIPLIES, so the
+    # sprite's own value is a ceiling on how neon the tinted result can look.
+    "enemy": ((214, 214, 214), (255, 255, 255)),
 }
 
-PLAYER = [
-    "....WWWWWWWW....",
-    "...WWWWWWWWWW...",
-    "..WWwwwwwwwwWW..",
-    "..WwKKwwwwKKwW..",
-    "..WwKKwwwwKKwW..",
-    "..WwwwwwwwwwwW..",
-    "..WwwKwwwwKwwW..",
-    "..WwwwKKKKwwwW..",
-    "..WWwwwwwwwwWW..",
-    "...BBBBBBBBBB...",
-    "..BBbBBBBBBbBB..",
-    "..BbbBBBBBBbbB..",
-    "..BbBBBBBBBBbB..",
-    "...BBBB..BBBB...",
-    "...bbb....bbb...",
-    "................",
-]
-
-# White-ish blob — tinted at runtime by EnemyStats.tint via modulate.
-ENEMY = [
-    "................",
-    "....WWWWWWWW....",
-    "...WWWWWWWWWW...",
-    "..WWWWWWWWWWWW..",
-    "..WWKKWWWWKKWW..",
-    "..WWKKWWWWKKWW..",
-    ".WWWWWWWWWWWWWW.",
-    ".WWWWWWWWWWWWWW.",
-    ".WWWWKWWWWKWWWW.",
-    ".WWWWKKKKKKWWWW.",
-    "..WWWWWWWWWWWW..",
-    "..WWWWWWWWWWWW..",
-    "..WwWWwWWwWWwW..",
-    "..Ww.Ww..wW.wW..",
-    "................",
-    "................",
-]
-
-GEM = [
-    "....GG....",
-    "...GGGG...",
-    "..GGWWGG..",
-    ".GGWWGGGG.",
-    "GGGWGGGGGG",
-    "GGGGGGGGgg",
-    ".GGGGGGgg.",
-    "..GGGGgg..",
-    "...GGgg...",
-    "....gg....",
-]
-
-BULLET = [
-    "..YYYYWW",
-    "yYYYYWWW",
-    "yYYYYWWW",
-    "..YYYYWW",
-]
+FLOOR_BASE = (11, 12, 22)
+FLOOR_GRID = (26, 30, 56)
 
 
-def write_sprite(name: str, rows: list[str]) -> None:
-    h = len(rows)
-    w = max(len(r) for r in rows)
-    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    for y, row in enumerate(rows):
-        for x, ch in enumerate(row):
-            color = PALETTES.get(ch)
-            if color is not None:
-                img.putpixel((x, y), (*color, 255))
-    img.save(SPRITES / name)
-    print(f"sprite {name} {w}x{h}")
+def _regular(n: int, cx: float, cy: float, r: float, rot: float = 0.0) -> list[tuple[float, float]]:
+    return [(cx + r * math.cos(rot + i * math.tau / n),
+             cy + r * math.sin(rot + i * math.tau / n)) for i in range(n)]
+
+
+def _chevron(cx: float, cy: float, r: float) -> list[tuple[float, float]]:
+    """A V pointing up — the Lancer. Distinct from a triangle at 12px."""
+    return [(cx, cy - r), (cx + r, cy + r * 0.75), (cx, cy + r * 0.2), (cx - r, cy + r * 0.75)]
+
+
+SHAPES = {
+    "hexagon": lambda cx, cy, r: _regular(6, cx, cy, r, math.pi / 6),
+    "triangle": lambda cx, cy, r: _regular(3, cx, cy, r, -math.pi / 2),
+    "octagon": lambda cx, cy, r: _regular(8, cx, cy, r, math.pi / 8),
+    "diamond": lambda cx, cy, r: _regular(4, cx, cy, r, -math.pi / 2),
+    "chevron": _chevron,
+    "square": lambda cx, cy, r: _regular(4, cx, cy, r * 0.92, math.pi / 4),
+}
+
+
+def _mask(size: int, shape: str, radius: float) -> Image.Image:
+    """Antialiased coverage mask for one shape, via supersampling."""
+    hi = size * SS
+    img = Image.new("L", (hi, hi), 0)
+    pts = SHAPES[shape](hi / 2.0, hi / 2.0, radius * SS)
+    ImageDraw.Draw(img).polygon(pts, fill=255)
+    return img.resize((size, size), Image.Resampling.LANCZOS)
+
+
+def _tint(mask: Image.Image, rgb: tuple[int, int, int], alpha: float = 1.0) -> Image.Image:
+    layer = Image.new("RGBA", mask.size, (*rgb, 0))
+    layer.putalpha(mask.point(lambda a: int(a * alpha)))
+    return layer
+
+
+def neon_sprite(name: str, size: int, shape: str, key: str,
+                radius: float | None = None, core_ratio: float = 0.52,
+                glow: float = 1.9, glow_alpha: float = 0.62) -> None:
+    """Glow halo + body + white-hot core, composited bottom-up."""
+    body_rgb, core_rgb = NEON[key]
+    r = radius if radius is not None else size * 0.34
+    body = _mask(size, shape, r)
+    core = _mask(size, shape, r * core_ratio)
+
+    out = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    halo = body.filter(ImageFilter.GaussianBlur(glow))
+    out.alpha_composite(_tint(halo, body_rgb, glow_alpha))
+    out.alpha_composite(_tint(body, body_rgb))
+    out.alpha_composite(_tint(core, core_rgb, 0.92))
+    out.save(SPRITES / name)
+    print(f"sprite {name} {size}x{size} {shape}")
 
 
 def write_floor() -> None:
-    rng = random.Random(41)
-    img = Image.new("RGBA", (32, 32))
-    base, alt = PALETTES["F1"], PALETTES["F2"]
-    for y in range(32):
-        for x in range(32):
-            color = alt if (x < 1 or y < 1) else base
-            if color is base and rng.random() < 0.02:
-                color = alt
-            img.putpixel((x, y), (*color, 255))
+    """Dark indigo with a faint grid — motion parallax without competing."""
+    img = Image.new("RGBA", (32, 32), (*FLOOR_BASE, 255))
+    d = ImageDraw.Draw(img)
+    d.line([(0, 0), (31, 0)], fill=(*FLOOR_GRID, 255))
+    d.line([(0, 0), (0, 31)], fill=(*FLOOR_GRID, 255))
     img.save(SPRITES / "floor.png")
     print("sprite floor.png 32x32")
 
@@ -229,10 +218,22 @@ def write_music() -> None:
 def main() -> None:
     for d in (SPRITES, SFX, MUSIC):
         d.mkdir(parents=True, exist_ok=True)
-    write_sprite("player.png", PLAYER)
-    write_sprite("enemy.png", ENEMY)
-    write_sprite("gem.png", GEM)
-    write_sprite("bullet.png", BULLET)
+    # Player & friendlies — authored in colour (never modulated).
+    neon_sprite("player.png", 16, "diamond", "player", radius=5.6, core_ratio=0.5)
+    neon_sprite("bullet.png", 8, "diamond", "bullet", radius=2.5, core_ratio=0.5,
+                glow=1.1, glow_alpha=0.7)
+    neon_sprite("orbital.png", 8, "square", "orbital", radius=2.5, core_ratio=0.5,
+                glow=1.1, glow_alpha=0.7)
+    neon_sprite("gem.png", 10, "diamond", "gem", radius=3.2, core_ratio=0.46,
+                glow=1.4, glow_alpha=0.65)
+
+    # Enemies — GREYSCALE, tinted per type at runtime. enemy.png stays the
+    # Drifter so existing scenes keep working; the rest are wired up in M5.
+    for name, shape in (("enemy.png", "hexagon"), ("enemy_drifter.png", "hexagon"),
+                        ("enemy_dart.png", "triangle"), ("enemy_bulwark.png", "octagon"),
+                        ("enemy_splitter.png", "diamond"), ("enemy_lancer.png", "chevron")):
+        neon_sprite(name, 16, shape, "enemy", radius=5.5, core_ratio=0.5)
+
     write_floor()
 
     write_wav(SFX / "shoot.wav", sweep(880, 440, 0.07, amp=0.22))

@@ -9,5 +9,5 @@ max_hp = 1
 speed = 110.0
 damage = 1
 xp_value = 2
-tint = Color(0.95, 0.6, 0.2, 1)
+tint = Color(1, 0.55, 0.16, 1)
 size = 10.0
