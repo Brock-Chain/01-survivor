@@ -69,6 +69,10 @@ move_down={
 2d_physics/layer_4="pickups"
 2d_physics/layer_5="walls"
 
+[gui]
+
+theme/custom="res://assets/theme/neon.tres"
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"

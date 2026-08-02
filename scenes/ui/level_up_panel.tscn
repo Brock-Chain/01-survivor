@@ -11,7 +11,7 @@ script = ExtResource("1_lup")
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0, 0, 0, 0.55)
+color = Color(0.02, 0.02, 0.06, 0.62)
 
 [node name="Center" type="CenterContainer" parent="."]
 anchors_preset = 15
