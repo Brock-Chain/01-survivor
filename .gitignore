@@ -5,6 +5,9 @@
 /exports/
 /builds/
 
+# AI screenshot/debug scratch
+/.ai/
+
 # Godot 4.2+ temp GDExtension DLL copies
 ~*.dll
 
