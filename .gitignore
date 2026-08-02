@@ -3,6 +3,16 @@
 
 # Exported builds
 /exports/
+/builds/
+
+# Godot 4.2+ temp GDExtension DLL copies
+~*.dll
+
+# Android .nomedia marker
+.nomedia
+
+# Export credentials (keystore passwords etc.) — export_presets.cfg itself IS committed
+export_credentials.cfg
 
 # Imported translations (automatically generated from CSV files)
 *.translation
