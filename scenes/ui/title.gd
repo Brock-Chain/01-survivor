@@ -10,4 +10,5 @@ func _ready() -> void:
 
 
 func _on_start() -> void:
+	Sfx.play(&"click")
 	get_tree().change_scene_to_file("res://scenes/main/main.tscn")

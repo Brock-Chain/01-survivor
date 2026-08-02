@@ -43,6 +43,7 @@ func _nearest_enemy() -> Enemy:
 
 
 func _fire_at(target: Enemy) -> void:
+	Sfx.play(&"shoot", -10.0)
 	var base_dir: Vector2 = (target.global_position - global_position).normalized()
 	var count: int = stats.projectile_count
 	for i: int in count:

@@ -1,8 +1,10 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scenes/player/player.gd" id="1_pl"]
 [ext_resource type="Script" path="res://resources/stats.gd" id="2_st"]
 [ext_resource type="Script" path="res://scenes/weapons/weapon.gd" id="3_wp"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player.png" id="4_tex"]
+[ext_resource type="Script" path="res://scenes/player/game_camera.gd" id="5_cam"]
 
 [sub_resource type="Resource" id="Resource_stats"]
 script = ExtResource("2_st")
@@ -22,12 +24,8 @@ collision_mask = 18
 script = ExtResource("1_pl")
 stats = SubResource("Resource_stats")
 
-[node name="Visual" type="ColorRect" parent="."]
-offset_left = -8.0
-offset_top = -8.0
-offset_right = 8.0
-offset_bottom = 8.0
-color = Color(0.88, 0.94, 1, 1)
+[node name="Visual" type="Sprite2D" parent="."]
+texture = ExtResource("4_tex")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_body")
@@ -58,3 +56,4 @@ limit_right = 1280
 limit_bottom = 720
 position_smoothing_enabled = true
 position_smoothing_speed = 8.0
+script = ExtResource("5_cam")

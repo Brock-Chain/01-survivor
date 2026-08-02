@@ -15,7 +15,7 @@ var _target: Node2D
 var _speed: float = 0.0
 var _bob_t: float = 0.0
 
-@onready var visual: ColorRect = $Visual
+@onready var visual: Sprite2D = $Visual
 
 
 func setup(p_xp_value: int) -> void:
@@ -30,6 +30,9 @@ func attract(target: Node2D) -> void:
 
 func _ready() -> void:
 	_bob_t = randf() * TAU
+	var pulse: Tween = create_tween().set_loops()
+	pulse.tween_property(visual, "scale", Vector2.ONE * 1.15, 0.4).set_trans(Tween.TRANS_SINE)
+	pulse.tween_property(visual, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_SINE)
 
 
 func _physics_process(delta: float) -> void:

@@ -5,6 +5,7 @@ extends Node2D
 const ARENA: Rect2 = Rect2(0, 0, 1280, 720)
 
 const XP_GEM_SCENE: PackedScene = preload("res://scenes/pickups/xp_gem.tscn")
+const DEATH_BURST_SCENE: PackedScene = preload("res://scenes/fx/death_burst.tscn")
 
 ## Explicit preloads, not DirAccess scanning — directory listings misbehave
 ## inside exported .pck files (resources get .remap suffixes).
@@ -55,6 +56,7 @@ func _ready() -> void:
 	level_up_panel.upgrade_chosen.connect(_on_upgrade_chosen)
 	hud.set_health(player.health.hp, player.health.max_hp)
 	hud.set_xp(xp_into_level, Progression.xp_required(level), level)
+	Music.play_gameplay()
 	print("01-survivor boot OK — Godot %s" % Engine.get_version_info()["string"])
 
 
@@ -67,11 +69,14 @@ func _on_enemy_spawned(enemy: Enemy) -> void:
 	enemy.died.connect(_on_enemy_died)
 
 
-func _on_enemy_died(xp_value: int, at: Vector2) -> void:
+func _on_enemy_died(xp_value: int, at: Vector2, tint: Color) -> void:
 	kills += 1
+	Sfx.play(&"pop", -6.0)
+	player.camera.add_trauma(0.12)
 	# died fires from a physics callback (projectile body_entered) — adding
-	# an Area2D to the tree mid-flush is forbidden, so defer the spawn.
+	# physics nodes to the tree mid-flush is forbidden, so defer the spawns.
 	_spawn_gem.call_deferred(xp_value, at)
+	_spawn_burst.call_deferred(at, tint)
 
 
 func _spawn_gem(xp_value: int, at: Vector2) -> void:
@@ -82,7 +87,15 @@ func _spawn_gem(xp_value: int, at: Vector2) -> void:
 	gem.collected.connect(_on_gem_collected)
 
 
+func _spawn_burst(at: Vector2, tint: Color) -> void:
+	var burst: CPUParticles2D = DEATH_BURST_SCENE.instantiate()
+	burst.setup(tint)
+	burst.position = at
+	pickups.add_child(burst)
+
+
 func _on_gem_collected(xp_value: int) -> void:
+	Sfx.play(&"pickup", -8.0)
 	var gained: int = roundi(xp_value * player.stats.xp_mult)
 	total_xp += gained
 	xp_into_level += gained
@@ -99,6 +112,7 @@ func _check_level_up() -> void:
 	var offers: Array[UpgradeResource] = pool.draw(3, stacks)
 	if offers.is_empty():
 		return  # everything maxed — nothing to offer, keep playing
+	Sfx.play(&"levelup")
 	get_tree().paused = true
 	level_up_panel.show_offers(offers, level)
 
@@ -118,5 +132,6 @@ func _on_upgrade_chosen(upgrade: UpgradeResource) -> void:
 
 
 func _on_player_died() -> void:
+	Sfx.play(&"death")
 	get_tree().paused = true
 	game_over.show_results(time_survived, kills, level)

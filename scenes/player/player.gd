@@ -15,8 +15,9 @@ var _time: float = 0.0
 @onready var hurtbox: Area2D = $Hurtbox
 @onready var magnet: Area2D = $Magnet
 @onready var magnet_shape: CollisionShape2D = $Magnet/CollisionShape2D
-@onready var visual: ColorRect = $Visual
+@onready var visual: Sprite2D = $Visual
 @onready var weapon: Weapon = $Weapon
+@onready var camera: GameCamera = $Camera2D
 
 
 func _ready() -> void:
@@ -55,6 +56,8 @@ func _check_contact_damage() -> void:
 	for body: Node2D in hurtbox.get_overlapping_bodies():
 		if body is Enemy:
 			if health.take_damage((body as Enemy).stats.damage, _time):
+				Sfx.play(&"hurt")
+				camera.add_trauma(0.5)
 				break
 
 

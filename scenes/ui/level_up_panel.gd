@@ -28,5 +28,6 @@ func show_offers(offers: Array[UpgradeResource], level: int) -> void:
 
 
 func _on_option_pressed(upgrade: UpgradeResource) -> void:
+	Sfx.play(&"click")
 	visible = false
 	upgrade_chosen.emit(upgrade)
