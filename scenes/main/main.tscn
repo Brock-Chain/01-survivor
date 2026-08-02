@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/main/main.gd" id="1_main"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="BootLabel" type="Label" parent="."]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 400.0
+offset_bottom = 48.0
+text = "01-survivor: it runs."

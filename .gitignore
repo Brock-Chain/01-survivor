@@ -1,0 +1,13 @@
+# Godot 4 editor cache — fully regenerated, never commit
+.godot/
+
+# Exported builds
+/exports/
+
+# Imported translations (automatically generated from CSV files)
+*.translation
+
+# OS noise
+Thumbs.db
+Desktop.ini
+.DS_Store
