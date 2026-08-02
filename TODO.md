@@ -45,13 +45,15 @@ without advancing the clock. Launch `main.tscn` directly — the title screen wa
 ### M1 — Visual identity ⭐ HARD GATE
 Regenerate every sprite in the neon-geometric style; apply the colour law from BRIEF §5.
 
-- [ ] Rewrite `tools/gen_assets.py` sprite generation: filled geometry + baked glow halo
-- [ ] Player, projectile, orbital, 5 enemy silhouettes, gem, boss parts
-- [ ] Arena floor / grid, background
-- [ ] Retune the hit-flash shader for the neon palette
+- [x] Rewrite `tools/gen_assets.py` sprite generation: filled geometry + baked glow halo
+- [x] Player, projectile, orbital, 5 enemy silhouettes, gem, bolt, boss core
+- [x] Arena floor / grid, background
+- [x] Project-wide neon `Theme` (`assets/theme/neon.tres`) — no default-theme controls anywhere
+- [ ] Retune the hit-flash shader for the neon palette *(deferred: the existing white flash reads
+      correctly against saturated neon; revisit only if it stops reading during the M7 playtest)*
 
-**HARD GATE:** a static screenshot with the HUD hidden already reads as *designed, not generated*.
-**Do not start M2 until this is true.**
+**HARD GATE: PASSED 2026-08-02.** Arena, title, level-up and game-over screens all captured and
+reviewed — reads as designed, not generated.
 
 ### M2 — Run Director
 Waves as data, elites, boss, win condition, endless.
@@ -75,13 +77,18 @@ be much faster, but the spread means boss HP (`resources/enemies/prism.tres`, 23
 human skill. Tune it from a real run, not from a soak.
 
 ### M3 — Run & Meta State
-- [ ] System contract first
-- [ ] Run seed; same seed reproduces the same run
-- [ ] Strict run-state / meta-state separation (never share a reference)
-- [ ] Save/load, unlocks
-- [ ] Round-trip tests
+- [x] Contract written first (docstrings on `RunState` / `MetaState`)
+- [x] Run seed; one RNG drives upgrades, enemy choice and placement
+- [x] Strict run-state / meta-state separation (values cross, never references)
+- [x] Save/load via ConfigFile, unlocks as milestones
+- [x] Round-trip + corruption-tolerance tests
 
-**Gate:** quit mid-run, relaunch — unlocks persist, run state does not.
+**Gate: PASSED 2026-08-02.** Two real launches: fresh profile → victory at 5:18 → relaunch reads
+`runs=1 wins=1 best_time=318 best_kills=369 unlocks=[orbital]`. Run state is never written, so it
+cannot persist. 59/59 GUT green.
+
+Beating the Prism unlocks the **Orbital** — which is M4's second weapon, so the win has something
+to give.
 
 ### M4 — Weapons as data
 - [ ] System contract first
@@ -131,6 +138,9 @@ seam at a loop point or layer change.
 - [x] **v1.0 M6** Juice & assets — generated assets, audio buses, SFX/music, juice pass
 - [ ] **v1.0 M7** superseded by v1.1 (hub D15 — v1.1 is a continuation; the ship gate moves to v1.1 M7)
 - [x] **v1.1 M0** Fix pass (2026-08-02) — 5 findings closed, growth bounded and proven, 35 tests green, both builds produce
-- [ ] v1.1: **M1** ← next · M2 · M3 · M4 · M5 · M6 · M7
+- [x] **v1.1 M1** Visual identity (2026-08-02) — neon generator, colour law, project-wide theme
+- [x] **v1.1 M2** Run Director (2026-08-02) — waves as data, elites, The Prism, victory, endless
+- [x] **v1.1 M3** Run & Meta State (2026-08-02) — seed, save/load, unlocks
+- [ ] v1.1: **M4** ← next · M5 · M6 · M7
 
 *Checkboxes are updated at session end. A milestone list that lies is worse than none.*

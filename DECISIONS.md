@@ -90,6 +90,28 @@ happen.
 - **2026-08-02 — `--dev-autocontinue` added.** The victory screen waits on a button, which stalls a
   headless soak at exactly the moment endless begins — the part most needing soak coverage.
 
+- **2026-08-02 — Saves use ConfigFile, not a `.tres`.** The project convention is "game data is
+  Resources, never dictionaries", which governs CONTENT we author. A save file is *user-writable*,
+  and `load()`ing a Resource from a user-writable path instantiates whatever script the file names.
+  ConfigFile is typed, human-readable, and cannot execute anything. `MetaState.from_config` is also
+  deliberately tolerant: any missing or wrong-typed key falls back to its default, because a corrupt
+  save costs progress but a crash on boot costs the whole game.
+
+- **2026-08-02 — Values cross the run/meta boundary, never objects.** `RunState.to_result()` returns
+  a flat Dictionary and `MetaState.absorb()` takes one. The invariant "run state and meta state never
+  share a reference" is then structural rather than a rule to remember, and it is tested directly:
+  mutating a RunState after absorbing it must not move the saved record.
+
+- **2026-08-02 — A banked victory is recorded once; endless afterwards only improves records.**
+  Victory calls `Meta.absorb_run` immediately (the BRIEF promise that rewards bank before the
+  Continue choice). If the player then dies in endless, `Meta.update_records` improves best time and
+  best kills without incrementing the run tally. Totals stay as of the banking point — a deliberate
+  simplification over delta-tracking.
+
+- **2026-08-02 — Unlocks are milestones, not a shop.** Beating the Prism unlocks the Orbital weapon
+  (M4), so a first victory hands over a new way to play rather than a currency balance. Unlock ids
+  are StringNames referenced by content, so reordering or removing one cannot silently shift another.
+
 ## Known-open at time of writing (2026-08-02)
 
 **All five resolved in M0 (commit `0b3cdf3`).** Kept for the record:

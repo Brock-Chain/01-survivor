@@ -32,6 +32,12 @@ var stacks: Dictionary = {}
 
 var pool: UpgradePool
 var run_rng: RandomNumberGenerator = RandomNumberGenerator.new()
+## This run's identity. One seed drives upgrade draws, enemy choice and
+## spawn placement, so replaying it reproduces the run.
+var run_state: RunState
+## True once victory has banked this run, so a later death in endless
+## improves records without counting a second run.
+var _banked: bool = false
 
 ## Dev flags, read from user args after a bare `--` (same convention as
 ## ai_screenshot.gd). Inert in a normal run and in exported builds.
@@ -54,7 +60,8 @@ var _dev_stats_t: float = 0.0
 
 
 func _ready() -> void:
-	run_rng.randomize()
+	run_state = RunState.with_seed(RunState.random_seed_value())
+	run_rng.seed = run_state.seed_value
 	pool = UpgradePool.new(UPGRADE_LIST, run_rng)
 	spawner.target = player
 	spawner.container = enemies
@@ -99,11 +106,18 @@ func _apply_dev_flags() -> void:
 			"--dev-autocontinue":
 				_dev_autocontinue = true
 				print("[dev] autocontinue")
+	if _dev_stats:
+		print("[meta] dir=%s runs=%d wins=%d best_time=%.0f best_kills=%d unlocks=%s"
+				% [OS.get_user_data_dir(), Meta.state.runs_played, Meta.state.victories,
+				Meta.state.best_time, Meta.state.best_kills, str(Meta.state.unlocks)])
 
 
 func _physics_process(delta: float) -> void:
 	# The director owns run time; Main mirrors it so there is exactly one clock.
 	time_survived = director.elapsed
+	run_state.elapsed = time_survived
+	run_state.kills = kills
+	run_state.level = level
 	hud.set_run(time_survived, kills)
 	if _dev_stats:
 		_dev_stats_t += delta
@@ -133,6 +147,9 @@ func _on_victory(_event_index: int) -> void:
 		print("[victory] t=%.0fs kills=%d lvl=%d" % [time_survived, kills, level])
 	# The victory screen waits on a button, which would stall a headless soak at
 	# the exact moment endless begins — the part that most needs soaking.
+	run_state.won = true
+	_banked = true
+	Meta.absorb_run(run_state.to_result())  # banked BEFORE the choice is offered
 	if _dev_autocontinue:
 		return
 	get_tree().paused = true
@@ -209,6 +226,10 @@ func _on_upgrade_chosen(upgrade: UpgradeResource) -> void:
 
 
 func _on_player_died() -> void:
+	if _banked:
+		Meta.update_records(run_state.to_result())
+	else:
+		Meta.absorb_run(run_state.to_result())
 	Sfx.play(&"death")
 	get_tree().paused = true
 	game_over.show_results(time_survived, kills, level)
