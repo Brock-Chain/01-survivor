@@ -12,7 +12,10 @@ enum Effect {
 	PROJECTILE_SPEED, ## magnitude = fractional bonus
 	MAGNET,           ## magnitude = flat radius added (px)
 	XP_GAIN,          ## magnitude = fractional bonus
-	HEAL,             ## magnitude = flat HP restored (does not consume a stack slot conceptually, but stacks cap re-offers)
+	HEAL,             ## DEPRECATED — healing is a drop now, not a level reward
+	PIERCE,           ## magnitude = extra enemies each shot passes through
+	CRIT_CHANCE,      ## magnitude = added crit chance (0.08 = +8%)
+	LIFESTEAL,        ## magnitude = added chance per kill to recover 1 HP
 }
 
 @export var id: StringName
@@ -20,6 +23,10 @@ enum Effect {
 @export_multiline var description: String
 @export var effect: Effect
 @export var magnitude: float = 0.0
+## Times this may be taken. **0 or less means UNLIMITED** — at least one such
+## upgrade must exist or the pool dries up and late levels offer nothing. That
+## is not hypothetical: it shipped, and at level 37 the only legal draw left was
+## a heal.
 @export var max_stacks: int = 5
 ## Relative draw weight. Higher = offered more often. Must be > 0.
 @export var weight: float = 1.0
@@ -27,6 +34,11 @@ enum Effect {
 
 ## Applies this upgrade to stats. HEAL is the exception — it touches Health,
 ## handled by the caller (Main) since Stats doesn't know about current HP.
+## True if this may still be offered at `taken` stacks.
+func is_eligible(taken: int) -> bool:
+	return true if max_stacks <= 0 else taken < max_stacks
+
+
 func apply_to(stats: Stats) -> void:
 	match effect:
 		Effect.MOVE_SPEED:
@@ -46,4 +58,10 @@ func apply_to(stats: Stats) -> void:
 		Effect.XP_GAIN:
 			stats.xp_mult *= 1.0 + magnitude
 		Effect.HEAL:
-			pass  # handled by Main against Health
+			pass  # legacy; healing is a world drop now
+		Effect.PIERCE:
+			stats.pierce += int(magnitude)
+		Effect.CRIT_CHANCE:
+			stats.crit_chance = minf(0.85, stats.crit_chance + magnitude)
+		Effect.LIFESTEAL:
+			stats.lifesteal_chance = minf(0.6, stats.lifesteal_chance + magnitude)

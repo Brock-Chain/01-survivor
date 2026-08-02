@@ -17,7 +17,7 @@ func _init(upgrades: Array[UpgradeResource], rng: RandomNumberGenerator) -> void
 ## Returns up to `count` distinct upgrades whose stack cap isn't reached.
 func draw(count: int, stacks: Dictionary) -> Array[UpgradeResource]:
 	var eligible: Array[UpgradeResource] = _upgrades.filter(
-		func(u: UpgradeResource) -> bool: return int(stacks.get(u.id, 0)) < u.max_stacks
+		func(u: UpgradeResource) -> bool: return u.is_eligible(int(stacks.get(u.id, 0)))
 	)
 	var result: Array[UpgradeResource] = []
 	while result.size() < count and not eligible.is_empty():

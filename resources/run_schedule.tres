@@ -1,16 +1,18 @@
 [gd_resource type="Resource" script_class="RunSchedule" format=3]
 
-[ext_resource type="Script" path="res://resources/run_schedule.gd" id="1_tb26h"]
-[ext_resource type="Script" path="res://resources/wave_resource.gd" id="2_kcxtl"]
-[ext_resource type="Resource" path="res://resources/waves/opening.tres" id="3_lqj5s"]
-[ext_resource type="Resource" path="res://resources/waves/pressure.tres" id="4_2cb54"]
-[ext_resource type="Resource" path="res://resources/waves/swarm.tres" id="5_ldcob"]
-[ext_resource type="Resource" path="res://resources/waves/surge.tres" id="6_m3ibu"]
-[ext_resource type="Resource" path="res://resources/waves/endless_1.tres" id="7_sy4tk"]
-[ext_resource type="Resource" path="res://resources/waves/endless_2.tres" id="8_e1mkr"]
-[ext_resource type="Resource" path="res://resources/waves/endless_3.tres" id="9_0g07b"]
-[ext_resource type="Resource" path="res://resources/waves/endless_4.tres" id="10_pdayg"]
+[ext_resource type="Script" path="res://resources/run_schedule.gd" id="1_kcxtl"]
+[ext_resource type="Script" path="res://resources/wave_resource.gd" id="2_lqj5s"]
+[ext_resource type="Resource" path="res://resources/waves/opening.tres" id="3_2cb54"]
+[ext_resource type="Resource" path="res://resources/waves/pressure.tres" id="4_ldcob"]
+[ext_resource type="Resource" path="res://resources/waves/ranged.tres" id="5_m3ibu"]
+[ext_resource type="Resource" path="res://resources/waves/swarm.tres" id="6_sy4tk"]
+[ext_resource type="Resource" path="res://resources/waves/surge.tres" id="7_e1mkr"]
+[ext_resource type="Resource" path="res://resources/waves/endless_1.tres" id="8_0g07b"]
+[ext_resource type="Resource" path="res://resources/waves/endless_2.tres" id="9_pdayg"]
+[ext_resource type="Resource" path="res://resources/waves/endless_3.tres" id="10_mjkw6"]
+[ext_resource type="Resource" path="res://resources/waves/endless_4.tres" id="11_r54yr"]
 
 [resource]
-script = ExtResource("1_tb26h")
-waves = Array[ExtResource("2_kcxtl")]([ExtResource("3_lqj5s"), ExtResource("4_2cb54"), ExtResource("5_ldcob"), ExtResource("6_m3ibu"), ExtResource("7_sy4tk"), ExtResource("8_e1mkr"), ExtResource("9_0g07b"), ExtResource("10_pdayg")])
+script = ExtResource("1_kcxtl")
+waves = Array[ExtResource("2_lqj5s")]([ExtResource("3_2cb54"), ExtResource("4_ldcob"), ExtResource("5_m3ibu"), ExtResource("6_sy4tk"), ExtResource("7_e1mkr"), ExtResource("8_0g07b"), ExtResource("9_pdayg"), ExtResource("10_mjkw6"), ExtResource("11_r54yr")])
+boss_spawn_throttle = 0.5

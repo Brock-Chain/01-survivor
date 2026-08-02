@@ -21,6 +21,7 @@ func setup(p_velocity: Vector2, p_damage: int) -> void:
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
+	rotation = velocity.angle() + PI * 0.5  # sprite points 'up'
 
 
 func _physics_process(delta: float) -> void:
@@ -33,5 +34,5 @@ func _physics_process(delta: float) -> void:
 
 func _on_body_entered(body: Node2D) -> void:
 	if body is Player:
-		(body as Player).apply_damage(damage)
+		(body as Player).apply_damage(damage, &"bolt")
 		queue_free()

@@ -6,6 +6,11 @@ const ARENA: Rect2 = Rect2(0, 0, 1280, 720)
 
 const XP_GEM_SCENE: PackedScene = preload("res://scenes/pickups/xp_gem.tscn")
 const DEATH_BURST_SCENE: PackedScene = preload("res://scenes/fx/death_burst.tscn")
+const HEALTH_PICKUP_SCENE: PackedScene = preload("res://scenes/pickups/health_pickup.tscn")
+
+## Health is a world drop, not a level-up option. Only drops when the player
+## is actually hurt, so it can never be the wasted pick a heal-at-full-HP was.
+const HEALTH_DROP_CHANCE: float = 0.045
 
 ## Explicit preloads, not DirAccess scanning — directory listings misbehave
 ## inside exported .pck files (resources get .remap suffixes).
@@ -18,8 +23,16 @@ const UPGRADE_LIST: Array[UpgradeResource] = [
 	preload("res://resources/upgrades/velocity.tres"),
 	preload("res://resources/upgrades/magnetism.tres"),
 	preload("res://resources/upgrades/scholar.tres"),
-	preload("res://resources/upgrades/bandage.tres"),
 	preload("res://resources/upgrades/cannonball.tres"),
+	# Behaviour-changing, not another flat bump.
+	preload("res://resources/upgrades/pierce.tres"),
+	preload("res://resources/upgrades/focus.tres"),
+	preload("res://resources/upgrades/siphon.tres"),
+	# Unlimited stacks — without at least one of these the pool dries up and
+	# late levels have nothing legal left to offer.
+	preload("res://resources/upgrades/overdrive.tres"),
+	preload("res://resources/upgrades/momentum.tres"),
+	preload("res://resources/upgrades/cadence.tres"),
 ]
 
 var time_survived: float = 0.0
@@ -45,6 +58,7 @@ var _dev_stats: bool = false
 var _dev_autopick: bool = false
 var _dev_autocontinue: bool = false
 var _dev_stats_t: float = 0.0
+var _tele_t: float = 0.0
 
 @onready var player: Player = $Player
 @onready var spawner: Spawner = $Spawner
@@ -62,6 +76,7 @@ var _dev_stats_t: float = 0.0
 func _ready() -> void:
 	run_state = RunState.with_seed(RunState.random_seed_value())
 	run_rng.seed = run_state.seed_value
+	Telemetry.begin_run(run_state.seed_value)
 	pool = UpgradePool.new(UPGRADE_LIST, run_rng)
 	spawner.target = player
 	spawner.container = enemies
@@ -79,6 +94,7 @@ func _ready() -> void:
 	player.died.connect(_on_player_died)
 	player.health_changed.connect(hud.set_health)
 	player.weapon.container = projectiles
+	player.weapon.rng = run_rng
 	level_up_panel.upgrade_chosen.connect(_on_upgrade_chosen)
 	hud.set_health(player.health.hp, player.health.max_hp)
 	hud.set_xp(xp_into_level, Progression.xp_required(level), level)
@@ -118,6 +134,8 @@ func _physics_process(delta: float) -> void:
 	run_state.elapsed = time_survived
 	run_state.kills = kills
 	run_state.level = level
+	Telemetry.set_run_time(time_survived)
+	_sample_telemetry(delta)
 	hud.set_run(time_survived, kills)
 	if _dev_stats:
 		_dev_stats_t += delta
@@ -128,6 +146,25 @@ func _physics_process(delta: float) -> void:
 					projectiles.get_child_count(), kills, level, director.bosses_alive])
 
 
+## Every 5s: the pressure curve. Answers "is the start too easy" with numbers —
+## HP fraction and living-enemy count over time, not a recollection.
+func _sample_telemetry(delta: float) -> void:
+	if not Telemetry.enabled:
+		return
+	_tele_t += delta
+	if _tele_t < 5.0:
+		return
+	_tele_t = 0.0
+	Telemetry.event(&"tick", {
+		"hp": player.health.hp,
+		"max_hp": player.health.max_hp,
+		"kills": kills,
+		"lvl": level,
+		"alive": enemies.get_child_count(),
+		"bosses": director.bosses_alive,
+	})
+
+
 func _on_enemy_spawned(enemy: Enemy) -> void:
 	enemy.died.connect(_on_enemy_died)
 
@@ -136,6 +173,7 @@ func _on_enemy_spawned(enemy: Enemy) -> void:
 func _on_boss_spawned(boss: Node2D) -> void:
 	boss.died.connect(_on_enemy_died)
 	player.camera.add_trauma(0.6)
+	Telemetry.event(&"boss_spawn", {"alive": director.bosses_alive})
 	if _dev_stats:
 		print("[boss] spawned t=%.0fs alive=%d" % [time_survived, director.bosses_alive])
 
@@ -147,6 +185,7 @@ func _on_victory(_event_index: int) -> void:
 		print("[victory] t=%.0fs kills=%d lvl=%d" % [time_survived, kills, level])
 	# The victory screen waits on a button, which would stall a headless soak at
 	# the exact moment endless begins — the part that most needs soaking.
+	Telemetry.event(&"victory", {"kills": kills, "lvl": level})
 	run_state.won = true
 	_banked = true
 	Meta.absorb_run(run_state.to_result())  # banked BEFORE the choice is offered
@@ -158,6 +197,11 @@ func _on_victory(_event_index: int) -> void:
 
 func _on_enemy_died(xp_value: int, at: Vector2, tint: Color) -> void:
 	kills += 1
+	Telemetry.event(&"kill", {"n": kills})
+	if player.stats.lifesteal_chance > 0.0 and run_rng.randf() < player.stats.lifesteal_chance:
+		player.health.heal(1)
+	if player.health.hp < player.health.max_hp and run_rng.randf() < HEALTH_DROP_CHANCE:
+		_spawn_health.call_deferred(at)
 	Sfx.play(&"pop", -6.0)
 	player.camera.add_trauma(0.12)
 	# died fires from a physics callback (projectile body_entered) — adding
@@ -172,6 +216,16 @@ func _spawn_gem(xp_value: int, at: Vector2) -> void:
 	gem.position = at
 	pickups.add_child(gem)
 	gem.collected.connect(_on_gem_collected)
+
+
+func _spawn_health(at: Vector2) -> void:
+	var pickup: HealthPickup = HEALTH_PICKUP_SCENE.instantiate()
+	pickup.setup(player)
+	pickup.position = at
+	pickups.add_child(pickup)
+	pickup.collected.connect(func() -> void:
+		player.health.heal(2)
+		Sfx.play(&"levelup", -6.0))
 
 
 func _spawn_burst(at: Vector2, tint: Color) -> void:
@@ -201,6 +255,12 @@ func _check_level_up() -> void:
 		var offers: Array[UpgradeResource] = pool.draw(3, stacks)
 		if offers.is_empty():
 			continue  # everything maxed — bank the level, keep playing
+		# Log what was OFFERED, not just what was taken: a pick rate without a
+		# denominator says "common upgrades are popular", which is worthless.
+		var offered_ids: Array[String] = []
+		for u: UpgradeResource in offers:
+			offered_ids.append(String(u.id))
+		Telemetry.event(&"offer", {"lvl": level, "ids": offered_ids})
 		if _dev_autopick:
 			_on_upgrade_chosen.call_deferred(offers[0])
 			break
@@ -212,6 +272,8 @@ func _check_level_up() -> void:
 
 
 func _on_upgrade_chosen(upgrade: UpgradeResource) -> void:
+	Telemetry.event(&"pick", {"lvl": level, "id": String(upgrade.id),
+			"stack": int(stacks.get(upgrade.id, 0)) + 1})
 	stacks[upgrade.id] = int(stacks.get(upgrade.id, 0)) + 1
 	upgrade.apply_to(player.stats)
 	# Two effects touch live Health, which Stats can't know about:
@@ -226,6 +288,8 @@ func _on_upgrade_chosen(upgrade: UpgradeResource) -> void:
 
 
 func _on_player_died() -> void:
+	Telemetry.event(&"death", {"kills": kills, "lvl": level})
+	Telemetry.end_run("death", {"kills": kills, "lvl": level, "won": run_state.won})
 	if _banked:
 		Meta.update_records(run_state.to_result())
 	else:

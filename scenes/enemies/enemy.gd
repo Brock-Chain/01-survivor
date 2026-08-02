@@ -6,6 +6,7 @@ extends CharacterBody2D
 signal died(xp_value: int, at: Vector2, tint: Color)
 
 const FLASH_TIME: float = 0.12
+const BOLT_SCENE: PackedScene = preload("res://scenes/enemies/enemy_projectile.tscn")
 
 var stats: EnemyStats
 var hp: int
@@ -16,6 +17,7 @@ var target: Node2D
 var is_elite: bool = false
 var damage: int = 1
 var xp_value: int = 1
+var _shoot_cd: float = 0.0
 
 @onready var visual: Sprite2D = $Visual
 @onready var shape: CollisionShape2D = $CollisionShape2D
@@ -35,8 +37,11 @@ func setup(p_stats: EnemyStats, p_target: Node2D, hp_mult: float = 1.0,
 
 
 func _ready() -> void:
-	# White base sprite tinted per type — color is content (EnemyStats), not code.
+	# Silhouette and colour are both content (EnemyStats), never code.
+	if stats.sprite != null:
+		visual.texture = stats.sprite
 	visual.modulate = stats.tint
+	_shoot_cd = stats.attack_interval * randf_range(0.4, 1.0)
 	var size: float = stats.size * (Difficulty.ELITE_SCALE if is_elite else 1.0)
 	visual.scale = Vector2.ONE * (size / 16.0)
 	var rect: RectangleShape2D = shape.shape
@@ -59,11 +64,36 @@ func _apply_elite_rim() -> void:
 	pulse.tween_property(rim, "modulate:a", 0.9, 0.5).set_trans(Tween.TRANS_SINE)
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if not is_instance_valid(target):
 		return
-	velocity = (target.global_position - global_position).normalized() * stats.speed
+	if stats.behavior == EnemyStats.Behavior.RANGED:
+		_act_ranged(delta)
+	else:
+		velocity = (target.global_position - global_position).normalized() * stats.speed
 	move_and_slide()
+
+
+## Holds its preferred range and shoots. Backs off when crowded in, closes when
+## too far — so the player cannot simply walk away from it either.
+func _act_ranged(delta: float) -> void:
+	var to_target: Vector2 = target.global_position - global_position
+	var dist: float = to_target.length()
+	var dir: Vector2 = to_target.normalized()
+	if dist > stats.attack_range * 1.15:
+		velocity = dir * stats.speed
+	elif dist < stats.attack_range * 0.75:
+		velocity = -dir * stats.speed * 0.8
+	else:
+		velocity = dir.orthogonal() * stats.speed * 0.35  # strafe, never static
+
+	_shoot_cd -= delta
+	if _shoot_cd <= 0.0 and dist <= stats.attack_range * 1.3:
+		_shoot_cd = stats.attack_interval
+		var bolt: EnemyProjectile = BOLT_SCENE.instantiate()
+		bolt.setup(dir * stats.bolt_speed, damage)
+		bolt.global_position = global_position
+		get_parent().add_child(bolt)
 
 
 func take_hit(amount: int) -> void:

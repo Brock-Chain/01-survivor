@@ -21,6 +21,7 @@ AiScreenshot="*res://tools/ai_screenshot.gd"
 Sfx="*res://scripts/sfx.gd"
 Music="*res://scripts/music.gd"
 Meta="*res://scripts/meta.gd"
+Telemetry="*res://scripts/telemetry.gd"
 
 [display]
 

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyStats" format=3]
+
+[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="1_s53is"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemy_dart.png" id="2_g2hvq"]
+
+[resource]
+script = ExtResource("1_s53is")
+id = &"dart"
+sprite = ExtResource("2_g2hvq")
+max_hp = 1
+speed = 132.0
+xp_value = 2
+tint = Color(1, 0.55, 0.16, 1)
+size = 10.0

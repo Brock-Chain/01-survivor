@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="EnemyStats" format=3]
+
+[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="1_odmc3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemy_drifter.png" id="2_801wv"]
+
+[resource]
+script = ExtResource("1_odmc3")
+id = &"drifter"
+sprite = ExtResource("2_801wv")
+speed = 62.0
+tint = Color(1, 0.29, 0.72, 1)

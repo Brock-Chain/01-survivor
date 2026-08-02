@@ -8,15 +8,21 @@ const LIFETIME: float = 1.2
 var direction: Vector2 = Vector2.RIGHT
 var speed: float = 340.0
 var damage: int = 1
+## Extra enemies this shot survives before dying.
+var pierce: int = 0
 
 var _life: float = LIFETIME
 
 
-func setup(p_direction: Vector2, p_speed: float, p_damage: int) -> void:
+func setup(p_direction: Vector2, p_speed: float, p_damage: int,
+		p_pierce: int = 0, crit: bool = false) -> void:
 	direction = p_direction
 	speed = p_speed
 	damage = p_damage
+	pierce = p_pierce
 	rotation = direction.angle()
+	if crit:
+		scale = Vector2.ONE * 1.7  # a crit you cannot see is a crit that did not happen
 
 
 func _ready() -> void:
@@ -33,4 +39,7 @@ func _physics_process(delta: float) -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if body is Enemy:
 		(body as Enemy).take_hit(damage)
-		queue_free()
+		if pierce <= 0:
+			queue_free()
+			return
+		pierce -= 1

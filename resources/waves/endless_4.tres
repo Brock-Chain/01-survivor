@@ -1,17 +1,18 @@
 [gd_resource type="Resource" script_class="WaveResource" format=3]
 
-[ext_resource type="Script" path="res://resources/wave_resource.gd" id="1_idjf7"]
-[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="2_dyaqj"]
-[ext_resource type="Resource" path="res://resources/enemies/chaser.tres" id="3_dny18"]
-[ext_resource type="Resource" path="res://resources/enemies/fast.tres" id="4_nf7p6"]
+[ext_resource type="Script" path="res://resources/wave_resource.gd" id="1_dyaqj"]
+[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="2_dny18"]
+[ext_resource type="Resource" path="res://resources/enemies/dart.tres" id="3_nf7p6"]
+[ext_resource type="Resource" path="res://resources/enemies/lancer.tres" id="4_n5xhj"]
+[ext_resource type="Resource" path="res://resources/enemies/bulwark.tres" id="5_ghurq"]
 
 [resource]
-script = ExtResource("1_idjf7")
+script = ExtResource("1_dyaqj")
 id = &"endless_4"
 start_time = 900.0
-spawn_interval = 0.4
-hp_mult = 6.2
-elite_chance = 0.22
+spawn_interval = 0.19
+hp_mult = 7.6
+elite_chance = 0.24
 intensity = 2
-types = Array[ExtResource("2_dyaqj")]([ExtResource("3_dny18"), ExtResource("4_nf7p6")])
-weights = Array[float]([1.0, 2.0])
+types = Array[ExtResource("2_dny18")]([ExtResource("3_nf7p6"), ExtResource("4_n5xhj"), ExtResource("5_ghurq")])
+weights = Array[float]([3.0, 3.0, 2.4])

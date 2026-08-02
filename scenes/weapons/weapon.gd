@@ -11,6 +11,8 @@ const PROJECTILE_SCENE: PackedScene = preload("res://scenes/weapons/projectile.t
 ## Wired by Player (stats) and Main (container).
 var stats: Stats
 var container: Node2D
+## Injected by Main so crit rolls stay part of the seeded run.
+var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 var _cooldown: float = 0.0
 
@@ -46,9 +48,12 @@ func _fire_at(target: Enemy) -> void:
 	Sfx.play(&"shoot", -10.0)
 	var base_dir: Vector2 = (target.global_position - global_position).normalized()
 	var count: int = stats.projectile_count
+	var crit: bool = stats.crit_chance > 0.0 and rng.randf() < stats.crit_chance
+	var damage: int = roundi(stats.damage * stats.crit_mult) if crit else stats.damage
 	for i: int in count:
 		var offset_deg: float = (i - (count - 1) / 2.0) * SPREAD_DEG
 		var projectile: Projectile = PROJECTILE_SCENE.instantiate()
-		projectile.setup(base_dir.rotated(deg_to_rad(offset_deg)), stats.projectile_speed, stats.damage)
+		projectile.setup(base_dir.rotated(deg_to_rad(offset_deg)), stats.projectile_speed,
+				damage, stats.pierce, crit)
 		projectile.position = global_position
 		container.add_child(projectile)

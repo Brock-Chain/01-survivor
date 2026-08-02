@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyStats" format=3]
+
+[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="1_usfcn"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemy_lancer.png" id="2_kxk06"]
+
+[resource]
+script = ExtResource("1_usfcn")
+id = &"lancer"
+behavior = 1
+sprite = ExtResource("2_kxk06")
+attack_range = 195.0
+attack_interval = 2.3
+bolt_speed = 140.0
+max_hp = 4
+speed = 58.0
+xp_value = 6
+tint = Color(1, 0.42, 0.55, 1)

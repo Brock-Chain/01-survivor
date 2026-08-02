@@ -21,10 +21,11 @@ func _wave(id: String, start: float, types: Array[EnemyStats] = [],
 
 
 func _schedule(waves: Array[WaveResource], interval: float = 300.0,
-		cap: int = 3) -> RunSchedule:
+		cap: int = 6, first: int = 2) -> RunSchedule:
 	var s := RunSchedule.new()
 	s.waves = waves
 	s.boss_interval = interval
+	s.bosses_first = first
 	s.max_concurrent_bosses = cap
 	return s
 
@@ -71,17 +72,17 @@ func test_first_boss_lands_at_the_interval_not_at_zero() -> void:
 
 
 func test_boss_count_grows_then_caps() -> void:
-	var s := _schedule([], 300.0, 3)
-	assert_eq(s.bosses_at_event(0), 1, "one Prism at 5:00")
-	assert_eq(s.bosses_at_event(1), 2, "two at 10:00")
-	assert_eq(s.bosses_at_event(2), 3)
-	assert_eq(s.bosses_at_event(9), 3, "capped — endless stays readable")
+	var s := _schedule([], 300.0, 6, 2)
+	assert_eq(s.bosses_at_event(0), 2, "TWO Prisms at 5:00 — one was a pushover")
+	assert_eq(s.bosses_at_event(1), 4, "four at 10:00")
+	assert_eq(s.bosses_at_event(2), 6)
+	assert_eq(s.bosses_at_event(9), 6, "capped — endless stays readable")
 
 
 func test_boss_cap_of_zero_still_spawns_one() -> void:
 	# A misconfigured cap must not produce a boss event that spawns nothing and
 	# therefore can never be cleared, softlocking the win condition.
-	assert_eq(_schedule([], 300.0, 0).bosses_at_event(0), 1)
+	assert_eq(_schedule([], 300.0, 0, 0).bosses_at_event(0), 1)
 
 
 # --- weighted type selection ------------------------------------------------

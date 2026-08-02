@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="WaveResource" format=3]
+
+[ext_resource type="Script" path="res://resources/wave_resource.gd" id="1_j8dev"]
+[ext_resource type="Script" path="res://resources/enemy_stats.gd" id="2_a8504"]
+[ext_resource type="Resource" path="res://resources/enemies/drifter.tres" id="3_amw3k"]
+[ext_resource type="Resource" path="res://resources/enemies/dart.tres" id="4_cn3d5"]
+[ext_resource type="Resource" path="res://resources/enemies/lancer.tres" id="5_0uxn3"]
+
+[resource]
+script = ExtResource("1_j8dev")
+id = &"ranged"
+start_time = 95.0
+spawn_interval = 0.52
+hp_mult = 1.6
+elite_chance = 0.04
+intensity = 1
+types = Array[ExtResource("2_a8504")]([ExtResource("3_amw3k"), ExtResource("4_cn3d5"), ExtResource("5_0uxn3")])
+weights = Array[float]([3.0, 2.0, 1.6])

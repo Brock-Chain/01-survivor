@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_iw2nf"]
+
+[resource]
+script = ExtResource("1_iw2nf")
+id = &"overdrive"
+display_name = "Overdrive"
+description = "+1 damage"
+effect = 2
+magnitude = 1.0
+max_stacks = 0
+weight = 0.35

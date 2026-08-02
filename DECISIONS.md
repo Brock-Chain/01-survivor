@@ -112,6 +112,50 @@ happen.
   (M4), so a first victory hands over a new way to play rather than a currency balance. Unlock ids
   are StringNames referenced by content, so reordering or removing one cannot silently shift another.
 
+## Playtest response — 2026-08-02 (first human playtest)
+
+- **Healing removed as a level-up reward.** "Getting a heal as a level reward option while at full
+  health seems like poor game design" — correct, a reward you cannot use is a punished level-up.
+  `bandage` is out of the pool. Health is now a **world drop** (`HealthPickup`, ~4.5% per kill and
+  *only while hurt*), which is never wasted and makes you move to collect it — pressure the game was
+  missing. `Siphon` covers players who want to build into sustain.
+
+- **The upgrade pool could run dry — a real bug, not just a balance miss.** 10 upgrades × 5 stacks
+  meant that by level 37 everything was maxed and the only legal draw left was the heal (screenshot
+  evidence). `max_stacks <= 0` now means UNLIMITED, and three unlimited upgrades (Overdrive,
+  Momentum, Cadence) guarantee there is always an offer. This is also most of why endless "felt
+  pointless": there was no progression left to earn.
+
+- **Difficulty: the soak was the wrong instrument.** The god-mode soak reported "enemies bounded
+  8–14" and that was read as healthy; it actually meant the kill rate was crushing the spawn rate
+  with 110 slots free. Spawn intervals roughly halved across every wave. Living enemies now rise
+  through a run (38 → 54 → 59 → 63 by 5:00) instead of collapsing (31 → 27 → 15 → 7).
+
+- **The Lancer was pulled forward from M5.** "I could just stay still and beat all enemies without
+  getting hit" has one real cause: every enemy walked into the auto-weapon, so holding position was
+  strictly optimal. A RANGED archetype that holds distance and shoots is the fix; more of the same
+  chasers would not have been. `EnemyStats.Behavior` + `EnemyStats.sprite` make archetypes pure data.
+
+- **Boss: 2 at 5:00, 4 at 10:00, cap 6.** "The 2 bosses on min 10 with the damage I had there maxed
+  out... was okay for a 1st boss fight." So the first fight is two Prisms tuned for a *five*-minute
+  player (300 HP each) rather than one for a maxed one, and later events scale. When distinct boss
+  types exist, later events should swap in new ones rather than stacking more Prisms.
+
+- **Boss fires far more, and never in the same place twice.** Spread 10→15 (phase 1) and 14→22
+  (phase 2), intervals 3.1→1.75 and 2.1→1.15, and the ring rotates by half a step each volley so a
+  single safe lane stops working. Bolts are 50% larger, hotter, and now face their travel direction.
+
+- **Telemetry added.** Answering "what do players pick / is the start too easy" from memory is
+  guessing. `Telemetry` autoload writes JSONL to `user://telemetry/`; `tools/analyze_telemetry.py`
+  reports pick rate **as a fraction of times offered** (a raw count just says which upgrades are
+  common), time-to-first-damage, HP and enemy-count per 30s bucket, boss fight length, and damage by
+  source. Local only, nothing transmitted, off on web where `user://` is unreadable.
+
+- **`_attack_cd` name collision.** `Enemy` gained a shoot timer with the same name as one `Boss`
+  already had, which GDScript rejects as shadowing. Unit tests did NOT catch it — they only load pure
+  logic. The headless smoke run did. Worth remembering: a parse error in a scene script is invisible
+  to the unit suite.
+
 ## Known-open at time of writing (2026-08-02)
 
 **All five resolved in M0 (commit `0b3cdf3`).** Kept for the record:

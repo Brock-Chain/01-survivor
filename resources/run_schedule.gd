@@ -5,13 +5,21 @@ extends Resource
 ## unit-testable without playing it.
 ##
 ## Boss event `i` (0-based) happens at `boss_interval * (i + 1)` and spawns
-## `i + 1` bosses, capped. With the default 300s that reads: one boss at 5:00,
-## two at 10:00, three at 15:00 and every event after.
+## `bosses_first * (i + 1)` bosses, capped. With the defaults that reads: TWO
+## Prisms at 5:00, four at 10:00, six at 15:00 and after.
+##
+## Playtest 2026-08-02: the 10:00 double-boss "was okay for a 1st boss fight" —
+## against a maxed player. So the first fight becomes two bosses tuned for a
+## FIVE-minute player, and every later event steps up from there. When distinct
+## boss types exist, later events should swap in new ones rather than just
+## stacking more Prisms.
 
 @export var waves: Array[WaveResource] = []
 ## Spacing of boss events, and therefore the time of the first one.
 @export var boss_interval: float = 300.0
-@export var max_concurrent_bosses: int = 3
+## Bosses at the first event. Later events multiply this.
+@export var bosses_first: int = 2
+@export var max_concurrent_bosses: int = 6
 ## Normal spawns are throttled by this factor while a boss is alive, so the boss
 ## reads as the threat instead of drowning in adds.
 @export var boss_spawn_throttle: float = 0.45
@@ -34,8 +42,7 @@ func boss_time(index: int) -> float:
 	return boss_interval * float(index + 1)
 
 
-## How many bosses spawn at event `index`. Grows by one per event, capped —
-## the cap exists so a long endless run stays a positioning problem rather than
-## turning into an unreadable wall of overlapping bosses.
+## How many bosses spawn at event `index`. The cap exists so a long endless run
+## stays a positioning problem rather than an unreadable wall of hitboxes.
 func bosses_at_event(index: int) -> int:
-	return clampi(index + 1, 1, maxi(1, max_concurrent_bosses))
+	return clampi(maxi(1, bosses_first) * (index + 1), 1, maxi(1, max_concurrent_bosses))

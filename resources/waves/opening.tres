@@ -2,11 +2,11 @@
 
 [ext_resource type="Script" path="res://resources/wave_resource.gd" id="1_x82ae"]
 [ext_resource type="Script" path="res://resources/enemy_stats.gd" id="2_bagal"]
-[ext_resource type="Resource" path="res://resources/enemies/chaser.tres" id="3_hlu1y"]
+[ext_resource type="Resource" path="res://resources/enemies/drifter.tres" id="3_hlu1y"]
 
 [resource]
 script = ExtResource("1_x82ae")
 id = &"opening"
-spawn_interval = 1.35
+spawn_interval = 0.85
 types = Array[ExtResource("2_bagal")]([ExtResource("3_hlu1y")])
 weights = Array[float]([1.0])

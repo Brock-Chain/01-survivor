@@ -25,12 +25,12 @@ const SHARD_ORBIT: float = 40.0
 const SHARD_SPIN: float = 1.15
 
 ## Long enough to actually react to at player move speed.
-const TELEGRAPH: float = 0.85
-const P1_INTERVAL: float = 3.1
-const P2_INTERVAL: float = 2.1
-const SPREAD_P1: int = 10
-const SPREAD_P2: int = 14
-const BOLT_SPEED: float = 108.0
+const TELEGRAPH: float = 0.62
+const P1_INTERVAL: float = 1.75
+const P2_INTERVAL: float = 1.15
+const SPREAD_P1: int = 15
+const SPREAD_P2: int = 22
+const BOLT_SPEED: float = 122.0
 const DASH_SPEED: float = 250.0
 const DASH_TIME: float = 0.55
 
@@ -44,6 +44,7 @@ var _attack_cd: float = 2.2
 var _telegraph_left: float = 0.0
 var _dash_left: float = 0.0
 var _dash_dir: Vector2 = Vector2.ZERO
+var _ring_offset: float = 0.0
 
 
 ## Called by the director before add_child. Separate from Enemy.setup so the
@@ -124,7 +125,8 @@ func _fire() -> void:
 	var count: int = SPREAD_P1 if phase == 1 else SPREAD_P2
 	# Offset the ring by half a step off the player's bearing, so a gap always
 	# sits where they are standing and weaving is a real choice, not a coin flip.
-	var base: float = (target.global_position - global_position).angle()
+	var base: float = (target.global_position - global_position).angle() + _ring_offset
+	_ring_offset += PI / float(count)
 	for i: int in count:
 		var angle: float = base + TAU * (float(i) + 0.5) / float(count)
 		var bolt: EnemyProjectile = PROJECTILE_SCENE.instantiate()

@@ -135,7 +135,7 @@ func _spawn_boss(index: int, count: int, event: int) -> void:
 	# positioning problem rather than one overlapping blob of hitboxes.
 	var angle: float = TAU * (float(index) / float(maxi(1, count))) - PI * 0.5
 	boss.position = spawner.ring_position(angle)
-	boss.configure(target, 1.0 + float(event) * 0.6)
+	boss.configure(target, 1.0 + float(event) * 0.4)
 	bosses_alive += 1
 	boss.died.connect(_on_boss_died.bind(event))
 	boss_container.add_child(boss)

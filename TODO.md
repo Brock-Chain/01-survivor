@@ -99,9 +99,12 @@ to give.
 **Gate:** both weapons read as distinct in a 30-second clip.
 
 ### M5 — Enemy archetypes
-- [ ] Drifter, Dart, Bulwark, Splitter, Lancer
-- [ ] Splitter death payload; Lancer ranged attack
-- [ ] Elite variants of each
+- [x] Drifter, Dart, Bulwark, **Lancer** (pulled forward — the ranged threat was
+      the actual fix for "I could just stand still")
+- [x] Per-type silhouettes via `EnemyStats.sprite` — archetypes are pure data now
+- [x] `EnemyStats.Behavior` enum (CHASE / RANGED)
+- [x] Elite variants (modifier, any type)
+- [ ] Splitter + its death payload
 
 **Gate:** each type identifiable by silhouette and colour alone at 12 px, in a crowd.
 
@@ -114,6 +117,19 @@ to give.
 
 **Gate:** five consecutive runs without the music grating · every action has a sound · no audible
 seam at a loop point or layer change.
+
+### M6.5 — Design review before ship ⭐ REQUESTED BY THE HUMAN
+Before M7, stop and assess the whole game as a game, not as a checklist.
+
+- [ ] Run a multi-agent review: specialists per area (game feel, balance/economy,
+      readability & UX, performance, code architecture, new-player onboarding)
+- [ ] Each returns concrete, prioritised changes with rationale
+- [ ] **Claude assesses which are worth doing** — this is a filter, not a to-do dump
+- [ ] Apply the accepted set, re-verify, re-playtest
+- [ ] Feed telemetry from real playtests into the review as evidence
+
+**Gate:** the accepted changes are applied and verified, and anything rejected is
+recorded in `DECISIONS.md` with why. Only then does M7 start.
 
 ### M7 — Ship
 - [ ] Full human playtest pass
@@ -141,6 +157,7 @@ seam at a loop point or layer change.
 - [x] **v1.1 M1** Visual identity (2026-08-02) — neon generator, colour law, project-wide theme
 - [x] **v1.1 M2** Run Director (2026-08-02) — waves as data, elites, The Prism, victory, endless
 - [x] **v1.1 M3** Run & Meta State (2026-08-02) — seed, save/load, unlocks
-- [ ] v1.1: **M4** ← next · M5 · M6 · M7
+- [~] **v1.1 M5** mostly done early (playtest response) — Splitter outstanding
+- [ ] v1.1: **M4** ← next (weapons as data + orbitals) · M6 audio · **M6.5 design review** · M7 ship
 
 *Checkboxes are updated at session end. A milestone list that lies is worse than none.*
