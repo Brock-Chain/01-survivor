@@ -530,3 +530,82 @@ a ~2 minute climax against a ~60s Prism. Knobs, in order: `nogaxeh.tres:max_hp` 
    2026-08-02 performance audit.
 5. `tests/unit/test_damage.gd` is named as an acceptance criterion in `TODO.md` M3 but was never
    created.
+
+## The first clean human run, and what it superseded — 2026-08-02 (grilling session)
+
+No code changed in this session. `run_076.jsonl` — 3312 lines, 11 minutes, **played with no dev
+flags** (confirmed by `save.cfg` `best_time=349.1716666666559` matching the run's `victory` event
+to the millisecond, so it wrote to the real profile rather than `save_dev.cfg`) — was analysed and
+turned into a locked rework spec. `TODO.md` M7 is the checklist; `HANDOFF.md` holds the detail
+while it lasts. The decisions and reversals worth keeping are here.
+
+**Budgeting a boss as an HP ratio to an earlier boss is invalid, and this is the proof.**
+The paragraph immediately above this section reasons that the mirror at ~1.9x the 5:00 event by
+total HP "should produce a ~2 minute climax against a ~60s Prism." Measured on a human: the 5:00
+event took **49s** and the 1.9x-larger 10:00 event took **~22s** (spawn 599.99, `bosses:3` at
+617.0, `bosses:0` at 622.0). The player's DPS roughly **quadrupled** across those five minutes, so
+the ratio was never going to hold. Budget boss events in **seconds at measured DPS**. The estimate
+disclaimer in that paragraph was correct and is now discharged.
+
+**`Progression.CURVE_QUADRATIC = 0.17` and `RATE = 1.45` are superseded.** Both were added earlier
+the same day to cut level spam, and both are now over-corrections. The reason is that they were a
+proxy fix for the wrong problem: what hurt was **78 card screens**, not 79 levels. Gating cards to
+every 3rd level fixes that directly, and once a level is a silent stat drip rather than an
+interruption, frequent levels are the reward. Baseline moves to ~75 levels in a 10-minute run with
+no XP upgrades, which makes levels ~2.4x cheaper than today (1.0x currently reaches ~54).
+
+**The XP runaway was multiplicative stacking, again.** `greed` is Epic, +50% XP, max 2 stacks, and
+`upgrade.gd:114` stacks it multiplicatively; with `scholar` at 3 stacks the run held `xp_mult` at
+**~3.0x** from about 2:30 onward. Level 79 needs ~56,200 banked XP against a raw gem income of only
+~20,500 — greed alone was worth 25 levels. XP effects become **additive into one `xp_mult` with a
+cap**, the same shape as the multishot tax that fixed the 7-second boss.
+
+**Difficulty is tuned for a stranger's first 10 minutes, against a zero skill tree.** The run shows
+no death pressure at all — lowest HP after any hit was 37.5%, once, at 7:59, and the player sat at
+100% at nearly every tick after 3:00 while taking 168 damage against a pool that grew 6 to 19. The
+tuning reference is therefore an empty account; the skill tree is a veteran's power fantasy layered
+on top, never a difficulty assumption.
+
+**The Prism at 5:00 is accepted as-is.** 49s against a ~60s target. Do not retune it.
+
+**Weapons become drafts rather than possessions.** A meta unlock now adds that weapon's *card* to
+the draft pool instead of granting the weapon; drafting it opens its branch of upgrades, and each
+weapon gets one Legendary. `MetaState` and the milestones are unchanged — only the delivery moves
+from "you own it" to "you may draft it." Driven by all three orbital cards landing bottom-five
+(`orbit_radius` 0/11, `orbit_count` 1/10, `orbit_speed` 3/9), which is a weapon problem wearing
+three cards, not three bad cards.
+
+**A dead card is not always a bad card.** `tough_hide` 1/12 and `carapace` 2/12 read identically to
+`lodestone` 0/16 and `magnetism` 0/12 in the pick-rate data, but the causes are opposite: the
+defensive cards are dead because *the game never asked for defense*, and the magnet cards are dead
+because they are *redundant*. Only the second kind gets cut. The defensive cards are parked and
+re-measured after the boss rework, which should revive them on its own. Corollary, recorded because
+it is easy to get backwards: **do not add passive max HP to the per-level drip** — free defense
+would keep those cards dead permanently.
+
+**Legendary rarity was never the problem.** 4 appearances in 234 offer slots (1.7%), taken 4/4. The
+"Legendary should feel rare" note is presentational only; do not touch the odds.
+
+**Baked glow vs real bloom: reopened, to be decided from an image.** `BRIEF.md` chose baked so a
+single-threaded web export could not break on a post-process. That reasoning is mostly obsolete —
+the renderer is `gl_compatibility`, Godot 4.7 supports glow there, and at a 640x360 buffer the cost
+is negligible. The remaining risk is visual (chunky bloom steps, washed HUD text), so it goes
+through `scenes/dev/juice_lab.tscn` as a variant per the project's own rule, and the human picks
+from a contact sheet. Baked remains the fallback, so the decision cannot end up worse than today.
+
+**Concern raised and overruled: the meta skill tree ships in the same pass as the rework.** The
+recommendation was to ship only the read-only card catalogue now and defer the currency, stat nodes
+and card shop to the following milestone, on the grounds that a permanent stat tree re-inflates the
+power curve this rework exists to cut, and does so by a different amount per player — turning
+NOGAXEH from tunable-against-a-player into tunable-against-a-distribution. The human chose the full
+tree. Mitigation, which is what makes it workable: every difficulty number is tuned against a
+zero-tree account, so the tree can only ever make the game easier than its tuning target.
+
+**The telemetry instrument had been quietly discarding its most valuable rows.** `begin_run()` calls
+`_close()` rather than `end_run()` (`telemetry.gd:37`), so restarting a run drops its ending row —
+and both of the only runs that ever reached a boss have no `run_end` at all, meaning the endings
+report omits precisely the runs worth reading. `_run_t` is also never reset, so a new run's
+`run_start` carries the previous run's clock, and `analyze_telemetry.py:28` still defaults to the
+pre-rename `PRISM` directory. Fixed first in M7, before any gameplay change, because nothing in the
+rework is measurable until it is. Related symptom to verify: `run_076` reached 2780 kills but
+`save.cfg` banked `best_kills=1125`.

@@ -1,11 +1,14 @@
 # 01-survivor — TODO
 
-**V1.Final — shipping as "PRISM".** [BRIEF.md](BRIEF.md) is the spec — prime directive, defect definition, gates
-and acceptance criteria. This file is the running checklist. Deviations go in
+**V1.Final — shipping as "BESTAGON".** [BRIEF.md](BRIEF.md) is the spec — prime directive, defect
+definition, gates and acceptance criteria. This file is the running checklist. Deviations go in
 [DECISIONS.md](DECISIONS.md).
 
 Prime directive: *someone clicks this on itch.io, plays one five-minute run, and immediately clicks
 restart.*
+
+**Tuning audience, locked 2026-08-02:** a stranger's first **10** minutes. A stranger is by
+definition a zero-skill-tree account, so *every difficulty number is tuned against an empty tree*.
 
 Scope control is by **content counts and gates**, not by dates. One public release, at the end.
 
@@ -149,21 +152,122 @@ post-M6.5 playtest.)*
 ### M6.5 — Design review before ship ⭐ REQUESTED BY THE HUMAN
 Before M7, stop and assess the whole game as a game, not as a checklist.
 
-- [ ] Run a multi-agent review: specialists per area (game feel, balance/economy,
+- [x] Run a multi-agent review: specialists per area (game feel, balance/economy,
       readability & UX, performance, code architecture, new-player onboarding)
-- [ ] Each returns concrete, prioritised changes with rationale
-- [ ] **Claude assesses which are worth doing** — this is a filter, not a to-do dump
-- [ ] Apply the accepted set, re-verify, re-playtest
-- [ ] Feed telemetry from real playtests into the review as evidence
-- [ ] **Game-feel findings go through the juice lab** (`scenes/dev/juice_lab.tscn`), not straight
+- [x] Each returns concrete, prioritised changes with rationale
+- [x] **Claude assesses which are worth doing** — this is a filter, not a to-do dump
+- [x] Apply the accepted set, re-verify, re-playtest — 27 of 29 applied; 21 and 22 deferred as
+      pure refactors
+- [x] Feed telemetry from real playtests into the review as evidence
+- [x] **Game-feel findings go through the juice lab** (`scenes/dev/juice_lab.tscn`), not straight
       into the game: build the change as a variant next to the shipped one, then let a human pick.
-      Applies to the two feel items already parked here — the deferred M1 hit-flash retune and any
-      "X needs more punch" the review returns. Cases live in `_variants()` / `_play()`.
+      Cases live in `_variants()` / `_play()`.
 
-**Gate:** the accepted changes are applied and verified, and anything rejected is
-recorded in `DECISIONS.md` with why. Only then does M7 start.
+**Gate: PASSED 2026-08-02.** 31-finding review closed, apply pass done, three rounds of live
+playtest feedback on top. Rejections recorded in `DECISIONS.md`.
 
-### M7 — Ship
+---
+
+### M7 — The playtest rework ⭐ SPEC LOCKED 2026-08-02
+
+The first clean human run to 10:00 (`run_076`, no dev flags) produced a spec, not a bug list.
+**Full detail and the evidence behind every number is in `HANDOFF.md` — read it before starting.**
+The headline findings: **NOGAXEH died in ~22s against a ~120s target**, the player **never came
+close to dying in 11 minutes** (lowest HP after any hit 37.5%, once), and **79 level-ups** meant a
+card screen every 7.9s.
+
+Do these **in order** — it is dependency-driven, not preference. Player DPS at 10:00 is moved by
+items 2 and 3, and item 4 is tuned against it.
+
+**7.1 — Fix the instrument first.** Nothing below is measurable until this is done.
+- [ ] `begin_run()` calls `_close()` instead of `end_run()` (`telemetry.gd:37`) — a restart drops
+      the ending row, so both runs that ever reached a boss have no `run_end`
+- [ ] `_run_t` is never reset in `begin_run()` — a new run's `run_start` carries the previous run's
+      clock (`run_080` opens at `t:660.2`)
+- [ ] `analyze_telemetry.py:28` still defaults to the `PRISM` directory — point it at `BESTAGON`
+- [ ] Record active `--dev-` flags and the commit in `run_start`; proving `run_076` was clean
+      required cross-checking `save.cfg`
+- [ ] Verify: `run_076` hit 2780 kills but `save.cfg` banked `best_kills=1125` — `update_records`
+      appears not to run when a run ends without `run_end`
+
+**7.2 — Progression.** Baseline **~75 levels** with no XP upgrades; boosts move it ±.
+- [ ] Cards gate to **every 3rd level** — ~25 screens per run instead of 78
+- [ ] Silent per-level stat drip, no interruption: damage, fire rate, a little move speed.
+      **No passive max HP or defense** — defense stays card-only so it remains a real choice.
+      Starting points to verify by measurement: +1.5% dmg, +0.75% fire rate, +0.3% move speed
+      per level, move-speed contribution **capped at +20%**
+- [ ] Rebalance the XP curve — 1.0x currently yields ~54 levels, so levels get **~2.4x cheaper**.
+      **Supersedes** `CURVE_QUADRATIC = 0.17` and `RATE = 1.45`, which were a proxy fix for
+      card-screen spam that gate-3 now fixes directly. Record the supersede in `DECISIONS.md`
+- [ ] XP effects become **additive** into one `xp_mult` with a cap (~1.5–1.6) — `greed` is Epic,
+      +50%, 2 stacks, and stacks *multiplicatively*; with `scholar` it reached **3.0x**
+
+**7.3 — Weapons become drafts, not possessions.**
+- [ ] Weapons are drafted mid-run as cards; you no longer start a run owning any of them
+- [ ] A meta unlock adds that weapon's **card to the draft pool** — `MetaState` and the milestones
+      stay as built, only the delivery changes
+- [ ] Drafting a weapon **opens that weapon's branch** of upgrades — `requires_unlock`
+      (`weapon_resource.gd:44,70`) moves from "unlocked in meta" to "drafted this run"
+- [ ] One **Legendary card per weapon** that boosts it significantly
+- [ ] **Redesign the orbital** — it is boring and weak; all three of its cards are bottom-five
+      (0/11, 1/10, 3/9). A weapon problem, not a card problem
+- [ ] Merge the three magnet-axis cards into one (`lodestone` 0/16, `magnetism` 0/12)
+- [ ] All card changes go through `tools/gen_upgrades.gd` and the manifest, **never by hand**
+
+**7.4 — NOGAXEH v2.** Event total **11,200 base HP**, 3.5x today's mirror. No other enemies.
+- [ ] NOGAXEH **4000 HP**, **double the projectiles**
+- [ ] Phase 1 — spawns with **2 full 1200 HP Prisms**; invulnerable until both are dead
+- [ ] Phases 2–3 — vulnerable, escalating bullet density
+- [ ] Phase 4 — high bullets plus **4 more full Prisms**, shield back up
+- [ ] The finish — breaking the phase-4 shield **stuns** NOGAXEH and it charges an explosion.
+      **5 seconds.** Kill it and it dies clean. Fail and it detonates for **70% of max HP near the
+      centre, 50% everywhere else** — a *percentage of max HP*, so HP-stacking cannot trivialise
+      it. **NOGAXEH dies either way**; the 5s decides whether you eat the blast
+- [ ] **Each of the 6 Prisms drops a guaranteed health pickup** — load-bearing, not a nicety:
+      healing is world-drop only at 4.5% on a kill, so "no other enemies" leaves the whole fight
+      with ~a 27% chance of one 2 HP heal
+- [ ] Budget the fight in **seconds at measured DPS**, never as an HP ratio to the 5:00 event —
+      that is exactly how the current 1.9x budget produced a 22-second fight
+- [ ] **The Prism at 5:00 stays exactly as it is** (49s, accepted)
+
+**7.5 — Endings.**
+- [ ] **A distinct TRUE ENDING screen** when NOGAXEH dies — different from the 5:00 victory screen,
+      run stats, unlock reveal, Restart or Continue. The director needs a second signal for "a
+      later boss event cleared"; today `victory` fires at most once per run on the *first* event
+      (`run_director.gd:22`), so killing the mirror currently produces nothing at all
+- [ ] **The death screen** — now load-bearing, and the human has never noticed it exists
+
+**7.6 — The level-up card UI.** Now the centrepiece: 3x fewer, 3x more valuable decisions, plus
+weapon drafts and per-weapon Legendaries.
+- [ ] Still reads as "better, still not there" — dead space in the middle, no iconography,
+      plain panel
+- [ ] Legendary should *feel* rare rather than just brighter. Note it already **is** rare — 4
+      appearances in 234 slots (1.7%), taken 4/4. This is presentational only
+
+**7.7 — Meta skill tree (main menu).** Scoped in full over a recommendation to defer; the concern
+recorded is that a permanent stat tree re-inflates the curve this rework just cut, mitigated by
+tuning everything against a zero-tree account.
+- [ ] **Depth-weighted currency**: time survived + a chunk per boss event cleared. New
+      earned-per-run number and a save-schema change
+- [ ] Small permanent upgrades to base stats
+- [ ] A handful of unique cards buyable there, all rarities — a purchase injects the card into the
+      draft pool
+- [ ] A catalogue showing locked cards and how to unlock them
+- [ ] Measure the UI against the **640x360** viewport, not the 1280x720 window — extend
+      `scenes/dev/pause_layout_check.tscn`
+
+**7.8 — Art.** Parallelisable against everything above.
+- [ ] **Baked glow vs real bloom → build it as a juice-lab variant and decide from the image.**
+      BRIEF's worry (a post-process breaking a single-threaded web export) is mostly obsolete:
+      `gl_compatibility` supports glow in 4.7 and at 640x360 the cost is negligible. The real risk
+      is visual — chunky bloom steps and washed HUD text. Side-by-side contact sheet of arena and
+      HUD; baked stays the fallback
+- [ ] Particles, poppy animations
+
+**Gate:** a human run to 10:00 where NOGAXEH takes ~2 minutes, the player is genuinely threatened
+before the finale, and the telemetry that says so was recorded by a fixed instrument.
+
+### M8 — Ship
 - [ ] Full human playtest pass
 - [ ] README with a GIF
 - [ ] Web + Windows exports
@@ -189,11 +293,18 @@ recorded in `DECISIONS.md` with why. Only then does M7 start.
 - [x] **v1.1 M1** Visual identity (2026-08-02) — neon generator, colour law, project-wide theme
 - [x] **v1.1 M2** Run Director (2026-08-02) — waves as data, elites, The Prism, victory, endless
 - [x] **v1.1 M3** Run & Meta State (2026-08-02) — seed, save/load, unlocks
-- [~] **v1.1 M5** mostly done early (playtest response) — Splitter outstanding
+- [x] **v1.1 M5** Enemy archetypes (2026-08-02) — Drifter, Dart, Bulwark, Lancer, Ram, Splitter, elites
 - [x] **v1.1 M4** Weapons as data (2026-08-02) — WeaponResource, orbitals, unlock-gated upgrades
 - [x] **Tooling** (2026-08-02) — juice lab (`scenes/dev/`) + contact-sheet mode on the screenshot
       autoload. Closes the gap between headless verification and whole-game screenshots: neither
       could judge a 0.3 s effect. Used by M6.5.
-- [ ] v1.1: **M6** audio ← next · **M6.5 design review** · M7 ship  *(M5 all but the Splitter is done)*
+- [x] **v1.1 M6** Audio (2026-08-02) — 4 tracks as intensity stems, title, victory, 19-sound SFX pass
+- [x] **v1.1 M6.25** Upgrade rarity (2026-08-02) — 5 tiers, pity floor, superlinear XP, 36 upgrades
+- [x] **v1.1 M6.4** Remaining content (2026-08-02) — Splitter, Ram, Scattergun, Prism Lance, rename
+- [x] **v1.1 M6.5** Design review (2026-08-02) — 31 findings, 27 applied, BESTAGON rename, NOGAXEH, dash
+- [ ] v1.1: **M7 the playtest rework** ← next (spec locked, see `HANDOFF.md`) · M8 ship
+
+*The ship gate moved from M7 to M8 because the first clean human run to 10:00 turned into a rework
+spec rather than a punch list. Scope grew by explicit decision, not by drift.*
 
 *Checkboxes are updated at session end. A milestone list that lies is worse than none.*
