@@ -80,7 +80,11 @@ while (-not $proc.HasExited) {
     if ($hung -ge $HangSeconds) {
         $dump = Join-Path $OutDir "hang-$($proc.Id)-$stamp.dmp"
         "HUNG for ${hung}s -- dumping to $dump"
-        rundll32.exe C:\Windows\System32\comsvcs.dll, MiniDump $($proc.Id) $dump full
+        # Resolved from SystemRoot, not a literal drive letter: the absolute
+        # path guard rejects tracked code that only works on one machine, and
+        # it caught the literal form of this exact line.
+        $comsvcs = Join-Path $env:SystemRoot "System32\comsvcs.dll"
+        rundll32.exe $comsvcs, MiniDump $($proc.Id) $dump full
         icacls "$dump" /grant "$($env:USERNAME):(R)" | Out-Null
         "dump written: {0:n0} MB" -f ((Get-Item $dump).Length / 1MB)
         "process left ALIVE for inspection -- kill it yourself when done."

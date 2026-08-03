@@ -329,7 +329,21 @@ before the finale, and the telemetry that says so was recorded by a fixed instru
       baseline: ~0.20). Not GDScript: every `while` in game code provably terminates, and no thread
       was executing game code. Stack is `ntdll wait ← uxtheme ← KERNELBASE ← [engine] ← user32
       dispatch`, on `gl_compatibility` + NVIDIA 591.86 with `nvspcap64.dll` (ShadowPlay) injected
-- [ ] **Freeze: FOUR occurrences, two machines; the recorder caught #3 AND #4 (2026-08-03).**
+- [x] **FREEZE ROOT-CAUSED AND FIXED (2026-08-03): the Legendary card pulse was a panel-bound
+      looping tween animating a button that `show_offers` frees.** Orphaned looping tween = a loop
+      that consumes zero time; Godot's detector for that is DEBUG-only (verified in engine
+      source), so debug prints "Infinite loop detected" and survives — exactly the two red editor
+      lines, exactly "didn't crash in debug" — while release spins `Tween::step()` on the main
+      thread forever. Every observation fits: freezes started one card screen after the run's
+      first Legendary offer; the level-up cue was the last sound (it plays right before the
+      rebuild that orphans the pulse); the 2-minute wall band is just when Legendaries first
+      show up. Fix: `button.create_tween()` — the pulse dies with its button. Regression:
+      `scenes/dev/tween_orphan_check.tscn`, watched RED pre-fix and GREEN post-fix, now a
+      verify.ps1 stage. **Remaining: confirmation only** — local runs deep past LV 17 (watchdog in
+      tools/ if it ever recurs) and the friend on the new build. The overlay-off experiment is
+      unnecessary unless a freeze survives this fix. The four-suspect list below this entry's
+      history is superseded.
+- [ ] *(history)* **Freeze: FOUR occurrences, two machines; the recorder caught #3 AND #4 (2026-08-03).**
       #1 local at 5:53 in a dense PRISM fight; #2 on a friend's RTX 4070 SUPER (driver 595.97,
       NEWER than local 591.86, same Windows 26200, log said only "boot OK" — that forced the
       breadcrumbs); #3 local with the recorder live: last line `[stats] t=90s enemies=5 bolts=0

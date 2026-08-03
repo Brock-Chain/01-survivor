@@ -126,6 +126,16 @@ $layout = Invoke-Step "pause layout" @('--headless','--path',$root,
   'res://scenes/dev/pause_layout_check.tscn','--quit-after','600') "FAILURES=0"
 ($layout -split "`r?`n" | Select-String 'FAILURES') | ForEach-Object { Write-Host "  $_" }
 
+# The 2026-08-03 release freeze: an orphaned LOOPING tween (the Legendary card
+# pulse, panel-bound, animating a button show_offers frees) loops in zero time.
+# Godot's detector for that is DEBUG-only, so a debug run prints "ERROR:
+# Infinite loop detected" - which the generic error grep above turns into a
+# failure - while a release build locks the main thread forever. MustContain
+# proves the harness reached its second card screen: its first version passed
+# vacuously because the WHEN_PAUSED panel never processed in an unpaused tree.
+Invoke-Step "tween orphan (legendary pulse regression)" @('--headless','--path',$root,
+  'res://scenes/dev/tween_orphan_check.tscn','--quit-after','600') "screen 2 up" | Out-Null
+
 if ($Mode -eq "soak") {
   # 40000 frames at a fixed 60fps = 11:06 of game time, which clears BOTH boss
   # events. The --dev- flags redirect the save (finding 12), so this cannot

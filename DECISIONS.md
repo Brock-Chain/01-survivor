@@ -1073,3 +1073,37 @@ LLM-written). Full reasoning in `tools/share/ITCH-PAGE.md`.
   collector now inventories overlay/capture processes — `nvspcap64.dll` was injected in the one
   dump we have, and nobody volunteers what overlays they run because none of it feels like
   running software.
+
+## The freeze — root cause found and fixed (2026-08-03)
+
+- **2026-08-03 — THE FREEZE: one word, `create_tween()` where it had to be `button.create_tween()`.**
+  Four hard freezes across two machines — 5:53 into a boss fight, mid-run on a friend's PC, and
+  twice in the 90–120 s window — were one orphaned tween. The Legendary card pulse was created
+  with a bare `create_tween()`, binding it to the PANEL (alive all run) while animating a BUTTON
+  that the next `show_offers` queue_free's. A freed target makes every tweener finish while
+  consuming ZERO delta, so a `set_loops()` tween completes its whole loop in no time — and Godot's
+  detector for exactly that is `#ifdef DEBUG_ENABLED`, verified against the engine source: a debug
+  run prints "Infinite loop detected" and kills the tween; the RELEASE template compiles the check
+  out and spins `Tween::step()` on the main thread forever. Every clue lines up: freezes began one
+  card screen after the run's first Legendary offer (LV~17 at these paces; plentiful by LV 46);
+  the level-up cue was "the last thing I heard" because it plays immediately before the rebuild
+  that orphans the pulse; and the human's editor session showed the detector firing twice at
+  2:09/2:24 while the debug game sailed on — "didn't crash in debug" IS the mechanism's signature,
+  not evidence against it. Fix: bind the pulse to the button it animates (the pattern juice_lab
+  already used), so it dies with its target.
+
+- **2026-08-03 — What the hang dump got right and wrong, for the next native-freeze reader.** The
+  dump correctly said "main thread not in GDScript, burning ~0.4 core in kernel-adjacent waits";
+  the WndProc/uxtheme framing it suggested was a misread of a heuristic stack scan polluted by
+  stale frames. The spin explains the profile: `Tween::step()` calls `ObjectDB::get_instance()`
+  every iteration, which serialises on the engine's global object lock — a tight loop that still
+  spends much of its time off-CPU. Lesson: a scanner with no unwind info names MODULES reliably
+  and CALL CHAINS unreliably; trust the former, hold the latter loosely.
+
+- **2026-08-03 — The repro harness passed vacuously on its first run, and the reason is a trap
+  worth its own line.** `LevelUpPanel` is `WHEN_PAUSED`; in an unpaused tree its tweens never
+  step, so the orphan sat frozen and the check printed green while proving nothing. The harness
+  had to reproduce Main's actual choreography — pause, show, unpause (pick), pause, show — before
+  it could go red. Same failure class as the title-screen smoke of review finding 29: a gate that
+  cannot fail is evidence of nothing. It now runs in verify.ps1 with a MustContain that proves the
+  second screen was reached, and it was watched RED (pre-fix) and GREEN (post-fix) on the same day.

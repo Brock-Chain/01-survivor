@@ -257,7 +257,19 @@ func _apply_rarity(button: Button, tier: Rarity.Tier) -> void:
 	button.add_theme_color_override(&"font_focus_color", Color.WHITE)
 	if tier == Rarity.Tier.LEGENDARY:
 		# Only the top tier animates. If everything pulsed, nothing would.
-		var pulse: Tween = create_tween().set_loops()
+		#
+		# `button.create_tween()`, NEVER a bare `create_tween()`. Bare binds the
+		# tween to the PANEL, which lives all run, while the button dies at the
+		# next show_offers — and an orphaned LOOPING tween completes its whole
+		# loop in zero time. Godot only detects that in debug builds ("Infinite
+		# loop detected", #ifdef DEBUG_ENABLED); a release build locks the main
+		# thread inside Tween::step() forever. That was the 2026-08-03 freeze:
+		# four occurrences on two machines, each ~one card screen after the
+		# run's first Legendary offer, the level-up cue always the last sound —
+		# it plays right before the rebuild that orphans the pulse. Bound to the
+		# button, the pulse dies with it; scenes/dev/tween_orphan_check.tscn is
+		# the regression harness and verify.ps1 fails on the detector string.
+		var pulse: Tween = button.create_tween().set_loops()
 		pulse.tween_property(button, "modulate", Color(1.15, 1.12, 1.0), 0.55)
 		pulse.tween_property(button, "modulate", Color.WHITE, 0.55)
 
