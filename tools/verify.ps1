@@ -113,8 +113,14 @@ $tests = Invoke-Step "unit tests" @('--headless','--path',$root,'-d','-s',
 ($tests -split "`r?`n" | Select-String 'Tests\s+\d|Passing|Failing') | ForEach-Object { Write-Host "  $_" }
 
 # The level-up panel only exists on the no-autopick path - see the header.
+#
+# --dev-noprofile does nothing to gameplay; it only redirects the save. Without
+# it this step banked into the REAL profile on every run, because the save
+# redirect keys off any --dev- flag and this is the one step that deliberately
+# carries none. The title screen was advertising "best 00:08" off seven bot runs.
 Invoke-Step "gameplay smoke (level-up panel reachable)" @('--headless','--path',$root,
-  '--fixed-fps','60','res://scenes/main/main.tscn','--quit-after','2400') "BESTAGON boot OK" | Out-Null
+  '--fixed-fps','60','res://scenes/main/main.tscn','--quit-after','2400','--',
+  '--dev-noprofile') "BESTAGON boot OK" | Out-Null
 
 $layout = Invoke-Step "pause layout" @('--headless','--path',$root,
   'res://scenes/dev/pause_layout_check.tscn','--quit-after','600') "FAILURES=0"

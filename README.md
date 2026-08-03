@@ -4,10 +4,11 @@ A micro arena survivor built in Godot 4.7.1 and GDScript. Move; your weapons fir
 third level you pick one upgrade out of three. Survive five minutes and beat what shows up and you
 have won — keep going, and something worse arrives at ten.
 
-**Every asset in this repository is generated.** Every sprite is drawn by a Python script
-(`tools/gen_assets.py`), and every sound effect and music stem is written as
-[Strudel](https://strudel.cc) pattern code (`audio_src/*.strudel`) and rendered to `.ogg`. There are
-no third-party assets — see [`assets/ATTRIBUTION.md`](assets/ATTRIBUTION.md).
+**No third-party assets.** The sprites are drawn procedurally by a Python script
+(`tools/gen_assets.py`). The soundtrack is **written** — 38 original pieces, ~1,125 lines of
+[Strudel](https://strudel.cc) pattern code in `audio_src/`, including the four-stem adaptive
+structure that lets the music follow the fight without ever restarting. The renderer is a compiler,
+not a composer. See [`assets/ATTRIBUTION.md`](assets/ATTRIBUTION.md).
 
 > **And regenerable from a clone, which is a stronger claim than "generated".** Sprites rebuild with
 > Python and Pillow; audio rebuilds with one `npm install` (see
@@ -102,9 +103,9 @@ later deckbuilder.
 
 ## Licence
 
-[MIT](LICENSE) — code and generated assets alike. Every sprite, sound and music stem here is
-produced by a committed generator, so there is no third-party asset whose terms could conflict with
-that; see [`assets/ATTRIBUTION.md`](assets/ATTRIBUTION.md).
+[MIT](LICENSE) — code, art and music alike. Every sprite is generated and every note is composed in
+this repository, so there is no third-party asset whose terms could conflict with that; see
+[`assets/ATTRIBUTION.md`](assets/ATTRIBUTION.md).
 
 One boundary worth stating rather than leaving implicit: the audio renderer in `tools/strudel/` is
 ours and MIT like the rest, but `npm install` fetches **AGPL-3.0** packages from the npm registry.

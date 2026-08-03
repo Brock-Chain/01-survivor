@@ -228,6 +228,14 @@ func _warm_up_shaders() -> void:
 ##                a headless soak run forever)
 ## --dev-unlocks  every weapon active regardless of the save — the only way to
 ##                exercise (or playtest) a gated weapon without earning it first
+## --dev-noprofile  does NOTHING except trip the prefix check below, which moves
+##                the save off the real profile. It exists because the gate's
+##                gameplay smoke deliberately carries no other dev flag —
+##                --dev-autopick takes a different level-up path and would leave
+##                the panel untested — so the one run that MUST look like a real
+##                run was also the one run that banked into the human's records.
+##                Seven bot runs and a best time of 8.03s reached the title
+##                screen that way before anyone noticed.
 func _apply_dev_flags() -> void:
 	# ANY dev flag moves the save off the real profile BEFORE the run can bank
 	# anything into it (review finding 12). Done first, and by prefix rather than
