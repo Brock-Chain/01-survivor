@@ -191,6 +191,15 @@ func take_hit(amount: int, execute_below: float = 0.0,
 		_advance_phase()
 
 
+## Advance a phase for a reason that is NOT damage. Nogaxeh's phase 1 ends when
+## its escorts die, and it is invulnerable for the whole of that phase — so its
+## HP never moves and an HP threshold could never fire. Public because only the
+## director knows when that condition is met.
+func force_phase() -> void:
+	if phase - 1 < phase_thresholds.size():
+		_advance_phase()
+
+
 ## Phase transition. Subclasses override `_on_phase`, never this.
 func _advance_phase() -> void:
 	phase += 1

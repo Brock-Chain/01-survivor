@@ -62,3 +62,11 @@ func grant_invuln(now: float, duration: float) -> void:
 
 func is_invulnerable(now: float) -> bool:
 	return now < _invuln_until
+
+
+## Cancel any running i-frame window. Note that `grant_invuln` deliberately
+## cannot do this — it takes the MAX so a dash can never shorten a window a hit
+## already bought — so removing one needs its own door. The only caller is
+## NOGAXEH's detonation, which must not be survivable by an accident of timing.
+func clear_invuln() -> void:
+	_invuln_until = -INF

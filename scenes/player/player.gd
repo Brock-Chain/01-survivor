@@ -216,6 +216,13 @@ func _tick_aegis(delta: float) -> void:
 		Sfx.play(&"shield_on", -10.0)
 
 
+## Drop any i-frames currently running. Only NOGAXEH's detonation uses this: the
+## blast is the finale of a two-minute fight, and surviving it because a bolt
+## happened to clip you half a second earlier is an accident, not a dodge.
+func clear_invuln() -> void:
+	health.clear_invuln()
+
+
 ## Public damage entry point. Contact damage and enemy projectiles both come
 ## through here so i-frames, the hurt cue and screenshake can never disagree.
 ## Returns true if the damage actually landed.

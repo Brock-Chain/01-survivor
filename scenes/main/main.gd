@@ -113,6 +113,7 @@ var _tele_t: float = 0.0
 @onready var bosses: Node2D = $Bosses
 @onready var enemy_bolts: Node2D = $EnemyBolts
 @onready var victory_screen: VictoryScreen = $Victory
+@onready var true_ending: TrueEndingScreen = $TrueEnding
 @onready var enemies: Node2D = $Enemies
 @onready var pickups: Node2D = $Pickups
 @onready var projectiles: Node2D = $Projectiles
@@ -147,6 +148,7 @@ func _ready() -> void:
 	director.rng = run_rng
 	director.boss_spawned.connect(_on_boss_spawned)
 	director.victory.connect(_on_victory)
+	director.boss_event_cleared.connect(_on_boss_event_cleared)
 	# The music is a CONSUMER of run intensity, not a system of its own.
 	director.intensity_changed.connect(Music.set_intensity)
 	# Review finding 2: `Meta.unlocked` had ZERO listeners project-wide. Unlocks
@@ -166,6 +168,7 @@ func _ready() -> void:
 	level_up_panel.upgrade_chosen.connect(_on_upgrade_chosen)
 	# Continuing into endless brings the layers back where they were.
 	victory_screen.continued.connect(Music.resume_gameplay)
+	true_ending.continued.connect(Music.resume_gameplay)
 	# Auto-pause when the window loses focus. Standard QOL, and it matters
 	# more here than usual: an unattended run keeps spawning and dies.
 	# NOT in capture runs: the capture window opens unfocused, and the pause
@@ -304,7 +307,8 @@ func _is_capture_run() -> bool:
 ## True while another screen owns the pause. Level-up, victory and game-over all
 ## pause the tree themselves, and two owners of one flag is a stuck game.
 func _modal_open() -> bool:
-	return level_up_panel.visible or victory_screen.visible or game_over.visible
+	return (level_up_panel.visible or victory_screen.visible or game_over.visible
+			or true_ending.visible)
 
 
 func _pause_if_playing() -> void:
@@ -371,6 +375,20 @@ func _on_enemy_spawned(enemy: Enemy) -> void:
 func _on_boss_spawned(boss: Node2D) -> void:
 	boss.died.connect(_on_enemy_died)
 	boss.died.connect(_on_boss_killed)
+	var mirror: Nogaxeh = boss as Nogaxeh
+	if mirror != null:
+		mirror.fuse_lit.connect(_on_fuse_lit)
+		mirror.detonated.connect(_on_detonated)
+	elif director.mirror_active():
+		# EVERY Prism in the mirror event drops a guaranteed heal, and this is
+		# load-bearing rather than a nicety. Healing is a world drop at 4.5% on an
+		# enemy death, and nothing else spawns for the whole fight — so six kill
+		# events over ~2 minutes would otherwise carry roughly a 27% chance of a
+		# single 2 HP pickup. The adds do three jobs: the shield gate, the threat,
+		# and the sustain, and they put the heals exactly where the design wants
+		# them, right before the blast.
+		boss.died.connect(func(_xp: int, at: Vector2, _tint: Color) -> void:
+			_spawn_health.call_deferred(at))
 	Sfx.play(&"boss_spawn", -2.0)
 	player.camera.add_trauma(0.6)
 	# One bar for the whole EVENT: accumulate the total the player must chew
@@ -457,6 +475,25 @@ func _on_victory(_event_index: int) -> void:
 	# absorb_run above already fired Meta.unlocked, so _new_unlocks is populated
 	# by the time the screen that has to announce them is built.
 	victory_screen.show_results(time_survived, kills, level, _new_unlocks)
+
+
+## Fired EVERY time a boss event is cleared, where `victory` fires once per run.
+## The mirror event is the run's real ending and gets its own screen; every other
+## later event is just endless getting harder and says nothing.
+func _on_boss_event_cleared(event_index: int) -> void:
+	if event_index != BOSS_EVENT_MIRROR or _ended:
+		return
+	# `_ended` matters here: NOGAXEH dies either way, so a player killed BY the
+	# detonation would otherwise be shown the game-over screen and the true
+	# ending on the same frame. The blast resolves first, and a run that ended
+	# has ended.
+	Sfx.play(&"boss_death", 0.0)
+	Music.play_victory()
+	if _dev_autocontinue:
+		return
+	get_tree().paused = true
+	true_ending.show_results(time_survived, kills, level,
+			player.stats.drafted_weapons, _new_unlocks)
 
 
 func _on_enemy_died(xp_value: int, at: Vector2, tint: Color) -> void:
@@ -603,6 +640,41 @@ func _on_boss_killed(_xp_value: int, at: Vector2, tint: Color) -> void:
 	player.camera.add_trauma(0.95)
 	_spawn_burst.call_deferred(at, tint, 3.4)
 	_hitstop(0.11)
+
+
+## The phase-4 shield is broken and NOGAXEH is stunned, charging. Five seconds to
+## kill it or get clear — it dies either way, and the clock only decides whether
+## the player eats the blast.
+func _on_fuse_lit(seconds: float) -> void:
+	hud.announce("NOGAXEH IS OVERLOADING\n%d SECONDS" % int(seconds))
+	Music.set_intensity(3)
+	player.camera.add_trauma(0.7)
+	Telemetry.event(&"fuse_lit", {"hp": player.health.hp, "max_hp": player.health.max_hp})
+
+
+## The blast. Damage is a PERCENTAGE OF THE PLAYER'S MAX HP, so stacking HP
+## cannot trivialise the finale — a player who arrives above half survives it and
+## a player who arrives hurt does not, which is what makes the attrition of the
+## middle phases matter.
+##
+## Routed through Player.apply_damage like every other source, so Second Wind,
+## the shield buff and the hurt cue all behave exactly as they do anywhere else.
+## The one thing it ignores is i-frames' usual mercy: it clears them first, or a
+## player who was clipped by a bolt in the last half second would walk through
+## the explosion untouched by an accident of timing.
+func _on_detonated(at: Vector2) -> void:
+	var core: bool = player.global_position.distance_to(at) <= Nogaxeh.BLAST_CORE
+	var fraction: float = Nogaxeh.BLAST_CORE_FRACTION if core else Nogaxeh.BLAST_EDGE_FRACTION
+	var amount: int = maxi(1, roundi(float(player.health.max_hp) * fraction))
+	player.clear_invuln()
+	player.apply_damage(amount, &"nogaxeh_blast")
+	Telemetry.event(&"detonation", {"amt": amount, "core": core,
+			"hp": player.health.hp, "max_hp": player.health.max_hp})
+	hud.announce("NOGAXEH DETONATES")
+	Sfx.play(&"boss_death", 0.0)
+	player.camera.add_trauma(1.2)
+	_hitstop(0.16)
+	_spawn_burst.call_deferred(at, Color(1.0, 0.85, 0.5), 6.0)
 
 
 ## A few frames of near-frozen time so the kill LANDS before the celebration

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = &"nogaxeh"
-max_hp = 2000
+max_hp = 4000
 speed = 30.0
 damage = 2
 xp_value = 400

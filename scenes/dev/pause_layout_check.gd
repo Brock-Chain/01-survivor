@@ -66,5 +66,52 @@ func _ready() -> void:
 				% [n, box.size.x, box.size.y, top, rbot, foot,
 				"OK" if ok else "*** OFF-SCREEN ***"])
 
+	failures += await _check_true_ending(vw, vh)
 	print("[check] FAILURES=%d" % failures)
+	# Hold the last frame long enough for the screenshot autoload to fire when one
+	# was asked for. Gated on the flag so the gate itself stays instant.
+	if _capturing():
+		for _i: int in 40:
+			await get_tree().process_frame
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+func _capturing() -> bool:
+	for arg: String in OS.get_cmdline_user_args():
+		if arg.begins_with("--screenshot="):
+			return true
+	return false
+
+
+## The TRUE ENDING screen, measured the same way and for the same reason. It is
+## the one screen in the game a player reaches once, at the end of a fifteen
+## minute run, and it grows with the run: the weapon line and one block of text
+## per unlock earned. Worst case is every weapon drafted AND every milestone
+## firing on the same kill, which is exactly the run this screen exists for.
+func _check_true_ending(vw: float, vh: float) -> int:
+	# Clear the pause panel first. It is measured by then, and this makes the
+	# harness double as a capture rig: run it windowed with --screenshot and the
+	# frame shows the true ending alone, at its worst-case size.
+	for child: Node in get_children():
+		var ui: CanvasLayer = child as CanvasLayer
+		if ui != null:
+			ui.visible = false
+	var screen: TrueEndingScreen = load("res://scenes/ui/true_ending.tscn").instantiate()
+	add_child(screen)
+	await get_tree().process_frame
+
+	var weapons: Array[StringName] = [&"orbital", &"scattergun", &"lance"]
+	var unlocks: Array[StringName] = [MetaState.UNLOCK_ORBITAL, MetaState.UNLOCK_DASH,
+			MetaState.UNLOCK_ELITE_HUNTER, MetaState.UNLOCK_ENDLESS_PROVEN]
+	screen.show_results(931.0, 4212, 88, weapons, unlocks)
+	for _i: int in 4:
+		await get_tree().process_frame
+
+	var box: Control = screen.get_node("Center/Panel")
+	var top: float = box.global_position.y
+	var ok: bool = top >= 0.0 and box.size.x <= vw and top + box.size.y <= vh
+	print("[check] true_ending panel=%3.0fx%3.0f top=%4.0f %s"
+			% [box.size.x, box.size.y, top, "OK" if ok else "*** OFF-SCREEN ***"])
+	# Left on screen deliberately: the harness quits straight after, and freeing it
+	# here is what made the first capture attempt come back as an empty grey frame.
+	return 0 if ok else 1

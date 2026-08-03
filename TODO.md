@@ -227,28 +227,34 @@ exactly 25 card screens.**
 - [x] Card magnitudes rebalanced ~2-3x + `Stats.COOLDOWN_FLOOR`. Forced by measurement — see
       `DECISIONS.md`, the drip as specced left the arena pinned at the enemy cap from 3:00
 
-**7.4 — NOGAXEH v2.** Event total **11,200 base HP**, 3.5x today's mirror. No other enemies.
-- [ ] NOGAXEH **4000 HP**, **double the projectiles**
-- [ ] Phase 1 — spawns with **2 full 1200 HP Prisms**; invulnerable until both are dead
-- [ ] Phases 2–3 — vulnerable, escalating bullet density
-- [ ] Phase 4 — high bullets plus **4 more full Prisms**, shield back up
-- [ ] The finish — breaking the phase-4 shield **stuns** NOGAXEH and it charges an explosion.
-      **5 seconds.** Kill it and it dies clean. Fail and it detonates for **70% of max HP near the
-      centre, 50% everywhere else** — a *percentage of max HP*, so HP-stacking cannot trivialise
-      it. **NOGAXEH dies either way**; the 5s decides whether you eat the blast
-- [ ] **Each of the 6 Prisms drops a guaranteed health pickup** — load-bearing, not a nicety:
-      healing is world-drop only at 4.5% on a kill, so "no other enemies" leaves the whole fight
-      with ~a 27% chance of one 2 HP heal
-- [ ] Budget the fight in **seconds at measured DPS**, never as an HP ratio to the 5:00 event —
-      that is exactly how the current 1.9x budget produced a 22-second fight
-- [ ] **The Prism at 5:00 stays exactly as it is** (49s, accepted)
+**7.4 — NOGAXEH v2, the 10:00 climax.** ✅ done 2026-08-03. Event total **11,200 base HP**.
+- [x] NOGAXEH **4000 HP**, projectiles roughly doubled and escalating across four phases
+- [x] Phase 1 — spawns with **2 full 1200 HP Prisms**, invulnerable until both are dead. Not an HP
+      threshold and cannot be: it is invulnerable for the whole phase, so its HP never moves.
+      `Boss.force_phase()` exists for exactly this
+- [x] Phases 2–3 — vulnerable, denser each time
+- [x] Phase 4 — **4 more full Prisms**, shield back up
+- [x] The finish — breaking the phase-4 shield **stuns** NOGAXEH and lights a **5s fuse**. Kill it
+      and it dies; run out the clock and it detonates for **70% of max HP** in the core / **50%**
+      outside, then dies anyway. Percentages, so stacking HP cannot trivialise it
+- [x] **Nothing else spawns** for the whole fight (`RunDirector.can_spawn`)
+- [x] Each of the **6 Prisms drops a guaranteed health pickup** — load-bearing, since world heals
+      are 4.5% on an enemy death and there are no other enemies
+- [x] Budgeted in seconds at measured DPS. `ESCORT_HP` and its ratio reasoning are deleted
+- [x] The Prism at 5:00 is untouched
+- [x] Verified in a full soak: escorts gate phase 1, four more at phase 4, fuse lit at 804.5s,
+      detonation exactly 5.0s later, `alive=0` for the entire fight
 
-**7.5 — Endings.**
-- [ ] **A distinct TRUE ENDING screen** when NOGAXEH dies — different from the 5:00 victory screen,
-      run stats, unlock reveal, Restart or Continue. The director needs a second signal for "a
-      later boss event cleared"; today `victory` fires at most once per run on the *first* event
-      (`run_director.gd:22`), so killing the mirror currently produces nothing at all
-- [ ] **The death screen** — now load-bearing, and the human has never noticed it exists
+**7.5 — Endings.** ✅ done 2026-08-03.
+- [x] **A distinct TRUE ENDING screen** — gold where victory is cyan, run record, weapons drafted,
+      unlock reveal, Keep going / New run
+- [x] `RunDirector.boss_event_cleared` added alongside the once-per-run `victory`. Killing NOGAXEH
+      used to produce **nothing at all**, because `victory` had already fired at 5:00
+- [x] Measured at **640x360** — the first draft came out **633px tall against a 360px viewport**
+      and `scenes/dev/pause_layout_check.tscn` caught it. The harness now guards this screen too,
+      and doubles as its capture rig
+- [x] Death screen: NOGAXEH and the detonation both name themselves, and the blast line says what
+      to do differently — it is the one death a player can specifically fix
 
 **7.6 — The level-up card UI.** Now the centrepiece: 3x fewer, 3x more valuable decisions, plus
 weapon drafts and per-weapon Legendaries.

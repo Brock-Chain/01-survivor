@@ -25,6 +25,7 @@ const KILLER: Dictionary = {
 	&"ram": "A Ram ran you down.",
 	&"shard": "A Shard cut you down.",
 	&"prism": "The Prism finished it.",
+	&"nogaxeh": "NOGAXEH took the arena back.",
 }
 
 
@@ -39,7 +40,14 @@ func show_results(time_survived: float, kills: int, level: int,
 	var seconds: int = int(time_survived) % 60
 	var lines: PackedStringArray = []
 
-	if KILLER.has(killed_by):
+	# The blast is checked FIRST and by source, not by killer. NOGAXEH dies either
+	# way, so the thing that killed you is already gone by the time this screen
+	# appears — and "you were 5 seconds too slow" is the single most useful
+	# sentence this screen can say, since it is the one death in the game the
+	# player can do something specific about next run.
+	if source == &"nogaxeh_blast":
+		lines.append("NOGAXEH detonated. Five seconds, and you were inside them.")
+	elif KILLER.has(killed_by):
 		lines.append(String(KILLER[killed_by]))
 	elif source == &"bolt":
 		lines.append("A bolt found you.")

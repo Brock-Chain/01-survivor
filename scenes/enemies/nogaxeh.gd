@@ -18,22 +18,62 @@ extends Boss
 ## player does — with a trail — and the music thins to bass on its arrival and
 ## rebuilds one stem per phase.
 ##
-## THREE PHASES, and it is alone for the first two:
-##   1  >66% HP   Dread. Slow, huge, heavily telegraphed lattices. It waits.
-##   2  >33% HP   It starts mirroring you: dashes across the arena, trailing.
-##   3  <=33% HP  Two elite Prisms arrive AND IT SHIELDS ITSELF until they die,
-##                so the escorts cannot be ignored. The pentagon beaten at 5:00
-##                comes back as its minion.
-## The escort spawn is RunDirector's — a boss must not reach around the only
-## system allowed to create bosses. This class owns the shield STATE and its
-## tells.
+## FOUR PHASES since M7.2/7.3, and NOTHING ELSE SPAWNS for the whole fight:
+##   1  Two FULL 1200 HP Prisms arrive with it and it is invulnerable until both
+##      are dead. Not the old half-health escorts: the thing you beat at 5:00
+##      comes back as a minion at full strength, and that lands harder unweakened.
+##   2  Vulnerable. Dread gives way — it starts mirroring you, dashing and
+##      trailing the way you do.
+##   3  Vulnerable, denser.
+##   4  Four MORE full Prisms and the shield is back up. The final stretch.
+##      Breaking that shield STUNS it and it begins charging an explosion.
+##
+## THE FINISH. The stun lasts FUSE seconds and NOGAXEH dies either way: kill it
+## and it simply dies, run out the clock and it detonates first. The blast is a
+## PERCENTAGE of max HP, so stacking HP cannot trivialise it — a player who
+## arrives above half survives and a player who arrives hurt does not. The
+## attrition of phases 2 and 3 is what makes the finale lethal, which is the
+## whole reason the fight is long.
+##
+## Event budget: 4000 here plus six 1200 HP Prisms = 11,200, 3.5x the old mirror
+## event. Budgeted in SECONDS at measured DPS, never as a ratio to the 5:00
+## fight — the old ESCORT_HP reasoned from such a ratio and produced a 22-second
+## "climax", because the player's DPS quadrupled between 5:00 and 10:00.
+##
+## Phase 1 -> 2 is NOT an HP threshold; it cannot be, since the boss is
+## invulnerable until the escorts die. The director drives it. Phase spawns and
+## escort spawns are the director's too — a boss must not reach around the only
+## system allowed to create bosses. This class owns the shield STATE, the stun,
+## and their tells.
+
+## Fired when the phase-4 shield breaks and the fuse starts, and again when the
+## fuse runs out. Main hangs the warning and the blast off these; the boss never
+## reaches out to damage the player itself.
+signal fuse_lit(seconds: float)
+signal detonated(at: Vector2)
 
 ## Arms in the lattice. Six, obviously.
 const ARMS: int = 6
 ## Bolts per arm, per phase. An arm is a LINE, drawn by giving each bolt a
 ## different speed along one bearing so they separate into a spoke as they
 ## travel — the lattice grows outward rather than arriving all at once.
-const PER_ARM: Array[int] = [4, 6, 7]
+##
+## Doubled and extended to four phases (M7.2). The spec's word was "double the
+## projectiles"; density is what makes the mirror a bullet-hell fight rather
+## than a health bar, and the dash the player earns at 5:00 is what makes that
+## fair.
+const PER_ARM: Array[int] = [8, 11, 13, 15]
+
+## Seconds between the shield breaking and the blast. Long enough to be a real
+## decision — burn everything and kill it, or run for the edge — short enough
+## that it is a sprint rather than a lull.
+const FUSE: float = 5.0
+## Blast damage as a FRACTION OF THE PLAYER'S MAX HP, inside and outside
+## BLAST_CORE. Percentages, so a 40 HP build eats the same proportion as a 6 HP
+## one and stacking HP cannot buy its way out of the finale.
+const BLAST_CORE: float = 150.0
+const BLAST_CORE_FRACTION: float = 0.70
+const BLAST_EDGE_FRACTION: float = 0.50
 ## Fraction of bolt_speed the innermost bolt of an arm gets. Below this the arm
 ## reads as a clump at the boss rather than as a spoke.
 const ARM_SPEED_FLOOR: float = 0.5
@@ -59,6 +99,9 @@ var _lattice_spin: float = 0.0
 var _shear_spin: float = 0.0
 var _pattern: int = 0
 var _trail: PackedVector2Array = PackedVector2Array()
+## Seconds left on the fuse. Negative means no fuse is burning, which is not the
+## same as zero — zero is the frame it goes off.
+var _fuse_left: float = -1.0
 
 @onready var membrane: Sprite2D = $Membrane
 @onready var trail_line: Line2D = $Trail
@@ -75,6 +118,51 @@ func _ready() -> void:
 func _on_phase(new_phase: int) -> void:
 	if new_phase == 2:
 		detach_shards()
+
+
+## Phase 1 -> 2, driven by the director when the opening pair of Prisms is dead.
+## An HP threshold cannot do this: the boss is invulnerable for the whole of
+## phase 1, so its HP never moves and the threshold would never fire.
+func escorts_cleared() -> void:
+	drop_shield()
+	if phase == 1:
+		force_phase()
+
+
+## THE FINISH. The phase-4 shield breaks, NOGAXEH stops dead, and the fuse
+## starts. It cannot attack or move from here — the danger is the clock.
+func begin_fuse() -> void:
+	drop_shield()
+	_fuse_left = FUSE
+	_attack_cd = INF
+	_telegraph_left = 0.0
+	_dash_left = 0.0
+	velocity = Vector2.ZERO
+	Sfx.play(&"boss_telegraph", 0.0)
+	fuse_lit.emit(FUSE)
+	# Swells to white over the whole fuse: the tell for "this is about to go off"
+	# is the boss itself getting brighter, readable without a HUD element.
+	var t: Tween = create_tween()
+	t.tween_property(visual, "modulate", Color(2.2, 2.0, 2.4), FUSE)
+
+
+func is_fusing() -> bool:
+	return _fuse_left >= 0.0
+
+
+func _tick_fuse(delta: float) -> void:
+	_fuse_left -= delta
+	if _fuse_left > 0.0:
+		return
+	_fuse_left = -1.0
+	detonated.emit(global_position)
+	# It dies EITHER WAY. The five seconds only decide whether the player eats
+	# the blast, so the run resolves identically from the director's side — same
+	# `died` payload, same listeners, same true ending. Mirrors Enemy.take_hit's
+	# death rather than calling it, because there is no damage and no attacker.
+	hp = 0
+	died.emit(xp_value, global_position, stats.tint)
+	queue_free()
 
 
 ## Raised by the director when the escorts arrive. The hollow hex RING fills with
@@ -104,6 +192,12 @@ func drop_shield() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# A stunned boss does not attack, move or orbit. Everything it was doing
+	# stops the instant the shield breaks — the only thing still running is the
+	# clock, which is what makes those five seconds read as a countdown.
+	if is_fusing():
+		_tick_fuse(delta)
+		return
 	super._physics_process(delta)
 	_update_trail()
 
@@ -135,14 +229,16 @@ func _fire() -> void:
 	if phase == 1:
 		_fire_lattice(tier)
 	else:
+		# Phase 2 alternates two patterns; 3 and 4 cycle all three, so the arena
+		# stops having a shape the player can memorise exactly when it fills up.
 		_pattern = (_pattern + 1) % (2 if phase == 2 else 3)
 		match _pattern:
 			0:
 				_fire_lattice(tier)
 			1:
-				_fire_honeycomb()
+				_fire_honeycomb(tier)
 			_:
-				_fire_shear()
+				_fire_shear(tier)
 	if phase >= 2:
 		_dash_dir = (target.global_position - global_position).normalized()
 		_dash_left = MIRROR_DASH_TIME
@@ -165,26 +261,28 @@ func _fire_lattice(tier: int) -> void:
 
 ## HONEYCOMB — six cells fire outward from the vertices of a hexagon around the
 ## boss, each a small fan. A tiling wall with gaps only where the cells meet.
-func _fire_honeycomb() -> void:
+func _fire_honeycomb(tier: int) -> void:
+	var bolts: int = CELL_BOLTS + tier
 	var base: float = (target.global_position - global_position).angle()
 	for cell: int in ARMS:
 		var angle: float = base + TAU * float(cell) / float(ARMS)
 		var origin: Vector2 = global_position + Vector2.RIGHT.rotated(angle) * CELL_RADIUS
-		for i: int in CELL_BOLTS:
-			var spread: float = (float(i) - float(CELL_BOLTS - 1) * 0.5) * CELL_FAN
+		for i: int in bolts:
+			var spread: float = (float(i) - float(bolts - 1) * 0.5) * CELL_FAN
 			_bolt(origin, Vector2.RIGHT.rotated(angle + spread) * bolt_speed * 0.92)
 
 
 ## SHEAR — two rings whose gaps drift in opposite directions. Neither ring alone
 ## is a wall; the point is that no spot stays safe for two volleys running.
-func _fire_shear() -> void:
+func _fire_shear(tier: int) -> void:
+	var per_ring: int = SHEAR_PER_RING + tier * 3
 	_shear_spin += SHEAR_OFFSET
 	for ring: int in 2:
 		var way: float = 1.0 if ring == 0 else -1.0
 		var speed: float = bolt_speed * (1.0 if ring == 0 else 0.72)
-		for i: int in SHEAR_PER_RING:
+		for i: int in per_ring:
 			var angle: float = _shear_spin * way \
-					+ TAU * (float(i) + 0.5 * float(ring)) / float(SHEAR_PER_RING)
+					+ TAU * (float(i) + 0.5 * float(ring)) / float(per_ring)
 			_bolt(global_position, Vector2.RIGHT.rotated(angle) * speed)
 
 

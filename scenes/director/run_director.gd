@@ -38,6 +38,14 @@ signal boss_spawned(boss: Node2D)
 signal boss_defeated(bosses_remaining: int)
 ## Emitted once, the first time a boss event is fully cleared.
 signal victory(event_index: int)
+## Emitted EVERY time a boss event is fully cleared, including the first.
+##
+## `victory` is once per run by design — continuing into endless must never be
+## able to revoke it — and that had a consequence nobody had noticed: killing
+## NOGAXEH produced NOTHING. No screen, no stinger, no acknowledgement that the
+## player had just finished the hardest fight in the game, because `victory` had
+## already fired at 5:00. The true ending hangs off this.
+signal boss_event_cleared(event_index: int)
 
 ## Bosses read as the threat only if the adds thin out, so while one is alive the
 ## normal cadence is stretched. Boss-tier intensity for the audio layer.
@@ -81,6 +89,8 @@ func _physics_process(delta: float) -> void:
 func can_spawn() -> bool:
 	if _wave == null or _wave.types.is_empty() or spawner == null:
 		return false
+	if mirror_active():
+		return false  # the mirror fight is the mirror and its Prisms, nothing else
 	return Difficulty.should_spawn(spawner.alive_count())
 
 
@@ -165,29 +175,29 @@ func _track(id: StringName, enemy: Enemy) -> void:
 ## recorded the rule this follows: "when distinct boss types exist, later events
 ## should swap in new ones rather than stacking more Prisms."
 const MIRROR_EVENT: int = 1
-## Escort health as a fraction of a normal 5:00 Prism, divided back down by
-## ELITE_HP_MULT where it is used. The escorts should LOOK elite — bright rim,
-## larger, +1 damage — without carrying 3.2x health. The mirror is the fight;
-## the escorts are the positioning problem around it.
+## The escorts are FULL-STRENGTH Prisms now (M7.2). `ESCORT_HP = 0.5` is gone,
+## and so is the reasoning that produced it: it budgeted the mirror event as a
+## RATIO to the 5:00 event, arguing that 1.9x the 5:00 fight is "the ~2 minute
+## climax". Measured on the first clean human run, the 5:00 event took 49s and
+## the 1.9x-larger 10:00 event took **22 seconds**, because the player's DPS
+## roughly quadrupled in between. A fight is budgeted in SECONDS at measured
+## DPS or it is not budgeted at all.
 ##
-## 0.8 -> 0.5 after the first full soak of the three-phase fight. Budgeting the
-## whole mirror EVENT against the 5:00 event (2 x 1200 base) is the only way to
-## reason about its length: at 3600 base plus 0.8 escorts the event was 3.2x the
-## Prism's and the bot was still fighting it five minutes later. With Nogaxeh at
-## 2000 and escorts at 0.5 it lands near 1.9x, which against a ~60s Prism is the
-## ~2 minute climax that was asked for. Still an ESTIMATE — a godmode bot is a
-## poor stand-in for a human, and this needs the playtest.
-const ESCORT_HP: float = 0.5
-## The phase at which the escorts arrive and the shield goes up.
-const MIRROR_ESCORT_PHASE: int = 3
+## Two at the start, four more at the final phase: 6 x 1200 plus Nogaxeh's 4000
+## is 11,200 base for the event, 3.5x the old one. Full strength because the
+## thing the player beat at 5:00 returning as a MINION only lands unweakened.
+const MIRROR_ESCORTS_OPENING: int = 2
+const MIRROR_ESCORTS_FINAL: int = 4
+## Phase 1 is the opening escort pair; phase 4 is the last stand.
+const MIRROR_FINAL_PHASE: int = 4
 ## Music tier per mirror phase. It THINS OUT to bass on arrival and rebuilds one
 ## element at a time as the fight escalates — dread first, then the mix fills
 ## back in. Cheap: Music already crossfades four stems on this signal.
-const MIRROR_INTENSITY: Array[int] = [0, 1, 3]
+const MIRROR_INTENSITY: Array[int] = [0, 1, 3, 3]
 
 var _mirror: Boss
 var _mirror_hp_scale: float = 1.0
-var _escorts_sent: bool = false
+var _final_wave_sent: bool = false
 var _escorts_alive: int = 0
 
 
@@ -198,13 +208,20 @@ func _check_boss_event() -> void:
 	_next_boss_event += 1
 	var hp_scale: float = (1.0 + float(event) * 0.4) * _power_mult()
 	if event == MIRROR_EVENT and mirror_scene != null:
-		# ALONE. Playtest 2026-08-02 asked for no allies through the first two
-		# phases, and it is also what makes the dread land — one enormous shape
-		# holding still opposite you, with nothing else to shoot at.
-		_mirror = _spawn_boss(mirror_scene, 0, 1, event, hp_scale, false)
-		_mirror_hp_scale = hp_scale
+		# The mirror event's HP is AUTHORED (4000 + 6 x 1200), so it skips the
+		# per-event step that scales repeat Prism events in endless. Only the
+		# player's weapon count still scales it, for the same reason it always
+		# did: one number cannot serve profiles that are several times apart.
+		var scale: float = _power_mult()
+		_mirror = _spawn_boss(mirror_scene, 0, 1, event, scale, false)
+		_mirror_hp_scale = scale
 		if _mirror != null:
 			_mirror.phase_changed.connect(_on_mirror_phase.bind(event))
+			# Shielded from the first frame, with the pair already on their way:
+			# phase 1 is "kill the two Prisms", and the shield is what says so
+			# without a line of text.
+			_mirror.raise_shield()
+			_spawn_escorts(event, MIRROR_ESCORTS_OPENING)
 	else:
 		var count: int = schedule.bosses_at_event(event)
 		for i: int in count:
@@ -212,7 +229,7 @@ func _check_boss_event() -> void:
 	_publish_intensity()
 
 
-## Phase 3: the escorts arrive AND the mirror shields itself until they are dead.
+## Phase 4: four more full Prisms arrive AND the mirror shields itself again.
 ##
 ## The shield is what stops the escorts from being ignorable. Without it the
 ## optimal play is to tunnel the boss and eat the chip damage; with it, the
@@ -220,34 +237,58 @@ func _check_boss_event() -> void:
 ## the mirror can be touched.
 func _on_mirror_phase(new_phase: int, event: int) -> void:
 	_publish_intensity()
-	if new_phase < MIRROR_ESCORT_PHASE or _escorts_sent:
+	if new_phase < MIRROR_FINAL_PHASE or _final_wave_sent:
 		return
-	_escorts_sent = true
+	_final_wave_sent = true
 	# DEFERRED. `phase_changed` is emitted from inside Boss.take_hit, which is
 	# itself called from Projectile._on_body_entered — a physics flush. Adding a
 	# CharacterBody2D there throws "Can't change this state while flushing
 	# queries", which is the exact trap DECISIONS.md records for Prism Core and
 	# Chain Lightning. Every boss spawn triggered by damage must be deferred.
-	_spawn_escorts.call_deferred(event)
+	_spawn_final_wave.call_deferred(event)
 
 
-func _spawn_escorts(event: int) -> void:
-	var escort: float = _mirror_hp_scale * ESCORT_HP / Difficulty.ELITE_HP_MULT
-	for i: int in 2:
-		var minion: Boss = _spawn_boss(boss_scene, i, 2, event, escort, true)
-		if minion != null:
-			_escorts_alive += 1
-			minion.died.connect(_on_escort_died)
+func _spawn_final_wave(event: int) -> void:
+	_spawn_escorts(event, MIRROR_ESCORTS_FINAL)
 	# Raised only once the escorts actually exist, or a single frame of
 	# "invulnerable with nothing to kill" would read as the game hanging.
 	if is_instance_valid(_mirror):
 		_mirror.raise_shield()
 
 
+## Full-strength Prisms, spread around the arena. Elite is FALSE now: an elite
+## multiplier on top of full health would put the pair well past the boss the
+## player beat at 5:00, and the point is that it is the same boss coming back.
+func _spawn_escorts(event: int, count: int) -> void:
+	for i: int in count:
+		var minion: Boss = _spawn_boss(boss_scene, i, count, event,
+				_mirror_hp_scale, false)
+		if minion != null:
+			_escorts_alive += 1
+			minion.died.connect(_on_escort_died)
+
+
+## The gate on both shielded phases. Phase 1 hands the fight over; phase 4 lights
+## the fuse and the run is decided in the next five seconds.
 func _on_escort_died(_xp_value: int, _at: Vector2, _tint: Color) -> void:
 	_escorts_alive = maxi(0, _escorts_alive - 1)
-	if _escorts_alive == 0 and is_instance_valid(_mirror):
+	if _escorts_alive > 0 or not is_instance_valid(_mirror):
+		return
+	var mirror: Nogaxeh = _mirror as Nogaxeh
+	if mirror == null:
 		_mirror.drop_shield()
+	elif mirror.phase >= MIRROR_FINAL_PHASE:
+		mirror.begin_fuse()
+	else:
+		mirror.escorts_cleared()
+
+
+## True while the mirror fight is running. NOTHING ELSE SPAWNS for its whole
+## duration (spec, M7.2): the six Prisms are the only company, which is what lets
+## their guaranteed health drops be the fight's entire sustain and what makes one
+## enormous shape holding still opposite you land as dread rather than as noise.
+func mirror_active() -> bool:
+	return is_instance_valid(_mirror)
 
 
 ## Returns the boss so callers can keep a handle on it — the mirror fight needs
@@ -299,7 +340,9 @@ func _power_mult() -> float:
 func _on_boss_died(_xp_value: int, _at: Vector2, _tint: Color, event: int) -> void:
 	bosses_alive = maxi(0, bosses_alive - 1)
 	boss_defeated.emit(bosses_alive)
-	if bosses_alive == 0 and not _won:
-		_won = true
-		victory.emit(event)
+	if bosses_alive == 0:
+		boss_event_cleared.emit(event)
+		if not _won:
+			_won = true
+			victory.emit(event)
 	_publish_intensity()
