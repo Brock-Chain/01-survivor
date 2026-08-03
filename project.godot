@@ -1,6 +1,10 @@
 ; Engine configuration file.
 ; It's best edited using the editor UI and not directly,
 ; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
@@ -9,19 +13,8 @@ config_version=5
 config/name="BESTAGON"
 run/main_scene="res://scenes/ui/title.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
-config/icon="res://icon.svg"
-; A RELEASE build buffers user://logs/godot.log and only flushes on a clean
-; exit, so a freeze that has to be killed loses the ENTIRE log. Measured
-; 2026-08-03 against the shipped exe: hard-killed after 8s it left 0 bytes with
-; this off and 73 bytes with it on. The 2026-08-03 hang is exactly that case --
-; it ran 37 minutes, printed the boot line and at least one [boss] line, and
-; left an empty log, which is why there was nothing to read afterwards.
-; Costs one flush per print; nothing in this game prints per frame.
 run/flush_stdout_on_print=true
-
-[audio]
-
-buses/default_bus_layout="res://default_bus_layout.tres"
+config/icon="res://icon.svg"
 
 [autoload]
 
@@ -40,11 +33,14 @@ window/size/viewport_height=360
 window/size/window_width_override=1280
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep"
 
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
+[gui]
+
+theme/custom="res://assets/theme/neon.tres"
 
 [input]
 
@@ -80,7 +76,6 @@ move_down={
 , Object(InputEventJoypadMotion,"resource_local_to_scene":false,"resource_name":"","device":-1,"axis":1,"axis_value":1.0,"script":null)
 ]
 }
-
 dash={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":32,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
@@ -89,7 +84,6 @@ dash={
 , Object(InputEventJoypadButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"button_index":10,"pressure":0.0,"pressed":false,"script":null)
 ]
 }
-
 pause={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194305,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
@@ -97,20 +91,17 @@ pause={
 , Object(InputEventJoypadButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"button_index":6,"pressure":0.0,"pressed":false,"script":null)
 ]
 }
-
 speed={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":84,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
 , Object(InputEventJoypadButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"button_index":4,"pressure":0.0,"pressed":false,"script":null)
 ]
 }
-
 mute={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":77,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
 ]
 }
-
 restart={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":82,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
@@ -126,27 +117,9 @@ restart={
 2d_physics/layer_5="walls"
 2d_physics/layer_6="enemy_projectiles"
 
-[gui]
-
-theme/custom="res://assets/theme/neon.tres"
-
 [rendering]
 
+textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-textures/canvas_textures/default_texture_filter=0
-; Playtest 2026-08-02: "the character is vibrating a bit, especially when moving
-; diagonally". The viewport is 640x360 with NEAREST filtering, so a sprite sitting
-; at a fractional position has its edges resolve to different pixels frame to
-; frame - it shimmers. Diagonal movement is worst because both axes are fractional
-; at once (0.707 * speed on each). The camera's position smoothing lands on
-; fractions too, so everything shimmers relative to everything else.
-;
-; Snapping transforms to the pixel grid is the standard fix for a nearest-filtered
-; pixel game and costs nothing. Motion becomes stepped at the viewport's
-; resolution, which at 2x display scale is the intended look rather than a
-; compromise.
-; TRANSFORMS only, not vertices: vertex snapping would also quantise the trail
-; ribbon and the lightning arcs, which are antialiased Line2Ds and are supposed
-; to be smooth. Sprites snap, drawn geometry does not.
 2d/snap/snap_2d_transforms_to_pixel=true
