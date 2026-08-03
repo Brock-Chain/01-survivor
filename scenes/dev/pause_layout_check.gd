@@ -66,6 +66,7 @@ func _ready() -> void:
 				% [n, box.size.x, box.size.y, top, rbot, foot,
 				"OK" if ok else "*** OFF-SCREEN ***"])
 
+	failures += await _check_level_up(pool, vw, vh)
 	failures += await _check_true_ending(vw, vh)
 	print("[check] FAILURES=%d" % failures)
 	# Hold the last frame long enough for the screenshot autoload to fire when one
@@ -81,6 +82,37 @@ func _capturing() -> bool:
 		if arg.begins_with("--screenshot="):
 			return true
 	return false
+
+
+## The LEVEL-UP panel, measured against its worst case: the three longest
+## descriptions in the pool on one screen. This has already shipped broken once —
+## at level 57 a long description grew the cards past their minimum and the third
+## card ran off the right edge — and M7.3 both widened the cards (172 -> 184, for
+## a screen that is now worth three times as much) and added longer text to them.
+func _check_level_up(pool: Array[UpgradeResource], vw: float, vh: float) -> int:
+	var longest: Array[UpgradeResource] = pool.duplicate()
+	longest.sort_custom(func(a: UpgradeResource, b: UpgradeResource) -> bool:
+		return a.description.length() > b.description.length())
+	var offers: Array[UpgradeResource] = []
+	for i: int in mini(3, longest.size()):
+		offers.append(longest[i])
+
+	var panel: LevelUpPanel = load("res://scenes/ui/level_up_panel.tscn").instantiate()
+	add_child(panel)
+	panel.show_offers(offers, 57)
+	for _i: int in 6:
+		await get_tree().process_frame
+
+	var box: Control = panel.get_node("Center/Panel")
+	var top: float = box.global_position.y
+	var left: float = box.global_position.x
+	var ok: bool = top >= 0.0 and left >= 0.0 and left + box.size.x <= vw \
+			and top + box.size.y <= vh
+	print("[check] level_up panel=%3.0fx%3.0f at %3.0f,%3.0f %s"
+			% [box.size.x, box.size.y, left, top, "OK" if ok else "*** OFF-SCREEN ***"])
+	panel.queue_free()
+	await get_tree().process_frame
+	return 0 if ok else 1
 
 
 ## The TRUE ENDING screen, measured the same way and for the same reason. It is

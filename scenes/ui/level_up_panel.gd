@@ -11,10 +11,16 @@ signal upgrade_chosen(upgrade: UpgradeResource)
 ## third card ran off the right edge). Three defences, because any one of them
 ## alone still lets an unusually long word through: wrap the text, clip what
 ## still will not fit, and hold the row to a width that provably fits.
-const CARD: Vector2 = Vector2(172, 118)
+## Grown in M7.2/7.3: a run now offers ~25 screens instead of ~78, so a card is
+## worth three times as much and gets looked at three times as hard.
+## 3 * 184 + 2 * 10 = 572, inside 640 with room for the panel's own margins.
+const CARD: Vector2 = Vector2(184, 132)
 const GAP: int = 10
-## 3 * 172 + 2 * 10 = 536, inside 640 with room for the panel's own margins.
 const MAX_CARDS: int = 3
+## The glyph's box. Sits between the name and the description, which is also
+## where the dead space was — a short description used to leave a hole in the
+## middle of every Common card.
+const ICON: Vector2 = Vector2(30, 30)
 ## Seconds between each card arriving. Three at once is a state change; three in
 ## sequence is a reveal, and the tree is paused anyway so it costs nothing real.
 const DEAL_STAGGER: float = 0.07
@@ -134,14 +140,30 @@ func _build_card(upgrade: UpgradeResource) -> Button:
 	name_label.add_theme_font_size_override(&"font_size", 14)
 	name_label.add_theme_color_override(&"font_color", hue.lightened(0.55))
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(name_label)
+
+	# The glyph. Centred in a fixed-height row so three cards line up whatever
+	# their name wrapped to — a card whose icon floats to a different height than
+	# its neighbours' cannot be scanned as a set.
+	var icon_row := CenterContainer.new()
+	icon_row.custom_minimum_size = Vector2(0, ICON.y)
+	icon_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var icon := UpgradeIcon.new()
+	icon.custom_minimum_size = ICON
+	icon.glyph = UpgradeIcon.glyph_for(upgrade.effect)
+	icon.hue = hue
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon_row.add_child(icon)
+	box.add_child(icon_row)
 
 	var desc := Label.new()
 	desc.text = upgrade.description
 	desc.add_theme_font_size_override(&"font_size", 10)
 	desc.add_theme_color_override(&"font_color", Color(0.74, 0.84, 0.96))
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(desc)
@@ -149,8 +171,14 @@ func _build_card(upgrade: UpgradeResource) -> Button:
 	# The tier badge. A filled bar rather than a word, so the ladder survives
 	# being glanced at rather than read — and so a screen of Common/Common/Epic
 	# reads as uneven before the player has processed any text.
+	#
+	# A weapon draft says NEW WEAPON instead of its tier. Its rarity is a draw
+	# frequency, not a description: "Rare" on the card that hands over the whole
+	# orbital would rank it against a +12 damage card, and the player's actual
+	# question is "is this a stat or a new thing to play with".
 	var badge := Label.new()
-	badge.text = Rarity.name_of(upgrade.rarity).to_upper()
+	badge.text = ("NEW WEAPON" if upgrade.effect == UpgradeResource.Effect.GRANT_WEAPON
+			else Rarity.name_of(upgrade.rarity).to_upper())
 	badge.add_theme_font_size_override(&"font_size", 9)
 	badge.add_theme_color_override(&"font_color", Color(0.04, 0.05, 0.1))
 	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

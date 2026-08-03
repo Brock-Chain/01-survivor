@@ -256,12 +256,18 @@ exactly 25 card screens.**
 - [x] Death screen: NOGAXEH and the detonation both name themselves, and the blast line says what
       to do differently — it is the one death a player can specifically fix
 
-**7.6 — The level-up card UI.** Now the centrepiece: 3x fewer, 3x more valuable decisions, plus
-weapon drafts and per-weapon Legendaries.
-- [ ] Still reads as "better, still not there" — dead space in the middle, no iconography,
-      plain panel
-- [ ] Legendary should *feel* rare rather than just brighter. Note it already **is** rare — 4
-      appearances in 234 slots (1.7%), taken 4/4. This is presentational only
+**7.6 — The level-up card UI.** ✅ done 2026-08-03. It is the centrepiece now: ~25 screens a run
+instead of ~78, so each one is worth 3x and gets looked at 3x as hard.
+- [x] **Iconography** — `UpgradeIcon`, a glyph per effect FAMILY (offence, rate, breadth, movement,
+      survival, fortune, orbit, weapon), drawn with `_draw` rather than imported: at 28px it is a
+      few primitives, it inherits the card's rarity hue for free, and it adds nothing to the export
+- [x] **The dead space is gone** — the glyph sits exactly where the hole was, and name and
+      description are centred so three cards scan as a set
+- [x] Cards grown 172x118 → 184x132
+- [x] A weapon draft says **NEW WEAPON** instead of its tier — its rarity is a draw frequency, not
+      a description, and the player's question is "stat or new toy", not "how rare"
+- [x] `pause_layout_check` now measures the level-up panel too, at its worst case (the three
+      longest descriptions in the pool). It has shipped broken once already, at level 57
 
 **7.7 — Meta skill tree (main menu).** Scoped in full over a recommendation to defer; the concern
 recorded is that a permanent stat tree re-inflates the curve this rework just cut, mitigated by
