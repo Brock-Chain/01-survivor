@@ -1,0 +1,57 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/skill_tree.gd" id="1_skill"]
+
+; Built for 640x360 and measured there by scenes/dev/pause_layout_check.tscn.
+; The ScrollContainer is what makes it honest: the node list grows with content,
+; the frame does not, and nothing can be pushed off the bottom edge unreachably.
+[node name="SkillTree" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_skill")
+
+[node name="Bg" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.02, 0.03, 0.07, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="Margin"]
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="Margin/VBox"]
+theme_override_colors/font_color = Color(0.55, 1, 0.86, 1)
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+text = "THE LATTICE"
+
+[node name="ShardLabel" type="Label" parent="Margin/VBox"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1, 0.78, 0.25, 1)
+theme_override_font_sizes/font_size = 10
+horizontal_alignment = 1
+text = "0 SHARDS"
+
+[node name="Scroll" type="ScrollContainer" parent="Margin/VBox"]
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Rows" type="VBoxContainer" parent="Margin/VBox/Scroll"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="BackButton" type="Button" parent="Margin/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 26)
+text = "Back"

@@ -35,7 +35,7 @@ const KILLER: Dictionary = {
 ## motivator in the game, and it was sitting unread in MetaState the whole time.
 func show_results(time_survived: float, kills: int, level: int,
 		killed_by: StringName = &"", source: StringName = &"",
-		unlocks: Array[StringName] = []) -> void:
+		unlocks: Array[StringName] = [], shards_earned: int = 0) -> void:
 	var minutes: int = int(time_survived) / 60
 	var seconds: int = int(time_survived) % 60
 	var lines: PackedStringArray = []
@@ -64,6 +64,13 @@ func show_results(time_survived: float, kills: int, level: int,
 				int(best) / 60, int(best) % 60, int(ceilf(best - time_survived))])
 	elif best > 0.0 and time_survived >= best:
 		lines.append("NEW BEST.")
+
+	# What the run PAID. A death screen that only reports a failure gives the
+	# player nothing to carry forward; shards are the thing every run earns, and
+	# saying the number here is what makes the next one feel like it continues
+	# this one rather than replacing it.
+	if shards_earned > 0:
+		lines.append("+%d ◆  ·  %d banked in the Lattice" % [shards_earned, Meta.state.shards])
 
 	for id: StringName in unlocks:
 		lines.append("")

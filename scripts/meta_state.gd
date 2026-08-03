@@ -32,6 +32,42 @@ var best_kills: int = 0
 var total_kills: int = 0
 var unlocks: Array[StringName] = []
 
+## SHARDS — the skill tree's currency, and the run tally it is earned from.
+##
+## Deliberately DEPTH-weighted rather than kill-weighted: time survived plus a
+## chunk per boss event cleared. Kills would pay best for farming the easy
+## minutes, which is the opposite of what the game wants to teach; this pays for
+## getting FURTHER, and it keeps a failed NOGAXEH attempt worth something, which
+## matters when that fight is two minutes long and can end in a detonation.
+var shards: int = 0
+## Skill-tree nodes bought. Ids, not indices, for the same reason unlocks are:
+## reordering or removing a node can never silently shift another.
+var purchases: Array[StringName] = []
+
+const SHARDS_PER_MINUTE: int = 6
+const SHARDS_PER_BOSS_EVENT: int = 25
+
+
+## What a finished run is worth. Pure and static so the number is assertable and
+## so the skill-tree screen can show the player the formula's terms.
+static func shards_for(time_survived: float, boss_events: int) -> int:
+	return int(time_survived / 60.0 * float(SHARDS_PER_MINUTE)) \
+			+ SHARDS_PER_BOSS_EVENT * maxi(0, boss_events)
+
+
+func has_purchase(id: StringName) -> bool:
+	return purchases.has(id)
+
+
+## Spend, if it can be afforded and has not already been bought. Returns whether
+## the purchase happened, so the UI never has to re-derive the rules.
+func buy(id: StringName, cost: int) -> bool:
+	if id == &"" or has_purchase(id) or cost > shards:
+		return false
+	shards -= cost
+	purchases.append(id)
+	return true
+
 
 func has_unlock(id: StringName) -> bool:
 	return unlocks.has(id)
@@ -84,6 +120,7 @@ func absorb(result: Dictionary) -> Array[StringName]:
 	total_kills += kills
 	best_kills = maxi(best_kills, kills)
 	best_time = maxf(best_time, time)
+	shards += shards_for(time, int(result.get("boss_events", 0)))
 	if won:
 		victories += 1
 
@@ -105,6 +142,13 @@ func absorb(result: Dictionary) -> Array[StringName]:
 func update_records(result: Dictionary) -> Array[StringName]:
 	best_kills = maxi(best_kills, int(result.get("kills", 0)))
 	best_time = maxf(best_time, float(result.get("time", 0.0)))
+	# Shards are paid on the run's FULL depth, minus what the victory already
+	# paid. A run banked at 5:20 that then dies at 11:00 earned the whole eleven
+	# minutes and both boss events — anything else would make continuing into
+	# endless a currency loss, which is the exact opposite of the intent.
+	var earned: int = shards_for(float(result.get("time", 0.0)),
+			int(result.get("boss_events", 0)))
+	shards += maxi(0, earned - int(result.get("shards_banked", 0)))
 	var gained: Array[StringName] = []
 	for id: StringName in _earned(int(result.get("kills", 0)),
 			float(result.get("time", 0.0)), bool(result.get("won", false))):
@@ -134,12 +178,17 @@ func to_config(cfg: ConfigFile) -> void:
 	cfg.set_value(SECTION, "best_time", best_time)
 	cfg.set_value(SECTION, "best_kills", best_kills)
 	cfg.set_value(SECTION, "total_kills", total_kills)
+	cfg.set_value(SECTION, "shards", shards)
 	# Stored as plain Strings: StringName round-trips inconsistently through
 	# ConfigFile, and a save that silently loses unlocks is the worst bug here.
 	var ids: Array[String] = []
 	for id: StringName in unlocks:
 		ids.append(String(id))
 	cfg.set_value(SECTION, "unlocks", ids)
+	var bought: Array[String] = []
+	for id: StringName in purchases:
+		bought.append(String(id))
+	cfg.set_value(SECTION, "purchases", bought)
 
 
 ## Tolerant by design: any missing or wrong-typed key falls back to its default
@@ -152,10 +201,20 @@ static func from_config(cfg: ConfigFile) -> MetaState:
 	m.best_time = float(cfg.get_value(MetaState.SECTION, "best_time", 0.0))
 	m.best_kills = int(cfg.get_value(MetaState.SECTION, "best_kills", 0))
 	m.total_kills = int(cfg.get_value(MetaState.SECTION, "total_kills", 0))
-	var raw: Variant = cfg.get_value(MetaState.SECTION, "unlocks", [])
+	m.shards = int(cfg.get_value(MetaState.SECTION, "shards", 0))
+	m.unlocks = _ids(cfg.get_value(MetaState.SECTION, "unlocks", []))
+	m.purchases = _ids(cfg.get_value(MetaState.SECTION, "purchases", []))
+	return m
+
+
+## Tolerant id-list read, shared by unlocks and purchases: anything that is not
+## an Array reads as empty, and duplicates and blanks are dropped. A save written
+## by an older build simply has no `purchases` key and lands here as [].
+static func _ids(raw: Variant) -> Array[StringName]:
+	var out: Array[StringName] = []
 	if raw is Array:
 		for entry: Variant in (raw as Array):
 			var id := StringName(str(entry))
-			if id != &"" and not m.unlocks.has(id):
-				m.unlocks.append(id)
-	return m
+			if id != &"" and not out.has(id):
+				out.append(id)
+	return out

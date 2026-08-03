@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_dd0jy"]
+
+[resource]
+script = ExtResource("1_dd0jy")
+rarity = 2
+id = &"shop_coils"
+display_name = "Overload Coils"
+description = "35% faster firing"
+effect = 3
+magnitude = 0.35
+max_stacks = 2
+requires_unlock = &"node_card_coils"

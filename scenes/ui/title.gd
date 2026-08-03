@@ -4,6 +4,7 @@ extends Control
 ## the design.
 
 @onready var track_button: Button = %TrackButton
+@onready var lattice_button: Button = %LatticeButton
 @onready var mark: TextureRect = %Mark
 @onready var record_label: Label = %RecordLabel
 
@@ -25,6 +26,11 @@ func _ready() -> void:
 		Music.play_title()
 	%StartButton.pressed.connect(_on_start)
 	track_button.pressed.connect(_cycle_track)
+	lattice_button.pressed.connect(_on_lattice)
+	# The shard balance is on the button itself. A menu entry that says only
+	# "THE LATTICE" gives a first-time player no reason to look inside it, and
+	# the whole currency is invisible until they do.
+	lattice_button.text = "THE LATTICE  ·  %d ◆" % Meta.state.shards
 	_refresh_track_button()
 	mark.pivot_offset = mark.size * 0.5
 	_show_record()
@@ -64,6 +70,11 @@ func _input(event: InputEvent) -> void:
 func _on_start() -> void:
 	Sfx.play(&"click")
 	get_tree().change_scene_to_file("res://scenes/main/main.tscn")
+
+
+func _on_lattice() -> void:
+	Sfx.play(&"click")
+	get_tree().change_scene_to_file("res://scenes/ui/skill_tree.tscn")
 
 
 ## Testing aid: cycle AUTO / each built track. Session only — a dev affordance,

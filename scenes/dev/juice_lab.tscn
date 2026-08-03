@@ -115,3 +115,22 @@ text = "1.00x"
 [node name="Hint" type="Label" parent="UI/Bottom"]
 text = "1/2/3 variant · R replay · ←/→ effect · Esc quit"
 clip_text = true
+
+; GlowHud: a stand-in for the real HUD, same CanvasLayer + font colour as
+; hud.tscn's TopRight labels. The glow case toggles this visible instead of
+; spawning it fresh, because the question it answers — does bloom wash out
+; HUD text — needs REAL Label rendering, not a Node2D approximation of one.
+; Positioned to sit right next to the brightest spawned sprite (boss_core, see
+; juice_lab.gd _spawn_glow_scene) so a bloom halo reaching the text is visible
+; in the same frame, not just plausible in theory.
+
+[node name="GlowHud" type="Label" parent="UI"]
+visible = false
+offset_left = 452.0
+offset_top = 34.0
+offset_right = 628.0
+offset_bottom = 78.0
+theme_override_colors/font_color = Color(0.78, 0.94, 1, 1)
+horizontal_alignment = 2
+text = "00:47
+12 kills"

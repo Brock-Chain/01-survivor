@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillNode" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_3g2ph"]
+[ext_resource type="Script" path="res://resources/skill_node.gd" id="2_odcwg"]
+
+[sub_resource type="Resource" id="Resource_416cc"]
+script = ExtResource("1_3g2ph")
+id = &"node_magnet_payload"
+display_name = "Field Coil"
+description = "+20px pickup range, every run"
+effect = 6
+magnitude = 20.0
+max_stacks = 1
+
+[resource]
+script = ExtResource("2_odcwg")
+id = &"node_magnet"
+display_name = "Field Coil"
+description = "+20px pickup range, every run"
+cost = 45
+payload = SubResource("Resource_416cc")

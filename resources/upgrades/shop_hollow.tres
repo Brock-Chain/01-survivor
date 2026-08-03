@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_pxm5w"]
+
+[resource]
+script = ExtResource("1_pxm5w")
+rarity = 3
+id = &"shop_hollow"
+display_name = "Hollow Point"
+description = "Enemies below 22% HP die instantly"
+effect = 17
+magnitude = 0.22
+max_stacks = 1
+requires_unlock = &"node_card_hollow"

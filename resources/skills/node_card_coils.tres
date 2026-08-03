@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SkillNode" format=3]
+
+[ext_resource type="Script" path="res://resources/skill_node.gd" id="1_1il8l"]
+
+[resource]
+script = ExtResource("1_1il8l")
+id = &"node_card_coils"
+display_name = "Overload Coils"
+description = "Adds a Rare card: 35% faster firing"
+kind = 1
+cost = 160
+tier = 2
+grants_card = &"shop_coils"

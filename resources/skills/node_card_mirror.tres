@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SkillNode" format=3]
+
+[ext_resource type="Script" path="res://resources/skill_node.gd" id="1_qda26"]
+
+[resource]
+script = ExtResource("1_qda26")
+id = &"node_card_mirror"
+display_name = "Mirror Shards"
+description = "Adds a Legendary card: shots split into five"
+kind = 1
+cost = 320
+tier = 3
+grants_card = &"shop_mirror"

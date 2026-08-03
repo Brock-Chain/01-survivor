@@ -269,17 +269,24 @@ instead of ~78, so each one is worth 3x and gets looked at 3x as hard.
 - [x] `pause_layout_check` now measures the level-up panel too, at its worst case (the three
       longest descriptions in the pool). It has shipped broken once already, at level 57
 
-**7.7 — Meta skill tree (main menu).** Scoped in full over a recommendation to defer; the concern
-recorded is that a permanent stat tree re-inflates the curve this rework just cut, mitigated by
-tuning everything against a zero-tree account.
-- [ ] **Depth-weighted currency**: time survived + a chunk per boss event cleared. New
-      earned-per-run number and a save-schema change
-- [ ] Small permanent upgrades to base stats
-- [ ] A handful of unique cards buyable there, all rarities — a purchase injects the card into the
-      draft pool
-- [ ] A catalogue showing locked cards and how to unlock them
-- [ ] Measure the UI against the **640x360** viewport, not the 1280x720 window — extend
-      `scenes/dev/pause_layout_check.tscn`
+**7.7 — Meta skill tree (main menu).** ✅ done 2026-08-03. Reached from the title as **THE LATTICE**.
+- [x] **Depth-weighted currency (shards)**: 6 per minute survived + 25 per boss event cleared.
+      Deliberately not kill-weighted — kills would pay best for farming the easy minutes. Save
+      schema gained `shards` and `purchases`; a pre-tree save reads as an empty tree, not a crash
+- [x] Continuing into endless is never a currency loss: victory banks its share, the real ending
+      tops up to the run's full depth
+- [x] **6 small permanent stat nodes**, each carrying an `UpgradeResource` payload rather than a
+      second copy of the effect switch — a node and a card that both say "+2 max HP" cannot disagree
+- [x] **3 buyable cards** (Rare / Epic / Legendary) that are absent from the pool until bought. A
+      purchase buys the CHANCE to be dealt one, never the effect, so the tree cannot hand a
+      returning player power a stranger cannot reach
+- [x] The catalogue is the screen: owned vs locked, with costs, so what you cannot afford yet is
+      the reason to play another run
+- [x] Authored by `tools/gen_skills.gd` + manifest + orphan pruning, like every other content type
+- [x] **Measured at 640x360.** A literal branching tree needs ~3x that height before a node is
+      legible, so it is a scrolling list grouped by cost — designed around the constraint rather
+      than measured against it afterwards. `pause_layout_check` guards the frame and the Back button
+- [x] Shards shown on the death screen and on the title button, or the currency is invisible
 
 **7.8 — Art.** Parallelisable against everything above.
 - [ ] **Baked glow vs real bloom → build it as a juice-lab variant and decide from the image.**

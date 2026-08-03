@@ -165,6 +165,7 @@ func _ready() -> void:
 	player.scattergun.rng = run_rng
 	player.lance.rng = run_rng
 	player.apply_unlocks(Meta.state.unlocks)
+	_apply_purchases()
 	level_up_panel.upgrade_chosen.connect(_on_upgrade_chosen)
 	# Continuing into endless brings the layers back where they were.
 	victory_screen.continued.connect(Music.resume_gameplay)
@@ -468,6 +469,9 @@ func _on_victory(_event_index: int) -> void:
 	Music.play_victory()
 	run_state.won = true
 	_banked = true
+	# Remember what this banking paid, so the endless stretch is topped up to the
+	# run's real depth at the end rather than paid for twice.
+	run_state.shards_banked = MetaState.shards_for(time_survived, run_state.boss_events)
 	Meta.absorb_run(run_state.to_result())  # banked BEFORE the choice is offered
 	if _dev_autocontinue:
 		return
@@ -481,6 +485,9 @@ func _on_victory(_event_index: int) -> void:
 ## The mirror event is the run's real ending and gets its own screen; every other
 ## later event is just endless getting harder and says nothing.
 func _on_boss_event_cleared(event_index: int) -> void:
+	# Counted for EVERY event, including the ones deep in endless: the skill
+	# tree's currency is depth-weighted, and this is the depth.
+	run_state.boss_events += 1
 	if event_index != BOSS_EVENT_MIRROR or _ended:
 		return
 	# `_ended` matters here: NOGAXEH dies either way, so a player killed BY the
@@ -765,7 +772,33 @@ func _offer_gates() -> Array[StringName]:
 	var gates: Array[StringName] = Meta.state.unlocks.duplicate()
 	for id: StringName in player.stats.drafted_weapons:
 		gates.append(UpgradeResource.weapon_gate(id))
+	# ...and skill-tree purchases, whose node ids gate the shop-only cards. A
+	# third kind of gate, still one array, because the pool only ever asks
+	# whether a gate is held.
+	gates.append_array(Meta.state.purchases)
 	return gates
+
+
+## Permanent bumps bought in the skill tree, applied to the base numbers this run
+## starts from. Applied BEFORE Health is built from `stats.max_hp`, or a bought
+## +2 max HP would show up in the pause screen and nowhere else.
+##
+## Every difficulty number in the game is tuned against a ZERO tree, so this can
+## only ever make a run easier than its tuning target. That is the whole
+## mitigation behind shipping a permanent stat tree next to a rebalance, and it
+## is why the nodes are deliberately small.
+func _apply_purchases() -> void:
+	var hp_before: int = player.stats.max_hp
+	for node: SkillNode in SkillList.ALL:
+		if Meta.state.has_purchase(node.id):
+			node.apply_to(player.stats)
+	# Children are ready before their parent, so Player already built its Health
+	# from the pre-purchase max_hp. Push the difference through rather than
+	# rebuilding Health, which would drop the signal connections with it.
+	var gained: int = player.stats.max_hp - hp_before
+	if gained > 0:
+		player.health.raise_max(gained)
+	player.refresh_from_stats()
 
 
 ## The silent half of a level-up. SET from the level rather than accumulated, so
@@ -830,5 +863,10 @@ func _on_player_died() -> void:
 	_finish_run("death")
 	Sfx.play(&"death")
 	get_tree().paused = true
+	# Computed rather than read back off MetaState: _finish_run has already added
+	# it to the balance, so the difference is the only place the run's own share
+	# still exists.
+	var earned: int = maxi(0, MetaState.shards_for(time_survived, run_state.boss_events)
+			- run_state.shards_banked)
 	game_over.show_results(time_survived, kills, level,
-			player.last_hit_by, player.last_hit_source, _new_unlocks)
+			player.last_hit_by, player.last_hit_source, _new_unlocks, earned)

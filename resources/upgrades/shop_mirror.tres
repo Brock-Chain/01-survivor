@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_3btb2"]
+
+[resource]
+script = ExtResource("1_3btb2")
+rarity = 4
+id = &"shop_mirror"
+display_name = "Mirror Shards"
+description = "Shots split into five on impact"
+effect = 21
+magnitude = 5.0
+max_stacks = 1
+requires_unlock = &"node_card_mirror"

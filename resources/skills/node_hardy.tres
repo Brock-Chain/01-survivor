@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillNode" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_skjo6"]
+[ext_resource type="Script" path="res://resources/skill_node.gd" id="2_n1rju"]
+
+[sub_resource type="Resource" id="Resource_skpim"]
+script = ExtResource("1_skjo6")
+id = &"node_hardy_payload"
+display_name = "Hardened Frame"
+description = "+2 max HP, every run"
+effect = 1
+magnitude = 2.0
+max_stacks = 1
+
+[resource]
+script = ExtResource("2_n1rju")
+id = &"node_hardy"
+display_name = "Hardened Frame"
+description = "+2 max HP, every run"
+cost = 60
+payload = SubResource("Resource_skpim")

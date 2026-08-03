@@ -101,6 +101,14 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_start")
 theme_override_styles/focus = SubResource("StyleBoxFlat_start")
 text = "START"
 
+[node name="LatticeButton" type="Button" parent="Center/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(170, 24)
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 10
+text = "THE LATTICE"
+
 [node name="TrackButton" type="Button" parent="Center/VBox"]
 unique_name_in_owner = true
 layout_mode = 2

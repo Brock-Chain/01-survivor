@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SkillNode" format=3]
+
+[ext_resource type="Script" path="res://resources/skill_node.gd" id="1_5iymy"]
+
+[resource]
+script = ExtResource("1_5iymy")
+id = &"node_card_hollow"
+display_name = "Hollow Point"
+description = "Adds an Epic card: enemies below 22% HP die instantly"
+kind = 1
+cost = 220
+tier = 2
+grants_card = &"shop_hollow"

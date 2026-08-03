@@ -29,8 +29,15 @@ const FLASH_SHADER: Shader = preload("res://assets/shaders/flash.gdshader")
 const DEATH_BURST: PackedScene = preload("res://scenes/fx/death_burst.tscn")
 const TEX_ENEMY: Texture2D = preload("res://assets/sprites/enemy.png")
 const TEX_GEM: Texture2D = preload("res://assets/sprites/gem.png")
+const TEX_ENEMY_DART: Texture2D = preload("res://assets/sprites/enemy_dart.png")
+const TEX_ENEMY_RAM: Texture2D = preload("res://assets/sprites/enemy_ram.png")
+const TEX_ENEMY_BULWARK: Texture2D = preload("res://assets/sprites/enemy_bulwark.png")
+const TEX_ENEMY_SPLITTER: Texture2D = preload("res://assets/sprites/enemy_splitter.png")
+const TEX_BOSS_CORE: Texture2D = preload("res://assets/sprites/boss_core.png")
+const TEX_BULLET: Texture2D = preload("res://assets/sprites/bullet.png")
+const TEX_BOLT: Texture2D = preload("res://assets/sprites/bolt.png")
 
-const CASES: PackedStringArray = ["hit_flash", "death_burst", "screenshake", "pickup_pulse"]
+const CASES: PackedStringArray = ["hit_flash", "death_burst", "screenshake", "pickup_pulse", "glow"]
 ## Sprites are authored at ~12 px for a 640×360 canvas; blown up here because
 ## the lab judges the curve, not the silhouette.
 const SPRITE_SCALE: float = 5.0
@@ -52,6 +59,7 @@ var _variant: int = 0
 @onready var replay_button: Button = $UI/Bottom/Controls/Replay
 @onready var header: Label = $UI/Header
 @onready var hint: Label = $UI/Bottom/Hint
+@onready var glow_hud: Label = $UI/GlowHud
 
 
 func _ready() -> void:
@@ -67,9 +75,12 @@ func _ready() -> void:
 
 
 ## time_scale is global state on the Engine singleton, so leaving it wound down
-## would follow us out of the lab into any scene loaded afterwards.
+## would follow us out of the lab into any scene loaded afterwards. use_hdr_2d
+## is the same kind of leak at the Viewport level (see _add_glow_env) — reset
+## both or the lab's last-viewed case quietly changes rendering downstream.
 func _exit_tree() -> void:
 	Engine.time_scale = 1.0
+	get_viewport().use_hdr_2d = false
 
 
 func _apply_cmdline() -> void:
@@ -117,6 +128,9 @@ func _variants(case_name: String) -> PackedStringArray:
 			return ["1 · kill 0.12", "2 · hurt 0.50", "3 · death 1.00"]
 		"pickup_pulse":
 			return ["1 · shipped 1.15 / 0.4s", "2 · big 1.30 / 0.5s", "3 · snappy 1.12 / 0.22s"]
+		"glow":
+			return ["1 · shipped baked (no post-fx)", "2 · real bloom thresh .55 str 1.3",
+					"3 · gentle bloom thresh .75 str .6"]
 	return PackedStringArray(["1 · default"])
 
 
@@ -126,6 +140,10 @@ func _play() -> void:
 	for child: Node in spawned.get_children():
 		spawned.remove_child(child)
 		child.queue_free()
+	# GlowHud lives on the persistent UI CanvasLayer (see juice_lab.tscn), not
+	# under `spawned`, so it needs its own toggle instead of riding the clear
+	# loop above.
+	glow_hud.visible = CASES[_case_index] == "glow"
 	match CASES[_case_index]:
 		"hit_flash":
 			_play_hit_flash()
@@ -135,6 +153,8 @@ func _play() -> void:
 			_play_screenshake()
 		"pickup_pulse":
 			_play_pickup_pulse()
+		"glow":
+			_play_glow()
 
 
 func _play_hit_flash() -> void:
@@ -206,10 +226,88 @@ func _play_pickup_pulse() -> void:
 			.set_trans(Tween.TRANS_SINE)
 
 
-func _make_sprite(tex: Texture2D, tint: Color) -> Sprite2D:
+## Real bloom vs the shipped baked glow (bright saturated art on a near-black
+## floor, no post-process at all). Variant 0 is that shipped baseline: the
+## match below only ever adds a WorldEnvironment for 1/2, so 0 renders exactly
+## what main.tscn renders today — no glow node anywhere in the game.
+##
+## gl_compatibility does support Environment.glow in 4.7, so the old worry
+## ("bloom breaks the single-threaded web export") is stale. The worry this
+## case is FOR: at a 640x360 backbuffer, bloom's blur kernel operates in the
+## same handful of pixels as a sprite's silhouette, and it does not distinguish
+## arena sprites from the HUD text sitting on the same viewport.
+func _play_glow() -> void:
+	_spawn_glow_scene()
+	match _variant:
+		1:
+			_add_glow_env(0.55, 1.3, 1.0)
+		2:
+			_add_glow_env(0.75, 0.6, 0.7)
+		_:
+			# use_hdr_2d has to come back down for variant 0 too: it is a
+			# Viewport-level switch, not a child of `spawned`, so the clear
+			# loop at the top of _play() does not touch it.
+			get_viewport().use_hdr_2d = false
+
+
+## Several enemy tints + a boss + pickups + both projectile types, because the
+## failure mode under test is bloom applied indiscriminately across an
+## arena's worth of brightness, not one sprite in isolation.
+func _spawn_glow_scene() -> void:
+	# scale_mult 1.0, not SPRITE_SCALE: every other case blows sprites up 5x
+	# because it is judging an animation curve, not a silhouette. This case
+	# judges whether bloom steps chunkily around a sprite's ACTUAL in-game
+	# size (~12-18px at 640x360), so blowing it up here would hide the thing
+	# being measured.
+	_make_sprite(TEX_ENEMY, ENEMY_TINT, Vector2(-120, -60), 1.0)
+	_make_sprite(TEX_ENEMY_DART, Color(1, 0.55, 0.16, 1), Vector2(-40, -100), 1.0)
+	_make_sprite(TEX_ENEMY_RAM, Color(1, 0.26, 0.2, 1), Vector2(40, -50), 1.0)
+	_make_sprite(TEX_ENEMY_BULWARK, Color(0.72, 0.35, 1, 1), Vector2(120, -90), 1.0)
+	_make_sprite(TEX_ENEMY_SPLITTER, Color(0.93, 0.34, 0.94, 1), Vector2(200, -40), 1.0)
+	# Boss-scale and placed to sit right beside GlowHud (see juice_lab.tscn) —
+	# the brightest thing on screen, next to the text, on purpose.
+	_make_sprite(TEX_BOSS_CORE, Color(1, 0.35, 0.72, 1), Vector2(260, -120), 2.0)
+	_make_sprite(TEX_GEM, Color(0.45, 1, 0.72, 1), Vector2(-20, 40), 1.0)
+	_make_sprite(TEX_BULLET, Color.WHITE, Vector2(80, 50), 1.0)
+	_make_sprite(TEX_BOLT, Color.WHITE, Vector2(-90, 50), 1.0)
+
+
+func _add_glow_env(threshold: float, strength: float, intensity: float) -> void:
+	# use_hdr_2d defaults to false: the 2D backbuffer is 8-bit LDR, and glow's
+	# bright-pass has nothing to extract from an already-clamped image. Measured
+	# by diffing baked-vs-bloom screenshots pixel-for-pixel with this line
+	# absent — 1062 stray pixels in a 390k-pixel arena crop, i.e. no visible
+	# glow at all despite glow_enabled=true. This is the actual toggle.
+	get_viewport().use_hdr_2d = true
+	# LDR canvas colors cap at 1.0, so the engine default glow_hdr_threshold of
+	# 1.0 would never trigger on a fully-saturated (but not HDR) neon sprite —
+	# threshold has to come down below 1.0 or bloom does nothing here at all.
+	var env: Environment = Environment.new()
+	env.glow_enabled = true
+	env.glow_hdr_threshold = threshold
+	env.glow_strength = strength
+	env.glow_intensity = intensity
+	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
+	# glow_mix defaults to 0.05 REGARDLESS of blend mode (confirmed by probing
+	# Environment's own property defaults) — leaving it untouched caps the
+	# whole effect at 5% no matter how high strength/intensity go. This is the
+	# actual "is glow on" knob; strength/intensity only shape it after.
+	env.glow_mix = 1.0
+	var world_env: WorldEnvironment = WorldEnvironment.new()
+	world_env.environment = env
+	# Parented under `spawned` so the next _play() call's clear loop tears this
+	# down too — glow reverting to "off" on the next replay/case switch is the
+	# whole point, since variant 0 (shipped) must never inherit variant 1/2's
+	# environment.
+	spawned.add_child(world_env)
+
+
+func _make_sprite(tex: Texture2D, tint: Color, pos: Vector2 = Vector2.ZERO,
+		scale_mult: float = SPRITE_SCALE) -> Sprite2D:
 	var sprite: Sprite2D = Sprite2D.new()
 	sprite.texture = tex
-	sprite.scale = Vector2.ONE * SPRITE_SCALE
+	sprite.position = pos
+	sprite.scale = Vector2.ONE * scale_mult
 	sprite.modulate = tint
 	spawned.add_child(sprite)
 	return sprite

@@ -17,6 +17,14 @@ var kills: int = 0
 var level: int = 1
 var total_xp: int = 0
 var won: bool = false
+## Boss events fully cleared this run. The skill tree's currency is DEPTH-
+## weighted, so this is the half of the formula that rewards getting further
+## rather than surviving longer, and it is the only reason a failed NOGAXEH
+## attempt is still worth something.
+var boss_events: int = 0
+## Shards already paid out for this run at its victory banking. Endless pays the
+## difference at the real end, so continuing can never be a currency loss.
+var shards_banked: int = 0
 
 
 static func with_seed(p_seed: int) -> RunState:
@@ -42,4 +50,6 @@ func to_result() -> Dictionary:
 		"kills": kills,
 		"level": level,
 		"won": won,
+		"boss_events": boss_events,
+		"shards_banked": shards_banked,
 	}

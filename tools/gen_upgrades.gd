@@ -153,6 +153,19 @@ func _init() -> void:
 		["refraction", "Refraction", "The lance splits into three beams", eff.REFRACTION, 2.0, 1, 1.0, L],
 	], UpgradeResource.weapon_gate(&"lance"))
 
+	# ---- SHOP CARDS ---------------------------------------------------------
+	# Bought in the meta skill tree, and absent from the pool entirely until then.
+	# Gated on the NODE's id: the same `requires_unlock` field, the same array,
+	# the same question the pool has always asked. A purchase buys the chance to
+	# be dealt these, never the effect itself — which is what keeps the tree from
+	# handing a returning player power a stranger cannot reach.
+	_write([["shop_coils", "Overload Coils", "35% faster firing",
+			eff.FIRE_RATE, 0.35, 2, 1.0, R]], &"node_card_coils")
+	_write([["shop_hollow", "Hollow Point", "Enemies below 22% HP die instantly",
+			eff.EXECUTE, 0.22, 1, 1.0, E]], &"node_card_hollow")
+	_write([["shop_mirror", "Mirror Shards", "Shots split into five on impact",
+			eff.PRISM_CORE, 5.0, 1, 1.0, L]], &"node_card_mirror")
+
 	_write_manifest()
 	_prune_orphans()
 	print("gen_upgrades: %d upgrades + manifest" % _written.size())

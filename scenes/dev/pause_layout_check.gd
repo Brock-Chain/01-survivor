@@ -67,6 +67,7 @@ func _ready() -> void:
 				"OK" if ok else "*** OFF-SCREEN ***"])
 
 	failures += await _check_level_up(pool, vw, vh)
+	failures += await _check_skill_tree(vw, vh)
 	failures += await _check_true_ending(vw, vh)
 	print("[check] FAILURES=%d" % failures)
 	# Hold the last frame long enough for the screenshot autoload to fire when one
@@ -111,6 +112,31 @@ func _check_level_up(pool: Array[UpgradeResource], vw: float, vh: float) -> int:
 	print("[check] level_up panel=%3.0fx%3.0f at %3.0f,%3.0f %s"
 			% [box.size.x, box.size.y, left, top, "OK" if ok else "*** OFF-SCREEN ***"])
 	panel.queue_free()
+	await get_tree().process_frame
+	return 0 if ok else 1
+
+
+## THE LATTICE. The one screen designed around this constraint rather than
+## measured against it afterwards: a literal branching tree with connector lines
+## needs roughly three times this height before a node is legible, which is why
+## it is a scrolling list. What still has to be proven is that the FRAME fits and
+## that the Back button stays reachable — a scroller that has itself been pushed
+## off the bottom is the same trap the pause panel shipped, one level up.
+func _check_skill_tree(vw: float, vh: float) -> int:
+	var screen: Control = load("res://scenes/ui/skill_tree.tscn").instantiate()
+	add_child(screen)
+	for _i: int in 6:
+		await get_tree().process_frame
+
+	var back: Button = screen.get_node("Margin/VBox/BackButton")
+	var scroll: ScrollContainer = screen.get_node("Margin/VBox/Scroll")
+	var back_bottom: float = back.global_position.y + back.size.y
+	var ok: bool = back_bottom <= vh and back.global_position.y >= 0.0 \
+			and scroll.size.y > 40.0 and screen.size.x <= vw
+	print("[check] skill_tree nodes=%d scroll_h=%3.0f back_bottom=%4.0f %s"
+			% [SkillList.ALL.size(), scroll.size.y, back_bottom,
+			"OK" if ok else "*** OFF-SCREEN ***"])
+	screen.queue_free()
 	await get_tree().process_frame
 	return 0 if ok else 1
 
