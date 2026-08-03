@@ -289,11 +289,14 @@ instead of ~78, so each one is worth 3x and gets looked at 3x as hard.
 - [x] Shards shown on the death screen and on the title button, or the currency is invisible
 
 **7.8 — Art.** Parallelisable against everything above.
-- [ ] **Baked glow vs real bloom → build it as a juice-lab variant and decide from the image.**
-      BRIEF's worry (a post-process breaking a single-threaded web export) is mostly obsolete:
-      `gl_compatibility` supports glow in 4.7 and at 640x360 the cost is negligible. The real risk
-      is visual — chunky bloom steps and washed HUD text. Side-by-side contact sheet of arena and
-      HUD; baked stays the fallback
+- [~] **Baked glow vs real bloom** — lab case built (`--lab-case=glow`, 3 variants) and three sheets
+      captured, but the comparison is **not yet conclusive** and is recorded that way: the two bloom
+      variants render identically to each other despite very different strengths, and both lose the
+      halo baked into the sprite, so the rig is comparing render PATHS not looks. The solid finding:
+      a `WorldEnvironment` on the root viewport is a **no-op** under `gl_compatibility` — the
+      backbuffer is allocated at boot from `rendering/viewport/hdr_2d`, so real glow needs a
+      `project.godot` change or a `SubViewport` with `use_hdr_2d` set before it enters the tree.
+      Baked ships, which was always the fallback
 - [ ] Particles, poppy animations
 
 **7.9 — Measure.** ⚠️ **THE REMAINING WORK.** Everything above is built and soak-verified;
