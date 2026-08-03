@@ -67,9 +67,33 @@ Write-Host "=== package ===" -ForegroundColor Cyan
 Copy-Item (Join-Path $share "START-HERE.bat") (Join-Path $builds "web") -Force
 Copy-Item (Join-Path $share "README.txt")   (Join-Path $builds "web") -Force
 
+# The DATE alone cannot answer "is this the latest one?". Three builds shipped on
+# 2026-08-03 under identical filenames, and the only way to tell them apart was a
+# file timestamp nobody looks at. The commit SHA does answer it, and answers a
+# better question too: it says exactly which source a zip came from, which is the
+# thing you actually want when a tester reports something from a build you no
+# longer have. Falls back to the clock outside a git checkout.
+$sha = (& git -C $root rev-parse --short HEAD 2>$null)
+if ($LASTEXITCODE -ne 0 -or -not $sha) { $sha = Get-Date -Format "HHmm" }
+$Stamp = "$Stamp-$sha"
+
+# Warn rather than encode it in the name: this workspace runs concurrent sessions,
+# so the tree is routinely dirty with work that is not this build's and a
+# permanent "-dirty" suffix would just stop meaning anything.
+$dirty = & git -C $root status --porcelain 2>$null
+if ($dirty) {
+  Write-Host "  NOTE: tree is dirty, so $sha does not fully describe this build:" -ForegroundColor Yellow
+  $dirty | ForEach-Object { Write-Host "        $_" -ForegroundColor Yellow }
+}
+
 $webZip = Join-Path $builds "BESTAGON-web-$Stamp.zip"
 $winZip = Join-Path $builds "BESTAGON-windows-$Stamp.zip"
-Remove-Item $webZip, $winZip -Force -ErrorAction SilentlyContinue
+
+# Same reasoning as the builds/ clean above, one directory up: a folder that is
+# only ever added to accumulates old zips, and then "which one do I send?" is a
+# question again. Exactly one pair survives a package run.
+Get-ChildItem (Join-Path $builds "BESTAGON-*.zip") -ErrorAction SilentlyContinue |
+  Remove-Item -Force
 
 # "web\*" not "web" - the glob puts the CONTENTS at the zip root, which is what
 # itch.io requires. Zipping the folder itself produces a zip that uploads fine
