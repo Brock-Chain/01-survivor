@@ -724,3 +724,44 @@ rework exists to cut. That undershoot is what NOGAXEH v2 gets budgeted against.
 got bigger; eleven picks on that axis would have reached a weapon firing every frame. Same shape as
 the crit and lifesteal caps — an axis that stacks needs a ceiling authored next to it rather than
 discovered.
+
+## M7.4-7.7 built, and one number the soak refused to let stand — 2026-08-03
+
+**The 10:00 fight scales by LEVEL now, not by weapon count, and that was forced rather than argued.**
+Weapon count was a fair DPS proxy while weapons came from the PROFILE: a player either owned three
+all run or owned one all run, and the number was known the instant a boss spawned. M7.3 made weapons
+DRAFTED, and the proxy came apart in both directions at once. Soaked on the shipped build:
+
+| soak | mirror event HP | fight length |
+|---|---|---|
+| blaster only, level 91 | 11,200 (x1.0) | **32 seconds** |
+| four weapons, level 77 | 36,400 (x3.25) | **212 seconds** |
+
+Neither number describes the player. The one-weapon run was not weak — it had spent all thirty picks
+sharpening one weapon; the four-weapon run was not four times stronger — it had spent picks
+*acquiring* weapons instead. LEVEL sees all of that at once, because it counts the drip, the picks
+and how well the run has actually gone, and it keeps the properties that made weapon count usable:
+discrete, known at spawn, unable to drift mid-fight. Below level 40 the fight is exactly the
+authored 11,200; every level above adds 4.5%. Re-soaked at **142 seconds**, against a ~120s target.
+
+**The bot is now a poor instrument, and this is the honest limit of what was verified.** Run-to-run
+variance is enormous: two identical soak commands produced level 85 and level 50 at 10:00, because
+`--dev-autopick` takes `offers[0]` and there are only ~25 picks in a run, each now worth three times
+what it used to be. One draw of Cannonball early is a different game from one draw of Magnetism.
+Everything structural is verified — phases, gates, the fuse, the detonation, the drops, the endings,
+the shard economy — but the *tuning* numbers below are first estimates awaiting the human run that
+step 9 of the build order exists for, exactly as the spec instructed.
+
+**The skill tree is a scrolling list, and that is a design decision rather than a shortcut.** A
+literal branching node graph with connector lines needs roughly three times the 640x360 viewport's
+height before a single node is legible, so it would have shipped either unreadable or scrolling in
+two directions. Rows grouped by cost give the same read — here is the ladder, here is how far up it
+I am — in a shape that fits, and `pause_layout_check` now proves the frame and the Back button stay
+on screen.
+
+**Three screens are now measured by the layout harness, not two.** The true ending's first draft came
+out **633 px tall against a 360 px viewport** — nearly double — and it is the screen most likely to
+do that, because it is the only one whose height grows with how well the run went. It is therefore
+at its tallest in exactly the run it was written for. The level-up panel is guarded too now: it has
+shipped broken once (level 57, third card off the right edge), and M7.6 both widened the cards and
+put longer text on them.

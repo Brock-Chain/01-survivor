@@ -326,6 +326,8 @@ func _physics_process(delta: float) -> void:
 	run_state.kills = kills
 	run_state.level = level
 	Telemetry.set_run_time(time_survived)
+	# The 10:00 fight sizes itself against this — see RunDirector._mirror_mult.
+	director.player_level = level
 	_sample_telemetry(delta)
 	hud.set_run(time_survived, kills)
 	hud.set_dash(player.dash_ready_fraction())

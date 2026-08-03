@@ -59,6 +59,10 @@ const BOSS_INTENSITY: int = 3
 ## Wired by Main at _ready (call down).
 var spawner: Spawner
 var target: Node2D
+## The player's level, pushed by Main each tick. The director owns pacing and has
+## no business reaching into the run's stats; this is a value crossing down, the
+## same way the run clock crosses into Telemetry.
+var player_level: int = 1
 var boss_container: Node2D
 var bolt_container: Node2D
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -209,10 +213,9 @@ func _check_boss_event() -> void:
 	var hp_scale: float = (1.0 + float(event) * 0.4) * _power_mult()
 	if event == MIRROR_EVENT and mirror_scene != null:
 		# The mirror event's HP is AUTHORED (4000 + 6 x 1200), so it skips the
-		# per-event step that scales repeat Prism events in endless. Only the
-		# player's weapon count still scales it, for the same reason it always
-		# did: one number cannot serve profiles that are several times apart.
-		var scale: float = _power_mult()
+		# per-event step that scales repeat Prism events in endless — and it
+		# scales by LEVEL rather than by weapon count. See _mirror_mult.
+		var scale: float = _mirror_mult()
 		_mirror = _spawn_boss(mirror_scene, 0, 1, event, scale, false)
 		_mirror_hp_scale = scale
 		if _mirror != null:
@@ -335,6 +338,34 @@ func _power_mult() -> float:
 		return 1.0
 	var weapons: int = int(target.call(&"active_weapon_count"))
 	return 1.0 + POWER_STEP * float(maxi(0, weapons - 1))
+
+
+## The mirror event scales by LEVEL, not by weapon count, and that change was
+## forced by measurement rather than argued.
+##
+## Weapon count was a fair proxy for DPS while weapons came from the PROFILE: a
+## player either owned three or owned one, all run, and the number was known the
+## instant a boss spawned. M7.3 made weapons drafted, and the proxy came apart in
+## both directions at once. Soaked on the shipped build:
+##
+##   blaster only, level 91 -> 11,200 HP died in **32 seconds** (target ~120)
+##   four weapons, level 77 -> 36,400 HP took **212 seconds**
+##
+## The one-weapon player was not weak, they had spent all 30 picks on the blaster;
+## the four-weapon player was not four times stronger, they had spent picks
+## acquiring weapons instead of sharpening one. LEVEL sees all of that at once —
+## it counts the drip, the picks, and how well the run has actually gone — and it
+## is still discrete, known at spawn time, and unable to drift mid-fight.
+##
+## Below MIRROR_LEVEL_BASE the fight is exactly the authored 11,200. Every level
+## above it adds 4.5%, which against the measured ~350 DPS of a level-90 run puts
+## the climax back near the two minutes the spec asked for.
+const MIRROR_LEVEL_BASE: int = 40
+const MIRROR_LEVEL_STEP: float = 0.045
+
+
+func _mirror_mult() -> float:
+	return 1.0 + MIRROR_LEVEL_STEP * float(maxi(0, player_level - MIRROR_LEVEL_BASE))
 
 
 func _on_boss_died(_xp_value: int, _at: Vector2, _tint: Color, event: int) -> void:

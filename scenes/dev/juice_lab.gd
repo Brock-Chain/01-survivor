@@ -240,7 +240,7 @@ func _play_glow() -> void:
 	_spawn_glow_scene()
 	match _variant:
 		1:
-			_add_glow_env(0.55, 1.3, 1.0)
+			_add_glow_env(0.0, 8.0, 5.0)
 		2:
 			_add_glow_env(0.75, 0.6, 0.7)
 		_:
@@ -300,6 +300,11 @@ func _add_glow_env(threshold: float, strength: float, intensity: float) -> void:
 	# whole point, since variant 0 (shipped) must never inherit variant 1/2's
 	# environment.
 	spawned.add_child(world_env)
+	print("[glow-debug] use_hdr_2d=", get_viewport().use_hdr_2d,
+			" glow_enabled=", env.glow_enabled, " mix=", env.glow_mix,
+			" thresh=", env.glow_hdr_threshold, " world_env_in_tree=",
+			world_env.is_inside_tree(), " renderer=",
+			ProjectSettings.get_setting("rendering/renderer/rendering_method"))
 
 
 func _make_sprite(tex: Texture2D, tint: Color, pos: Vector2 = Vector2.ZERO,
