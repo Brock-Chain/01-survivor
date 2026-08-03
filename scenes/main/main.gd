@@ -158,6 +158,7 @@ func _ready() -> void:
 	Meta.unlocked.connect(_on_unlocked)
 	player.died.connect(_on_player_died)
 	player.second_wind.connect(_on_second_wind)
+	player.hurt.connect(_on_player_hurt)
 	player.health_changed.connect(hud.set_health)
 	player.weapon.container = projectiles
 	player.weapon.rng = run_rng
@@ -303,6 +304,56 @@ func _unhandled_input(event: InputEvent) -> void:
 		pause_panel.resume()
 	else:
 		_pause_if_playing()
+
+
+## Auto-pause when the window loses focus.
+##
+## Playtest 2026-08-03: "game unfroze after a while" in a fullscreen browser tab.
+## A browser throttles or entirely stops requestAnimationFrame for a page it
+## considers hidden or occluded, and Godot's web build drives its whole main loop
+## from rAF -- so a tab that loses focus does not slow down, it STOPS, and then
+## resumes exactly where it left off when focus returns. From the player's side
+## that is indistinguishable from a freeze followed by a recovery, which is
+## precisely what was reported, with no error logged anywhere because nothing
+## went wrong.
+##
+## This cannot be prevented from inside the page and should not be. What it can
+## do is make the stop DELIBERATE: pausing on focus loss turns a mysterious
+## freeze into a pause screen, and stops a player being eaten while they are
+## looking at something else. Desktop gets the same benefit for alt-tab.
+func _notification(what: int) -> void:
+	if what != NOTIFICATION_APPLICATION_FOCUS_OUT and what != NOTIFICATION_WM_WINDOW_FOCUS_OUT:
+		return
+	# `is_node_ready` guards the notification arriving before _ready has wired
+	# anything up -- focus events fire during startup on some platforms.
+	if not is_node_ready() or _modal_open() or pause_panel == null or pause_panel.visible:
+		return
+	_pause_if_playing()
+
+
+## Shove the crowd off the player when a hit lands.
+##
+## Playtest 2026-08-03: enemies "just latch on weirdly" after connecting. Contact
+## damage grants i-frames, so an enemy that hits you then sits inside you for the
+## whole invulnerable window -- dealing nothing, looking stuck, and hiding the
+## fact that you are briefly safe. This gives that window a physical read: the
+## hit throws everything off you, and the space it opens is the escape.
+##
+## Damage-free by design. It is a breather, not a weapon -- if the shove also
+## hurt, taking a hit would become a crowd-control button and invert what being
+## hit is supposed to mean.
+##
+## Applied to EVERY enemy rather than inside a radius: the point is that the
+## screen visibly opens up for a moment, and a radius edge is a place where half
+## a crowd lurches and the rest stands still.
+const HURT_SHOVE_PIXELS: float = 75.0
+
+
+func _on_player_hurt(at: Vector2) -> void:
+	for node: Node in get_tree().get_nodes_in_group(&"enemies"):
+		var e: Enemy = node as Enemy
+		if e != null and is_instance_valid(e):
+			e.shove(at, HURT_SHOVE_PIXELS)
 
 
 func _is_capture_run() -> bool:

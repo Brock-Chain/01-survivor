@@ -7,6 +7,9 @@ signal died
 signal health_changed(hp: int, max_hp: int)
 ## Second Wind fired. Main clears the screen — the player does not know how.
 signal second_wind(at: Vector2)
+## Emitted only when damage actually LANDS -- not on a blocked or shielded
+## hit, which must not be rewarded with a free crowd clear.
+signal hurt(at: Vector2)
 ## Fired on a successful dash so Main can juice it without the player knowing how.
 signal dashed(at: Vector2)
 
@@ -252,6 +255,9 @@ func apply_damage(amount: int, source: StringName = &"unknown") -> bool:
 			"max_hp": health.max_hp, "src": String(source)})
 	Sfx.play(&"hurt")
 	camera.add_trauma(0.5)
+	# AFTER the shield/i-frame guards above, so a hit that was absorbed does not
+	# also hand out a free crowd clear.
+	hurt.emit(global_position)
 	return true
 
 

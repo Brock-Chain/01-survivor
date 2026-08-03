@@ -38,7 +38,7 @@ const DASH_TIME: float = 0.55
 @export var spread_p1: int = 15
 @export var spread_p2: int = 22
 @export var bolt_speed: float = 122.0
-@export var shard_orbit: float = 40.0
+@export var shard_orbit: float = 80.0
 
 ## HP FRACTIONS at which the phase advances, in descending order. The Prism keeps
 ## its single threshold, so its two-phase fight is unchanged; Nogaxeh sets two and
@@ -87,7 +87,10 @@ func _build_shards() -> void:
 		var shard := Sprite2D.new()
 		shard.texture = visual.texture
 		shard.modulate = stats.tint
-		shard.scale = Vector2.ONE * 0.42
+		# Proportional to the BODY, not absolute: an absolute scale here meant
+		# resizing a boss silently changed how big its shards looked relative to
+		# it. 0.385 reproduces the ratio the original 0.42 had at the old size.
+		shard.scale = visual.scale * 0.385
 		shard.z_index = 1
 		add_child(shard)
 		_shards.append(shard)

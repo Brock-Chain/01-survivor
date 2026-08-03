@@ -10,4 +10,4 @@ speed = 26.0
 damage = 2
 xp_value = 120
 tint = Color(1, 0.42, 0.85, 1)
-size = 35.0
+size = 70.0

@@ -37,7 +37,7 @@ phase_thresholds = PackedFloat32Array(1.0, 0.6, 0.25)
 telegraph = 0.78
 p1_interval = 2.2
 p2_interval = 1.25
-shard_orbit = 56.0
+shard_orbit = 112.0
 bolt_speed = 118.0
 
 ; Drawn only while dashing. top_level so it stays in world space instead of

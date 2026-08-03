@@ -217,6 +217,32 @@ func _bolt_parent() -> Node:
 ## `execute_below` is Executioner: an enemy left under that fraction of its max
 ## HP dies outright. Passed in per hit rather than read from a global, so the
 ## enemy stays ignorant of who shot it.
+## Push without hurting. Same decaying impulse `take_hit` applies, and scaled the
+## same way by enemy size so a Bulwark barely moves and a Dart is flung -- mass
+## should read as mass whether the push came from a bullet or from a body check.
+##
+## Playtest 2026-08-03: enemies "just latch on weirdly" after they land a hit.
+## Contact damage has i-frames, so an enemy that connects stays welded to the
+## player for the whole invulnerability window, doing nothing and looking stuck.
+## Shoving the crowd on hit gives those i-frames a visible meaning: the hit threw
+## everything off you, and you have that moment to move.
+## `pixels` is the DISTANCE this should actually move a reference-sized enemy,
+## not an opaque impulse. The impulse decays exponentially at KNOCKBACK_DECAY, so
+## total travel is speed/decay -- multiplying the two back out means the caller
+## gets to ask for "80 pixels" and be right, and the number stays right if the
+## decay is ever retuned.
+func shove(from: Vector2, pixels: float) -> void:
+	if hp <= 0 or not from.is_finite():
+		return
+	var away: Vector2 = global_position - from
+	if away.length_squared() <= 0.01:
+		return
+	# Mass still reads as mass: a Bulwark shifts, a Dart is flung, and a boss at
+	# size 70+ barely registers it -- which is what should happen when something
+	# five times your size shoulders past you.
+	_knockback = away.normalized() * pixels * KNOCKBACK_DECAY 			* (KNOCKBACK_REFERENCE_SIZE / maxf(8.0, stats.size))
+
+
 ## `from` is where the hit came from, used only for knockback. Optional and
 ## defaulted to INF so the many call sites that have no meaningful origin
 ## (Event Horizon's implosion, Second Wind's screen clear) simply do not push.
