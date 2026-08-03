@@ -329,17 +329,28 @@ before the finale, and the telemetry that says so was recorded by a fixed instru
       baseline: ~0.20). Not GDScript: every `while` in game code provably terminates, and no thread
       was executing game code. Stack is `ntdll wait ← uxtheme ← KERNELBASE ← [engine] ← user32
       dispatch`, on `gl_compatibility` + NVIDIA 591.86 with `nvspcap64.dll` (ShadowPlay) injected
-- [ ] **Freeze: still unreproduced, still open — now TWO Windows machines (2026-08-03).** A
-      friend's RTX 4070 SUPER (driver 595.97, NEWER than the local 591.86) froze mid-run on the
-      same Windows build 26200. Their collected log survived the kill (flush fix works remotely)
-      but contained only the boot line — which is what forced the always-on breadcrumbs. Suspects
-      culled: the Meta Virtual Monitor (friend has none), driver-version-specific (two versions),
-      rAF (dead earlier). Survivors, ranked: (1) NVIDIA GL/overlay-hook stall — `nvspcap64.dll` was
-      injected in the one dump; the collector now inventories overlays per machine, (2)
-      `main.gd:_notification` doing scene work synchronously inside the window message — every
-      `[pause]` breadcrumb now carries `reason=key|focus` to test exactly this, (3) accessibility
-      `WM_GETOBJECT`, (4) modal move-size loop. Next freeze: last breadcrumb brackets it to a 30 s
-      window; locally the watchdog also takes a dump. **A 10:45 natural run did not reproduce it**
+- [ ] **Freeze: FOUR occurrences, two machines; the recorder caught #3 AND #4 (2026-08-03).**
+      #1 local at 5:53 in a dense PRISM fight; #2 on a friend's RTX 4070 SUPER (driver 595.97,
+      NEWER than local 591.86, same Windows 26200, log said only "boot OK" — that forced the
+      breadcrumbs); #3 local with the recorder live: last line `[stats] t=90s enemies=5 bolts=0
+      bosses=0`, no `[exit]` → froze in the 90–120 s window, LV~17, arena NEAR-EMPTY. That kills
+      any boss/density correlation. No `[pause]` line all run → the game-code focus-pause path was
+      not involved in #3 (the engine's own WndProc below it stays suspect). Player reports an
+      audio cue at the freeze; LV pace puts a CARD screen (level 17) inside the window — the card
+      open plays the loud cue, pauses the tree and builds UI, so `[card] open/pick` markers now
+      bracket it and `[stats]` carries `speed=xN`. **#4 minutes after #3, SAME window:** last line
+      `[stats] t=90s enemies=6 bolts=0 bosses=0` at LV16 — the level-17 card due again, arena
+      near-empty again, no `[exit]`. Two consecutive freezes in one window = repro is HOT.
+      Wall-clock note: IF #1 ran at SPEED x3 (that session's screenshots show x3 in use), its 5:53
+      game time is ~118 s of wall clock — all three local freezes would then sit in the same
+      ~90–120 s WALL band, pointing at a timer outside the game (overlay attach, driver
+      housekeeping) rather than game state; `speed=xN` settles this next time. Overlay inventory on the freezing machine:
+      **NVIDIA Overlay** (its capture DLL `nvspcap64.dll` is the one injected in the dump),
+      `nvsphelper64`, `Discord`, `steamwebhelper`. **Next actions:** (a) decisive cheap test —
+      disable the NVIDIA in-game overlay ONLY, keep playing, one variable; (b) play under the
+      watchdog for dump #2 with markers; (c) friend re-collects with the new zip so we get their
+      overlay list. Suspects, ranked: (1) NVIDIA overlay/GL hook, (2) engine WndProc work
+      (card-screen pause path included), (3) accessibility `WM_GETOBJECT`, (4) move-size loop
 - [ ] **Review Split Shot vs Scatter as CONTENT.** They are the same card: both `PROJECTILE_COUNT`
       at magnitude 1.0 with byte-identical description text, differing only in rarity (Rare vs
       Uncommon), `max_stacks` (3 vs 2) and weight. `UpgradePool` now refuses to put two

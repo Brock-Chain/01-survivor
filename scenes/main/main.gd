@@ -428,10 +428,10 @@ func _physics_process(delta: float) -> void:
 	_dev_stats_t += delta
 	if _dev_stats_t >= 30.0:
 		_dev_stats_t = 0.0
-		print("[stats] t=%4.0fs enemies=%3d pickups=%3d proj=%2d bolts=%3d kills=%4d lvl=%2d bosses=%d"
+		print("[stats] t=%4.0fs enemies=%3d pickups=%3d proj=%2d bolts=%3d kills=%4d lvl=%2d bosses=%d speed=x%d"
 				% [time_survived, enemies.get_child_count(), pickups.get_child_count(),
 				projectiles.get_child_count(), enemy_bolts.get_child_count(),
-				kills, level, director.bosses_alive])
+				kills, level, director.bosses_alive, int(run_speed())])
 
 
 func _push_buffs() -> void:
@@ -499,8 +499,10 @@ func _on_boss_spawned(boss: Node2D) -> void:
 		_boss_event_max_hp += boss.max_hp
 	_announce_boss()
 	Telemetry.event(&"boss_spawn", {"alive": director.bosses_alive})
-	# Unconditional, like [stats]: both freezes so far were during or near boss
-	# fights, so "which side of the spawn was it on" is the first question.
+	# Unconditional, like [stats]. (When first written this claimed both known
+	# freezes were near boss fights; freeze #3 promptly happened at t~90-120s in
+	# a near-empty arena, no boss. The marker stays — a run-beat line costs
+	# nothing and still says which side of a spawn a later freeze landed on.)
 	print("[boss] spawned t=%.0fs alive=%d" % [time_survived, director.bosses_alive])
 
 
@@ -864,6 +866,12 @@ func _check_level_up() -> void:
 			_on_upgrade_chosen.call_deferred(offers[0])
 			break
 		Sfx.play(&"levelup", -3.0)
+		# Breadcrumb BEFORE the pause + panel build, so if this moment freezes the
+		# marker is already flushed. Freeze #3 (2026-08-03, t=90-120s, LV~17, arena
+		# near-empty) coincided with "I think I heard an audio cue" — and this is
+		# the loud cue followed by a tree pause and a UI build. The line exists to
+		# turn that hunch into evidence either way.
+		print("[card] open t=%.0fs lvl=%d" % [time_survived, level])
 		get_tree().paused = true
 		level_up_panel.show_offers(offers, level)
 		break
@@ -919,6 +927,9 @@ func _apply_level_drip() -> void:
 
 
 func _on_upgrade_chosen(upgrade: UpgradeResource) -> void:
+	# Closes the [card] bracket: open with no pick = froze on the card screen;
+	# open + pick + silence = froze after resuming. Different suspects entirely.
+	print("[card] pick t=%.0fs id=%s" % [time_survived, upgrade.id])
 	Telemetry.event(&"pick", {"lvl": level, "id": String(upgrade.id),
 			"tier": int(upgrade.rarity),
 			"stack": int(stacks.get(upgrade.id, 0)) + 1})

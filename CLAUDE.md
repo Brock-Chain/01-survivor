@@ -52,6 +52,11 @@ powershell -File tools/verify.ps1 soak     # + an 11-minute run clearing both bo
 # asserts index.html at the zip root and the START-HERE.bat launcher, both of
 # which were got wrong by hand twice.
 powershell -File tools/package.ps1
+# play a REAL run under the freeze watchdog: samples Responding once a second,
+# auto-dumps after 10s of hang (ACL pre-fixed), leaves the process alive to
+# inspect. Game stdout + samples -> .ai\ on one wall clock. No dev flags, so
+# the run banks into the real profile.
+powershell -File tools/hang-watchdog.ps1
 
 # AUDIO is source code, not binaries: audio_src/*.strudel -> .ogg. Needs one
 # `cd tools/strudel; npm install` per clone, then:
