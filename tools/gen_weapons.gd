@@ -4,16 +4,22 @@ extends SceneTree
 
 
 func _init() -> void:
+	# REBUILT in M7.3. All three orbital cards measured bottom-five (0/11, 1/10,
+	# 3/9), which is a WEAPON problem wearing three cards: it was two small
+	# shards at 2 damage on a 0.4s per-enemy cooldown, i.e. a slow lawnmower in a
+	# game about being surrounded. Bigger, faster ring at three shards, and the
+	# real change is OrbitalWeapon's kill-fed momentum — the ring now speeds up
+	# while it is killing, so the weapon is at its best exactly when the arena is
+	# at its worst. Numbers alone were never going to fix a boring verb.
 	var orbital := WeaponResource.new()
 	orbital.id = &"orbital"
 	orbital.display_name = "Orbitals"
 	orbital.kind = WeaponResource.Kind.ORBITAL
-	orbital.requires_unlock = MetaState.UNLOCK_ORBITAL
-	orbital.damage = 2
-	orbital.interval = 0.4   # per-enemy hit cooldown
-	orbital.count = 2
-	orbital.orbit_radius = 48.0
-	orbital.orbit_speed = 2.6
+	orbital.damage = 3
+	orbital.interval = 0.3   # per-enemy hit cooldown
+	orbital.count = 3
+	orbital.orbit_radius = 58.0
+	orbital.orbit_speed = 2.8
 	_save(orbital, "res://resources/weapons/orbital.tres")
 
 	var blaster := WeaponResource.new()
@@ -33,7 +39,6 @@ func _init() -> void:
 	scatter.id = &"scattergun"
 	scatter.display_name = "Scattergun"
 	scatter.kind = WeaponResource.Kind.PROJECTILE
-	scatter.requires_unlock = MetaState.UNLOCK_ELITE_HUNTER
 	scatter.fire_sound = &"blast"
 	scatter.damage = 2
 	scatter.interval = 1.5
@@ -48,7 +53,6 @@ func _init() -> void:
 	lance.id = &"lance"
 	lance.display_name = "Prism Lance"
 	lance.kind = WeaponResource.Kind.BEAM
-	lance.requires_unlock = MetaState.UNLOCK_ENDLESS_PROVEN
 	lance.fire_sound = &"lance"
 	lance.damage = 3
 	lance.interval = 2.4

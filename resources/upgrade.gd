@@ -34,6 +34,17 @@ enum Effect {
 	OVERCLOCK,        ## magnitude = every Nth shot is a mega-bolt
 	SECOND_WIND,      ## survive one lethal hit and clear the screen
 	CHAIN,            ## magnitude = enemies a shot arcs to
+
+	## --- WEAPONS (M7.3) ---------------------------------------------------
+	## A weapon is DRAFTED mid-run like anything else, not owned at spawn. The
+	## meta unlock now only puts the card into the pool. `weapon_id` carries
+	## which one — a weapon is an identity, not a magnitude.
+	GRANT_WEAPON,
+	## One Legendary per weapon, each gated on having drafted that weapon.
+	TWIN_FANGS,       ## blaster: every volley fires an echo a beat later
+	FLECHETTE_STORM,  ## scattergun: the cone becomes a full ring
+	REFRACTION,       ## magnitude = extra lance beams, fanned
+	SINGULARITY,      ## magnitude = radius the orbital ring drags enemies from
 }
 
 ## Which tier this upgrade belongs to. The pool rolls a TIER per card and then
@@ -47,6 +58,8 @@ enum Effect {
 @export_multiline var description: String
 @export var effect: Effect
 @export var magnitude: float = 0.0
+## GRANT_WEAPON only: which weapon this card hands over for the rest of the run.
+@export var weapon_id: StringName = &""
 ## Times this may be taken. **0 or less means UNLIMITED** — at least one such
 ## upgrade must exist or the pool dries up and late levels offer nothing. That
 ## is not hypothetical: it shipped, and at level 37 the only legal draw left was
@@ -55,9 +68,21 @@ enum Effect {
 ## Relative draw weight. Higher = offered more often. Must be > 0.
 @export var weight: float = 1.0
 ## Empty means always offerable. Otherwise this upgrade only enters the pool
-## once that unlock is held — so orbital upgrades cannot clutter the offers of a
-## player who has never beaten the Prism.
+## once that gate id is held. Two kinds of gate flow through the same field and
+## the same array, because to the pool they are the same question:
+##   * a MetaState unlock id — "you have ever earned this", which is what puts a
+##     weapon's own draft card into the pool;
+##   * a `weapon_gate()` id — "you drafted this weapon THIS RUN", which is what
+##     opens that weapon's branch of upgrades. Main assembles both into one list.
 @export var requires_unlock: StringName = &""
+
+
+## The gate id a weapon's upgrade branch waits on. Deliberately NOT the weapon's
+## own id: "unlocked the orbital, ever" and "is holding the orbital right now"
+## are different questions, and conflating them is how orbital cards used to
+## clutter the offers of a player who had no orbital in the run.
+static func weapon_gate(weapon_id_value: StringName) -> StringName:
+	return StringName("has_" + String(weapon_id_value))
 
 
 ## Applies this upgrade to stats. HEAL is the exception — it touches Health,
@@ -127,6 +152,16 @@ func apply_to(stats: Stats) -> void:
 			# A second copy fires it more often, not twice.
 			stats.overclock_every = (int(magnitude) if stats.overclock_every <= 0
 					else maxi(3, stats.overclock_every - 3))
+		Effect.GRANT_WEAPON:
+			stats.draft_weapon(weapon_id)
+		Effect.TWIN_FANGS:
+			stats.twin_fangs = true
+		Effect.FLECHETTE_STORM:
+			stats.flechette_storm = true
+		Effect.REFRACTION:
+			stats.lance_extra_beams += int(magnitude)
+		Effect.SINGULARITY:
+			stats.orbital_pull = maxf(stats.orbital_pull, magnitude)
 		Effect.SECOND_WIND:
 			stats.second_wind = true
 		Effect.CHAIN:

@@ -6,6 +6,6 @@
 script = ExtResource("1_m8csk")
 id = &"sharp_shots"
 display_name = "Sharp Shots"
-description = "+1 damage"
+description = "+3 damage"
 effect = 2
-magnitude = 1.0
+magnitude = 3.0

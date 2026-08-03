@@ -19,6 +19,9 @@ const BEAM_FADE: float = 0.22
 ## Half-width of the damage corridor. Slightly wider than the visual so a
 ## near-miss on screen still counts — generosity reads as accuracy here.
 const HALF_WIDTH: float = 9.0
+## Angle between Refraction's beams. Wide enough that three beams read as three
+## at 640x360, narrow enough that all three still cross a dense group.
+const REFRACTION_SPREAD_DEG: float = 20.0
 
 ## Wired by Player (stats, buffs) and Main (rng — crit rolls stay seeded).
 var stats: Stats
@@ -80,6 +83,24 @@ func _fire(dir: Vector2) -> void:
 	var base: int = maxi(1, roundi(stats.damage_from(resource.damage) * _power_mult()))
 	var damage: int = roundi(base * stats.crit_mult) if crit else base
 	Sfx.play(&"crit" if crit else resource.fire_sound, -8.0 if crit else -14.0)
+	# Refraction (Legendary): the beam splits into a fan. One sound, one flash per
+	# beam — three lance reports would be three times the noise for one shot.
+	for beam_dir: Vector2 in _beam_dirs(dir):
+		_beam(beam_dir, damage, crit)
+
+
+## The centre beam plus a symmetric pair per extra beam. An even count would put
+## nothing down the middle, so extras are added in pairs around the original
+## bearing — the lance always hits what it was aimed at.
+func _beam_dirs(dir: Vector2) -> Array[Vector2]:
+	var dirs: Array[Vector2] = [dir]
+	for i: int in stats.lance_extra_beams:
+		var offset: float = deg_to_rad(REFRACTION_SPREAD_DEG * float(i / 2 + 1))
+		dirs.append(dir.rotated(offset if i % 2 == 0 else -offset))
+	return dirs
+
+
+func _beam(dir: Vector2, damage: int, crit: bool) -> void:
 	var length: float = resource.range
 	for node: Node in get_tree().get_nodes_in_group(&"enemies"):
 		var enemy: Enemy = node as Enemy

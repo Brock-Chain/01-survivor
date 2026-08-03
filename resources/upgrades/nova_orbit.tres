@@ -11,4 +11,4 @@ description = "Orbitals detonate on kill"
 effect = 20
 magnitude = 60.0
 max_stacks = 1
-requires_unlock = &"orbital"
+requires_unlock = &"has_orbital"

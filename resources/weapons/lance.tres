@@ -8,7 +8,6 @@ id = &"lance"
 display_name = "Prism Lance"
 kind = 2
 fire_sound = &"lance"
-requires_unlock = &"endless_proven"
 damage = 3
 interval = 2.4
 range = 320.0

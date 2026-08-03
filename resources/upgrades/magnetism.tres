@@ -6,8 +6,8 @@
 script = ExtResource("1_gkeyu")
 id = &"magnetism"
 display_name = "Magnetism"
-description = "+24px pickup range"
+description = "+45px pickup range"
 effect = 6
-magnitude = 24.0
-max_stacks = 4
+magnitude = 45.0
+max_stacks = 3
 weight = 0.7

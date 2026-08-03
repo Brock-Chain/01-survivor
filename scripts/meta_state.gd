@@ -55,16 +55,20 @@ static func unlock_label(id: StringName) -> String:
 
 ## One line telling the player what they can now DO. An unlock the player cannot
 ## act on is the same as no unlock at all.
+##
+## Since M7.3 the weapon milestones hand over a CARD, not a weapon: the text has
+## to say so, or a player who is told "shards now orbit you" and then sees no
+## shards has been lied to by their own reward screen.
 static func unlock_blurb(id: StringName) -> String:
 	match id:
 		UNLOCK_ORBITAL:
-			return "Shards now orbit you, damaging what they touch."
+			return "Orbitals can now be drafted as a level-up card."
 		UNLOCK_DASH:
 			return "Press SPACE to dash. You cannot be hit mid-dash."
 		UNLOCK_ELITE_HUNTER:
-			return "Scattergun: a five-pellet cone at close range."
+			return "The Scattergun can now be drafted as a level-up card."
 		UNLOCK_ENDLESS_PROVEN:
-			return "Prism Lance: an instant beam through everything in line."
+			return "The Prism Lance can now be drafted as a level-up card."
 	return ""
 
 

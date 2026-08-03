@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_pak3m"]
+
+[resource]
+script = ExtResource("1_pak3m")
+rarity = 2
+id = &"draft_scattergun"
+display_name = "Scattergun"
+description = "A five-pellet cone at close range"
+effect = 26
+weapon_id = &"scattergun"
+max_stacks = 1
+weight = 2.0
+requires_unlock = &"elite_hunter"

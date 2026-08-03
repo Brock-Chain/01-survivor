@@ -208,17 +208,24 @@ exactly 25 card screens.**
       have saturated the ladder 40% in) and `PITY_LIMIT` 6 → 4 (it counts screens, and screens went
       from ~79 a run to ~25)
 
-**7.3 — Weapons become drafts, not possessions.**
-- [ ] Weapons are drafted mid-run as cards; you no longer start a run owning any of them
-- [ ] A meta unlock adds that weapon's **card to the draft pool** — `MetaState` and the milestones
-      stay as built, only the delivery changes
-- [ ] Drafting a weapon **opens that weapon's branch** of upgrades — `requires_unlock`
-      (`weapon_resource.gd:44,70`) moves from "unlocked in meta" to "drafted this run"
-- [ ] One **Legendary card per weapon** that boosts it significantly
-- [ ] **Redesign the orbital** — it is boring and weak; all three of its cards are bottom-five
-      (0/11, 1/10, 3/9). A weapon problem, not a card problem
-- [ ] Merge the three magnet-axis cards into one (`lodestone` 0/16, `magnetism` 0/12)
-- [ ] All card changes go through `tools/gen_upgrades.gd` and the manifest, **never by hand**
+**7.3 — Weapons become drafts, not possessions.** ✅ done 2026-08-03.
+- [x] Weapons are drafted mid-run as cards; a run starts blaster-only regardless of profile
+- [x] A meta unlock adds the weapon's **card** to the pool (`draft_orbital` etc., RARE so it
+      actually appears in a 25-screen run). Milestones, announce and `MetaState` unchanged
+- [x] `WeaponResource.requires_unlock` deleted — a weapon's gate is its own id, so weapon and
+      requirement cannot drift apart. `Main._offer_gates()` merges profile unlocks + this run's
+      drafts into the one array the pool already took
+- [x] Drafting a weapon opens its branch (`UpgradeResource.weapon_gate()`), which also fixes a
+      quiet bug: orbital cards used to gate on the META unlock, so a veteran saw them every run
+- [x] One Legendary per weapon: Twin Fangs (blaster echo volley), Singularity (the ring drags
+      enemies in), Flechette Storm (the cone becomes a ring), Refraction (three beams)
+- [x] **Orbital redesigned** — kill-fed MOMENTUM: every kill adds spin up to 2x, decaying when
+      the killing stops, and spin is hit rate. Bigger, faster, three shards. The dead radius card
+      folded into Split Orbit
+- [x] Magnet axis merged to one card; `lodestone` and `orbit_radius` retired, and `gen_upgrades.gd`
+      now **prunes orphaned .tres** so a retirement cannot leave the card in the pool
+- [x] Card magnitudes rebalanced ~2-3x + `Stats.COOLDOWN_FLOOR`. Forced by measurement — see
+      `DECISIONS.md`, the drip as specced left the arena pinned at the enemy cap from 3:00
 
 **7.4 — NOGAXEH v2.** Event total **11,200 base HP**, 3.5x today's mirror. No other enemies.
 - [ ] NOGAXEH **4000 HP**, **double the projectiles**

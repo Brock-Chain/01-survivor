@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_so6by"]
+
+[resource]
+script = ExtResource("1_so6by")
+rarity = 2
+id = &"draft_lance"
+display_name = "Prism Lance"
+description = "An instant beam through everything in line"
+effect = 26
+weapon_id = &"lance"
+max_stacks = 1
+weight = 2.0
+requires_unlock = &"endless_proven"

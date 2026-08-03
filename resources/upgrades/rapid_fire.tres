@@ -6,6 +6,6 @@
 script = ExtResource("1_c03e4")
 id = &"rapid_fire"
 display_name = "Rapid Fire"
-description = "8% faster firing"
+description = "15% faster firing"
 effect = 3
-magnitude = 0.08
+magnitude = 0.15

@@ -7,7 +7,6 @@ script = ExtResource("1_an5xj")
 id = &"scattergun"
 display_name = "Scattergun"
 fire_sound = &"blast"
-requires_unlock = &"elite_hunter"
 damage = 2
 interval = 1.5
 count = 5

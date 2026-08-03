@@ -73,18 +73,38 @@ func test_the_drip_is_a_pure_function_of_the_level() -> void:
 	# Idempotence is the whole design: a chained level-up that resolves three
 	# levels in one frame must not apply the drip three times. Level 1 is the
 	# start of the run and gets nothing.
-	assert_almost_eq(Progression.drip_damage_mult(1), 1.0, 0.0001)
+	assert_eq(Progression.drip_damage_bonus(1), 0)
 	assert_almost_eq(Progression.drip_cooldown_mult(1), 1.0, 0.0001)
 	assert_almost_eq(Progression.drip_move_speed_mult(1), 1.0, 0.0001)
-	assert_almost_eq(Progression.drip_damage_mult(11), 1.15, 0.0001)
-	assert_almost_eq(Progression.drip_damage_mult(75), 2.11, 0.0001)
+	assert_eq(Progression.drip_damage_bonus(13), 4)
+	assert_eq(Progression.drip_damage_bonus(75), 24)
+
+
+func test_the_damage_drip_is_flat_because_early_dps_is_flat() -> void:
+	# The one number here that was measured rather than reasoned. A +1.5%/level
+	# version soaked at 86 kills by 3:00 against the pre-rework build's 371 on an
+	# identical blaster-only run, because a percentage of a base-1 weapon is
+	# worth nothing exactly when the player has no cards yet. Pinned at both ends
+	# so a future "tidy this into a multiplier" cannot quietly undo it.
+	assert_eq(Progression.drip_damage_bonus(4), 1, "a real point of damage by level 4")
+	assert_gt(Progression.drip_damage_bonus(41), 12,
+			"and enough by the 5:00 boss to matter without cards")
+
+
+func test_the_drip_buys_breadth_as_well_as_damage() -> void:
+	# Only COUNT clears a crowd. Without this the soak pinned the arena at the
+	# live-enemy cap from 3:00, because multishot was a card-only axis and the
+	# player now gets a third as many cards.
+	assert_eq(Progression.drip_projectiles(1), 0, "the run still opens with one bolt")
+	assert_eq(Progression.drip_projectiles(21), 1)
+	assert_eq(Progression.drip_projectiles(75), 3, "~3 over a baseline run, not 6")
 
 
 func test_the_fire_rate_drip_is_a_rate_not_a_subtraction() -> void:
 	# Stored as a COOLDOWN scale, so it can approach zero without ever reaching
-	# it. At level 75 the player fires ~1.55x as often, not infinitely often.
+	# it. At level 75 the player fires ~2.1x as often, not infinitely often.
 	var scale: float = Progression.drip_cooldown_mult(75)
-	assert_almost_eq(1.0 / scale, 1.555, 0.01)
+	assert_almost_eq(1.0 / scale, 2.11, 0.01)
 	assert_gt(Progression.drip_cooldown_mult(500), 0.0,
 			"an endless run can never reach a zero cooldown")
 

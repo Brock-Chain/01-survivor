@@ -18,6 +18,19 @@ var buffs: BuffState
 var _cooldown: float = 0.0
 ## Overclock: shots since the last mega-bolt.
 var _shots: int = 0
+## Twin Fangs: seconds until this volley's echo fires. 0 means none pending.
+var _echo_left: float = 0.0
+
+## Twin Fangs is the BLASTER's Legendary, and this same script also runs the
+## scattergun — hence the id check rather than a plain bool. Short enough to
+## read as one shot with a stutter, long enough that the second volley re-aims.
+const ECHO_DELAY: float = 0.14
+const BLASTER_ID: StringName = &"blaster"
+const SCATTERGUN_ID: StringName = &"scattergun"
+## Flechette Storm turns the scattergun's cone into a full circle. Extra pellets
+## on top, because a ring of five at 72 degrees apart is a worse cone, not a
+## better weapon — the card has to read as an upgrade from the first shot.
+const STORM_EXTRA_PELLETS: int = 3
 
 
 ## For GATED weapon instances (the scattergun). Availability resolves ONCE, like
@@ -32,6 +45,14 @@ func configure(p_resource: WeaponResource, unlocks: Array[StringName]) -> void:
 func _physics_process(delta: float) -> void:
 	if stats == null or container == null or resource == null:
 		return
+	# Twin Fangs' echo, resolved before the cooldown so it fires on its own beat
+	# rather than stealing the next volley's.
+	if _echo_left > 0.0:
+		_echo_left -= delta
+		if _echo_left <= 0.0:
+			var echo_target: Enemy = _nearest_enemy()
+			if echo_target != null:
+				_fire_at(echo_target, false)
 	_cooldown -= delta
 	if _cooldown > 0.0:
 		return
@@ -66,9 +87,16 @@ func _nearest_enemy() -> Enemy:
 	return best
 
 
-func _fire_at(target: Enemy) -> void:
+## `may_echo` is false for the echo volley itself, so Twin Fangs cannot recurse
+## into a machine gun.
+func _fire_at(target: Enemy, may_echo: bool = true) -> void:
 	var base_dir: Vector2 = (target.global_position - global_position).normalized()
-	var count: int = maxi(1, resource.count + stats.projectile_bonus)
+	var count: int = stats.volley_count(resource.count)
+	var storm: bool = stats.flechette_storm and resource.id == SCATTERGUN_ID
+	if storm:
+		count += STORM_EXTRA_PELLETS
+	if may_echo and stats.twin_fangs and resource.id == BLASTER_ID:
+		_echo_left = ECHO_DELAY
 	_shots += 1
 	var mega: bool = stats.overclock_every > 0 and _shots % stats.overclock_every == 0
 	var crit: bool = stats.crit_chance > 0.0 and rng.randf() < stats.crit_chance
@@ -83,8 +111,11 @@ func _fire_at(target: Enemy) -> void:
 	var base_damage: int = maxi(1, roundi(
 			stats.damage_from(resource.damage) * _power_mult() * spread_tax))
 	var damage: int = roundi(base_damage * stats.crit_mult) if crit else base_damage
+	# A storm spaces its pellets evenly around the full circle instead of fanning
+	# them across the weapon's cone. Same tax, same damage — a different shape.
+	var step_deg: float = 360.0 / float(count) if storm else resource.spread_deg
 	for i: int in count:
-		var offset_deg: float = (i - (count - 1) / 2.0) * resource.spread_deg
+		var offset_deg: float = (i - (count - 1) / 2.0) * step_deg
 		var projectile: Projectile = PROJECTILE_SCENE.instantiate()
 		projectile.apply_effects(stats, mega)
 		projectile.setup(base_dir.rotated(deg_to_rad(offset_deg)), resource.projectile_speed * stats.projectile_speed_mult,

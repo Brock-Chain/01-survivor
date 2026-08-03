@@ -64,6 +64,9 @@ var run_state: RunState
 ## True once victory has banked this run, so a later death in endless
 ## improves records without counting a second run.
 var _banked: bool = false
+## Every weapon that can be drafted mid-run. Only --dev-unlocks reads it: the
+## real game hands these over one card at a time.
+const DRAFTABLE_WEAPONS: Array[StringName] = [&"orbital", &"scattergun", &"lance"]
 ## True once this run has been finalised (banked + its ending logged), so the
 ## death path and the teardown path cannot both bank the same run.
 var _ended: bool = false
@@ -235,7 +238,14 @@ func _apply_dev_flags() -> void:
 				player.apply_unlocks([MetaState.UNLOCK_ORBITAL,
 						MetaState.UNLOCK_ELITE_HUNTER,
 						MetaState.UNLOCK_ENDLESS_PROVEN, MetaState.UNLOCK_DASH])
-				print("[dev] all unlocks")
+				# ...and since M7.3 an unlock only offers a CARD, so unlocking
+				# alone would leave every soak and every capture firing the
+				# blaster and nothing else. Draft them too: this flag means
+				# "show me all of it", not "show me the draft screen".
+				for id: StringName in DRAFTABLE_WEAPONS:
+					player.stats.draft_weapon(id)
+				player.refresh_from_stats()
+				print("[dev] all unlocks + all weapons drafted")
 			"--dev-autopilot":
 				player.dev_autopilot = true
 				print("[dev] autopilot")
@@ -648,7 +658,7 @@ func _check_level_up() -> void:
 			Sfx.play(&"levelup", -15.0)
 			continue
 		var offers: Array[UpgradeResource] = pool.draw_tiered(
-				3, stacks, Meta.state.unlocks,
+				3, stacks, _offer_gates(),
 				Rarity.progress_for_level(level), _pity)
 		_pity = 0 if pool.rolled_high else _pity + 1
 		if offers.is_empty():
@@ -671,12 +681,28 @@ func _check_level_up() -> void:
 	hud.set_xp(xp_into_level, Progression.xp_required(level), level)
 
 
+## Everything that can open a card: the profile's permanent unlocks AND the
+## weapons drafted in THIS run. One list because the pool asks one question —
+## "is this gate held?" — and Main is the only place that knows both halves.
+##
+## The distinction is the point of M7.3. A meta unlock puts a weapon's own draft
+## card into the pool; drafting that card opens the weapon's branch of upgrades.
+## Before this, a veteran saw orbital cards in every run whether or not the
+## orbital was in it.
+func _offer_gates() -> Array[StringName]:
+	var gates: Array[StringName] = Meta.state.unlocks.duplicate()
+	for id: StringName in player.stats.drafted_weapons:
+		gates.append(UpgradeResource.weapon_gate(id))
+	return gates
+
+
 ## The silent half of a level-up. SET from the level rather than accumulated, so
 ## a chained level-up that resolves three levels in one frame applies it once and
 ## the result is a pure function of `level` — see Progression for the numbers and
 ## for why move speed is the only one with a ceiling.
 func _apply_level_drip() -> void:
-	player.stats.drip_damage_mult = Progression.drip_damage_mult(level)
+	player.stats.drip_damage_bonus = Progression.drip_damage_bonus(level)
+	player.stats.drip_projectile_bonus = Progression.drip_projectiles(level)
 	player.stats.drip_cooldown_mult = Progression.drip_cooldown_mult(level)
 	player.stats.drip_move_speed_mult = Progression.drip_move_speed_mult(level)
 

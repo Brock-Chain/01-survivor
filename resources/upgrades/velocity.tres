@@ -6,8 +6,8 @@
 script = ExtResource("1_cudy2")
 id = &"velocity"
 display_name = "Velocity"
-description = "+15% projectile speed"
+description = "+25% projectile speed"
 effect = 5
-magnitude = 0.15
+magnitude = 0.25
 max_stacks = 4
 weight = 0.7

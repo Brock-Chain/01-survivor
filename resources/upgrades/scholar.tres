@@ -6,8 +6,8 @@
 script = ExtResource("1_fyloc")
 id = &"scholar"
 display_name = "Scholar"
-description = "+10% XP gained"
+description = "+12% XP gained"
 effect = 7
-magnitude = 0.1
+magnitude = 0.12
 max_stacks = 4
 weight = 0.8

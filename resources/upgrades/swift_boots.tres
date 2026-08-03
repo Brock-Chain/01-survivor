@@ -6,5 +6,5 @@
 script = ExtResource("1_pcm7a")
 id = &"swift_boots"
 display_name = "Swift Boots"
-description = "+8% move speed"
-magnitude = 0.08
+description = "+14% move speed"
+magnitude = 0.14

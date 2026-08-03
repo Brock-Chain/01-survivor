@@ -43,17 +43,48 @@ func test_diagonal_direction() -> void:
 			Vector2(10, 10), dir, 200.0, 8.0, Vector2(110, 140)))
 
 
-func test_gated_weapons_respect_unlocks() -> void:
+func test_weapons_answer_to_the_run_not_the_profile() -> void:
+	# M7.3: availability moved from "have you ever unlocked this" to "did you
+	# draft it in THIS run". The gate is the weapon's own id, so a weapon and its
+	# requirement cannot drift apart.
 	var scatter: WeaponResource = load("res://resources/weapons/scattergun.tres")
 	var lance: WeaponResource = load("res://resources/weapons/lance.tres")
-	var blaster: WeaponResource = load("res://resources/weapons/blaster.tres")
 	# A bare [] literal is an UNTYPED Array and trips the typed-argument check
 	# at runtime (a debugger break, which stalls headless GUT at a prompt).
 	var none: Array[StringName] = []
-	var hunter: Array[StringName] = [MetaState.UNLOCK_ELITE_HUNTER]
-	var proven: Array[StringName] = [MetaState.UNLOCK_ENDLESS_PROVEN]
-	assert_false(scatter.is_available(none), "scattergun locked for a fresh profile")
-	assert_false(lance.is_available(none), "lance locked for a fresh profile")
-	assert_true(scatter.is_available(hunter))
-	assert_true(lance.is_available(proven))
-	assert_true(blaster.is_available(none), "blaster is always available")
+	var drafted_scatter: Array[StringName] = [&"scattergun"]
+	var both: Array[StringName] = [&"scattergun", &"lance"]
+	assert_false(scatter.is_available(none), "nothing is owned at spawn any more")
+	assert_false(lance.is_available(none))
+	assert_true(scatter.is_available(drafted_scatter))
+	assert_false(lance.is_available(drafted_scatter),
+			"drafting one weapon must not hand over the others")
+	assert_true(lance.is_available(both))
+
+
+func test_a_meta_unlock_offers_a_card_rather_than_a_weapon() -> void:
+	# The delivery change, pinned where it would otherwise be invisible: beating
+	# the Prism puts draft_orbital into the POOL, and only that card grants the
+	# weapon. A profile with every unlock still starts every run blaster-only.
+	var card: UpgradeResource = load("res://resources/upgrades/draft_orbital.tres")
+	assert_eq(card.requires_unlock, MetaState.UNLOCK_ORBITAL,
+			"the milestone gates the card...")
+	assert_eq(card.weapon_id, &"orbital", "...and the card grants the weapon")
+	var s := Stats.new()
+	assert_false(s.has_weapon(&"orbital"), "a run starts owning nothing")
+	card.apply_to(s)
+	assert_true(s.has_weapon(&"orbital"))
+	card.apply_to(s)
+	assert_eq(s.drafted_weapons.size(), 1, "drafting twice is still one weapon")
+
+
+func test_a_weapons_branch_waits_on_the_draft_not_the_unlock() -> void:
+	# The bug this closes: orbital cards used to gate on the META unlock, so a
+	# veteran saw them in every run whether or not the orbital was in it.
+	var spin: UpgradeResource = load("res://resources/upgrades/orbit_speed.tres")
+	assert_eq(spin.requires_unlock, UpgradeResource.weapon_gate(&"orbital"))
+	var unlocked_only: Array[StringName] = [MetaState.UNLOCK_ORBITAL]
+	var drafted: Array[StringName] = [UpgradeResource.weapon_gate(&"orbital")]
+	assert_false(spin.is_eligible(0, unlocked_only),
+			"having ever unlocked the orbital must not open its branch")
+	assert_true(spin.is_eligible(0, drafted))

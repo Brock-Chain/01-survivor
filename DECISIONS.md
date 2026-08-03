@@ -657,3 +657,70 @@ accepted at 49s. The player now arrives at 5:00 with ~13 card picks instead of ~
 worth roughly +60% damage and +30% fire rate at level 41. Which way that nets out is a measurement,
 and it is deliberately left alone until the human run in step 9 — the spec's own instruction is to
 budget fights in seconds at measured DPS rather than argue them from ratios.
+
+## M7.3 — weapons became drafts, and the drip had to be re-measured twice
+
+**A weapon's gate is now its own id, and there is no second field.** `WeaponResource.requires_unlock`
+is gone: `is_available(drafted)` asks whether the weapon is in the RUN's draft list. A weapon and its
+requirement can no longer drift apart, and the whole delivery change cost one changed line in each
+weapon node — they already took a `unlocks` array; they now take a `drafted` one.
+
+**Two kinds of gate flow through one field on the CARDS, deliberately.** `UpgradeResource.
+requires_unlock` holds either a MetaState unlock id (which is what puts a weapon's own draft card
+into the pool) or a `weapon_gate()` id (which is what opens that weapon's branch of upgrades), and
+`Main._offer_gates()` assembles both into one array. To the pool they are the same question. This
+also closes a bug nobody had noticed: orbital cards used to gate on the META unlock, so a veteran
+saw them in every run whether or not the orbital was in that run.
+
+**The orbital got a mechanic, not a buff.** All three of its cards measured bottom-five, which is a
+weapon problem wearing three cards. It now has kill-fed MOMENTUM: every kill the ring lands adds
+spin up to double, decaying when the killing stops, and spin is also hit RATE — so the weapon is at
+its best exactly when the arena is at its worst, which is the situation it exists for. The dead
+radius card (0/11) folded into Split Orbit rather than being buffed: it was half of one idea sold
+separately.
+
+**`gen_upgrades.gd` now deletes orphans.** Retiring `lodestone` and `orbit_radius` by removing their
+definitions would have left their .tres files on disk and in the pool, which is exactly the
+content-drift failure that already shipped a retired upgrade 62 times. The generator owns the
+directory, so it owns the deletions.
+
+### The drip was wrong twice, and only measurement caught it
+
+The spec's drip (+1.5% damage, +0.75% fire rate per level) was explicitly "to be verified by
+measurement, not argued". Verified against the pre-rework build with an identical blaster-only soak
+from a **fresh profile on both sides** — the first attempt at this comparison was invalid, because
+the old build granted weapons from the PROFILE and the dev profile had unlocks, so the "baseline"
+was secretly a three-weapon run.
+
+| blaster-only, fresh profile | kills @3:00 | kills @3:51 | enemies alive |
+|---|---|---|---|
+| pre-rework (78 picks) | 381 | 626 | 5 |
+| spec drip as written | 86 | 115 | **110 (the cap)** |
+| + flat damage drip | 210 | 316 | 110 (the cap) |
+| + 3x card magnitudes | 228 | 315 | 110 (the cap) |
+| + fire rate 2x, + breadth | **369** | **604** | 18 |
+
+Three corrections came out of that table, in the order the numbers forced them:
+
+1. **Damage drip is FLAT, not a percentage.** Early DPS is dominated by the flat bonus on a base of
+   1: a percentage drip is worth +16% of almost nothing at level 12, while the seven picks it
+   replaced were worth several whole points. A percentage pays out exactly when the player has
+   stopped needing it. One point per three levels.
+2. **Card magnitudes went up ~2-3x.** This is the other half of `CARD_EVERY`, and the spec says so
+   in its own words — "3x fewer, 3x more valuable decisions". Only the first half of that is a gate.
+   A player with a third of the picks and unchanged cards is simply a third as strong. Unique Epic
+   and Legendary EFFECTS are untouched; they were already what a scarce pick should feel like.
+3. **The drip also had to buy BREADTH.** Damage and fire rate kill one thing faster; only projectile
+   count clears a crowd, and count was card-only — the old pool handed it out five or six times a
+   run, the new one hands it out once. Without it the arena sat pinned at the live-enemy cap from
+   3:00 no matter how much damage was added. +1 projectile every 20 levels, taxed by
+   `volley_damage_mult` like every other source, so it buys reach and never damage.
+
+The shipped curve deliberately MATCHES the pre-rework build early and undershoots it late: the
+stranger's first five minutes are the prime directive, while the late-game runaway is the thing the
+rework exists to cut. That undershoot is what NOGAXEH v2 gets budgeted against.
+
+**`Stats.COOLDOWN_FLOOR` added while rebalancing.** Fire-rate cards multiply and every one of them
+got bigger; eleven picks on that axis would have reached a weapon firing every frame. Same shape as
+the crit and lifesteal caps — an axis that stacks needs a ceiling authored next to it rather than
+discovered.

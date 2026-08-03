@@ -6,7 +6,7 @@
 script = ExtResource("1_1p1dl")
 id = &"tough_hide"
 display_name = "Tough Hide"
-description = "+1 max HP"
+description = "+2 max HP"
 effect = 1
-magnitude = 1.0
+magnitude = 2.0
 weight = 0.8

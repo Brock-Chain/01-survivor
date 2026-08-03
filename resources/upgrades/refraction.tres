@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_ffa8b"]
+
+[resource]
+script = ExtResource("1_ffa8b")
+rarity = 4
+id = &"refraction"
+display_name = "Refraction"
+description = "The lance splits into three beams"
+effect = 29
+magnitude = 2.0
+max_stacks = 1
+requires_unlock = &"has_lance"

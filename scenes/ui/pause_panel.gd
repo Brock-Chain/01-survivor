@@ -175,14 +175,14 @@ func _fill_stats(stats: Stats) -> void:
 		child.queue_free()
 	if stats == null:
 		return
-	var shots: int = 1 + stats.projectile_bonus
+	var shots: int = stats.volley_count(1)
 	var volley: float = Stats.volley_damage_mult(1, shots)
 	# Every row that the level drip touches shows the value the game actually
 	# uses, not the card half of it. Two thirds of a player's level-ups now go
 	# into the drip alone — a build screen that omitted it would be describing a
 	# different character than the one on the arena floor.
 	var rows: Array = [
-		["DAMAGE", "+%d  (x%.2f)" % [stats.damage_bonus, stats.drip_damage_mult]],
+		["DAMAGE", "+%d  (+%d drip)" % [stats.damage_bonus, stats.drip_damage_bonus]],
 		["FIRE RATE", "%d%%" % roundi(100.0 / maxf(0.05, stats.cooldown_scale()))],
 		["PROJECTILES", "%d" % shots],
 		["PER SHOT", "%d%%" % roundi(volley * 100.0)],

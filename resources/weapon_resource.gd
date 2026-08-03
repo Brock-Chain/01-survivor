@@ -11,18 +11,19 @@ extends Resource
 ##   fire at completely different base rates without either becoming absurd.
 ##
 ## Ownership:
-##   Owns:      one weapon's base numbers, its kind, and its unlock requirement.
+##   Owns:      one weapon's base numbers and its kind.
 ##   Does NOT own: current cooldowns or spawned nodes (the weapon NODE owns
-##              those), player-wide modifiers (Stats), or whether the player has
-##              earned it (MetaState).
+##              those), player-wide modifiers (Stats), whether the player has
+##              ever earned it (MetaState), or whether they are holding it right
+##              now (Stats.drafted_weapons).
 ##
 ## Invariants:
-##   1. A weapon whose `requires_unlock` is unmet never fires and never spawns
-##      anything — checked once at setup, not per frame.
+##   1. A weapon that has not been drafted never fires and never spawns
+##      anything — resolved on each draft, not per frame.
 ##   2. Base values are never mutated at runtime. Upgrades change Stats, not
 ##      this; a Resource shared between runs must stay pristine.
 ##
-## Failure mode: `is_available()` is false when the unlock is missing, and the
+## Failure mode: `is_available()` is false until the weapon is drafted, and the
 ##   weapon node disables itself. A missing weapon is a quiet no-op.
 ##
 ## Done when: both weapons read as distinct in a 30-second clip.
@@ -39,9 +40,6 @@ enum Kind {
 ## Sfx cue played when this weapon fires. Data, not code: the scattergun's boom
 ## and the blaster's zap differ by .tres field, never by a branch in the script.
 @export var fire_sound: StringName = &"shoot"
-
-## Empty means "always available". Otherwise the id must be present in MetaState.
-@export var requires_unlock: StringName = &""
 
 @export_group("Base numbers")
 @export var damage: int = 1
@@ -61,10 +59,12 @@ enum Kind {
 @export var orbit_speed: float = 2.4
 
 
-## True if the player has earned this weapon. Unlocks are passed IN rather than
-## read from the Meta autoload: a Resource that reaches for a global singleton
-## cannot be compiled outside a running game (tool scripts fail outright), and it
-## silently couples content data to save state. Values cross the boundary — the
-## same rule as RunState/MetaState.
-func is_available(unlocks: Array[StringName]) -> bool:
-	return requires_unlock == &"" or unlocks.has(requires_unlock)
+## True if this weapon has been drafted in the run currently being played.
+##
+## There is no separate gate field: a weapon's gate IS its id, so a weapon and
+## its requirement cannot drift apart. The list is passed IN rather than read
+## from Stats or the Meta autoload — a Resource that reaches for a global
+## singleton cannot be compiled outside a running game (tool scripts fail
+## outright), and it silently couples content data to run state.
+func is_available(drafted: Array[StringName]) -> bool:
+	return drafted.has(id)

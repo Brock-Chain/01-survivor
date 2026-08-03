@@ -115,17 +115,17 @@ func _physics_process(delta: float) -> void:
 	_update_invuln_visual()
 
 
-## Main calls this once, after _ready. Unlocks are passed DOWN rather than read
-## from the Meta autoload: reaching up couples the player scene to save state and
-## makes the whole scene chain uncompilable in a tool script (authoring the Shard
-## died on "Identifier not found: Meta"). Same rule as the Resources.
+## Main calls this once after _ready, and again whenever a milestone fires
+## mid-run. Unlocks are passed DOWN rather than read from the Meta autoload:
+## reaching up couples the player scene to save state and makes the whole scene
+## chain uncompilable in a tool script (authoring the Shard died on "Identifier
+## not found: Meta"). Same rule as the Resources.
+##
+## Since M7.3 this hands over exactly one thing: the DASH. Weapons are no longer
+## delivered by an unlock — the unlock puts their card into the draft pool, and
+## the card hands the weapon over. The dash stays here because it is a verb with
+## no card: it arrives the moment it is earned, including mid-run on Continue.
 func apply_unlocks(unlocks: Array[StringName]) -> void:
-	orbitals.setup(stats, ORBITAL_WEAPON, unlocks)
-	scattergun.configure(SCATTER_WEAPON, unlocks)
-	lance.configure(LANCE_WEAPON, unlocks)
-	# Safe to call again mid-run: Main re-applies on Meta.unlocked so a player who
-	# WINS and hits Continue faces Nogaxeh with the dash they just earned, instead
-	# of having to quit and restart to receive their own reward.
 	_can_dash = unlocks.has(MetaState.UNLOCK_DASH)
 
 
@@ -170,19 +170,21 @@ func dash_ready_fraction() -> float:
 ## spawns, and cannot drift as upgrades change. Trash HP deliberately does NOT
 ## use this — enemies that scale to your power read as the game cheating, while a
 ## boss that does reads as the boss rising to meet you.
+##
+## Since M7.3 this reads the RUN's drafts rather than the profile's unlocks, so
+## it finally measures what it always claimed to: weapons in this run.
 func active_weapon_count() -> int:
-	var n: int = 1  # the blaster is never gated
-	if orbitals.is_active():
-		n += 1
-	if scattergun.resource != null:
-		n += 1
-	if lance.resource != null:
-		n += 1
-	return n
+	return 1 + stats.drafted_weapons.size()  # the blaster is never drafted
 
 
-## Re-read anything derived from stats. Main calls this after upgrades apply.
+## Re-read anything derived from stats. Main calls this after every upgrade —
+## which is also when a weapon can arrive, so the weapon wiring lives here rather
+## than in a second entry point that a future card could forget to call.
 func refresh_from_stats() -> void:
+	var drafted: Array[StringName] = stats.drafted_weapons
+	orbitals.setup(stats, ORBITAL_WEAPON, drafted)
+	scattergun.configure(SCATTER_WEAPON, drafted)
+	lance.configure(LANCE_WEAPON, drafted)
 	var circle: CircleShape2D = magnet_shape.shape
 	circle.radius = stats.magnet_radius
 	orbitals.refresh()

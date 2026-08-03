@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_0nb14"]
+
+[resource]
+script = ExtResource("1_0nb14")
+rarity = 4
+id = &"singularity"
+display_name = "Singularity"
+description = "The ring drags nearby enemies into itself"
+effect = 30
+magnitude = 108.0
+max_stacks = 1
+requires_unlock = &"has_orbital"

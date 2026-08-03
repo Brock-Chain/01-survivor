@@ -4,6 +4,10 @@ extends Area2D
 ## an orb resting against a slow tank does not delete it in a single frame —
 ## and, just as importantly, so damage does not scale with physics tick rate.
 
+## Fired when this shard lands a killing blow, so the ring can feed on it. The
+## weapon owns the momentum; a shard only reports what it did.
+signal killed
+
 var damage: int = 1
 var hit_interval: float = 0.45
 ## Nova Orbit: detonation radius when an orbital lands the killing blow.
@@ -51,9 +55,12 @@ func _try_hit(enemy: Enemy) -> void:
 	# Shoved away from the ORB, which is what makes the ring read as a physical
 	# barrier sweeping enemies aside rather than a damage aura.
 	enemy.take_hit(damage, 0.0, global_position)
+	if is_instance_valid(enemy):
+		return
+	killed.emit()
 	# Detonate only on a KILL, not on every contact — a constant AoE would make
 	# the orbital a lawnmower rather than a reward for finishing something off.
-	if nova_radius > 0.0 and not is_instance_valid(enemy):
+	if nova_radius > 0.0:
 		_nova(at)
 
 

@@ -52,13 +52,40 @@ const CARD_EVERY: int = 3
 ## goes quiet. Cards land on levels 2, 5, 8, ... — never a silent opening.
 const FIRST_CARD_LEVEL: int = 2
 
-## The silent drip, per level, ADDITIVE in the level count. A compounding drip is
-## unpredictable to tune and runs away over 75 levels: 1.015^74 is 3.0x where
-## additive is 2.1x. Deliberately no max HP and no defense — the HP pool already
-## grew 6 -> 19 through cards in a run where the player never dropped below 62%
-## at a tick, and defense stays card-only so it remains a real choice.
-const DRIP_DAMAGE: float = 0.015
-const DRIP_FIRE_RATE: float = 0.0075
+## The silent drip, per level. Deliberately no max HP and no defense — the HP
+## pool already grew 6 -> 19 through cards in a run where the player never
+## dropped below 62% at a tick, and defense stays card-only so it remains a real
+## choice.
+##
+## Damage is FLAT, not a percentage, and that is the one number here that was
+## measured rather than reasoned. The spec's starting point was +1.5% per level;
+## built that way and soaked against the pre-rework build on an identical
+## blaster-only run, it produced **86 kills at 3:00 where the old build produced
+## 371**, with the arena pinned at the live-enemy cap. The reason is that early
+## DPS is dominated by the FLAT damage bonus on a base of 1: at level 12 a
+## percentage drip is worth +16% of almost nothing, while the seven card picks it
+## replaced were worth several whole points of damage. A percentage pays out
+## exactly when the player no longer needs it.
+##
+## One point of damage every three levels is deliberately close to what those
+## missing picks used to supply, so the shipped power curve stays near the
+## pre-rework one — which is a MEASURED quantity (the 5:00 Prism at 49s) rather
+## than a guess. The rework's goal was fewer and better decisions, never a
+## quieter player.
+const DRIP_DAMAGE_PER_LEVEL: float = 1.0 / 3.0
+const DRIP_FIRE_RATE: float = 0.015
+
+## Breadth, and the second thing measurement forced in. Damage and fire rate make
+## the player kill ONE thing faster; only projectile COUNT clears a crowd, and
+## count was a card-only axis that the old pool handed out five or six times in a
+## 78-pick run. With 25 picks it is handed out once, and the soak showed exactly
+## that: the arena pinned at the live-enemy cap from 3:00 while the pre-rework
+## build held it at five.
+##
+## Taxed like every other projectile source (Stats.volley_damage_mult), so this
+## buys REACH and never damage — which is the whole reason it is safe to give
+## away for free.
+const DRIP_PROJECTILE_EVERY: int = 20
 const DRIP_MOVE_SPEED: float = 0.003
 ## The one drip with a ceiling. Damage and fire rate make the player stronger;
 ## move speed makes them UN-HITTABLE, and past that point every difficulty
@@ -77,12 +104,16 @@ static func offers_card(level: int) -> bool:
 	return level >= FIRST_CARD_LEVEL and (level - FIRST_CARD_LEVEL) % CARD_EVERY == 0
 
 
-## The drip multipliers are pure functions of the level and are SET onto Stats,
-## never accumulated into it. Idempotent by construction: a chained level-up that
+## The drip values are pure functions of the level and are SET onto Stats, never
+## accumulated into it. Idempotent by construction: a chained level-up that
 ## resolves three levels in one frame cannot apply the drip three times, and the
 ## value is assertable without replaying the run that produced it.
-static func drip_damage_mult(level: int) -> float:
-	return 1.0 + DRIP_DAMAGE * float(maxi(0, level - 1))
+static func drip_damage_bonus(level: int) -> int:
+	return int(DRIP_DAMAGE_PER_LEVEL * float(maxi(0, level - 1)))
+
+
+static func drip_projectiles(level: int) -> int:
+	return maxi(0, level - 1) / DRIP_PROJECTILE_EVERY
 
 
 ## A COOLDOWN scale — lower is faster, matching `Stats.fire_rate_mult`. Inverted

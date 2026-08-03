@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeResource" format=3]
+
+[ext_resource type="Script" path="res://resources/upgrade.gd" id="1_6i6c6"]
+
+[resource]
+script = ExtResource("1_6i6c6")
+rarity = 4
+id = &"twin_fangs"
+display_name = "Twin Fangs"
+description = "The blaster fires a second volley an instant later"
+effect = 27
+magnitude = 1.0
+max_stacks = 1
