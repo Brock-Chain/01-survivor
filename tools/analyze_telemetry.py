@@ -20,14 +20,20 @@ from collections import defaultdict
 from pathlib import Path
 
 
+# The project was renamed twice ("01 Survivor" -> "PRISM" -> "BESTAGON"), and
+# `user://` moves wholesale with the name. Newest first; runs recorded under an
+# older name are still evidence, so an older directory is used only when no
+# newer one exists.
+APP_DIRS = ("BESTAGON", "PRISM", "01 Survivor")
+
+
 def default_dir() -> Path:
-    appdata = os.environ.get("APPDATA", "")
-    base = Path(appdata) / "Godot" / "app_userdata"
-    # The project was renamed "01 Survivor" -> "PRISM" mid-cycle; runs recorded
-    # before the rename live under the old name and are still evidence.
-    new = base / "PRISM" / "telemetry"
-    old = base / "01 Survivor" / "telemetry"
-    return new if new.exists() or not old.exists() else old
+    base = Path(os.environ.get("APPDATA", "")) / "Godot" / "app_userdata"
+    for name in APP_DIRS:
+        d = base / name / "telemetry"
+        if d.exists():
+            return d
+    return base / APP_DIRS[0] / "telemetry"
 
 
 def load_runs(d: Path) -> list[list[dict]]:
@@ -43,8 +49,19 @@ def load_runs(d: Path) -> list[list[dict]]:
             except json.JSONDecodeError:
                 pass  # a run killed mid-write leaves one partial final line
         if rows:
+            rows[0].setdefault("file", f.name)
             runs.append(rows)
     return runs
+
+
+def dev_flags(rows: list[dict]) -> list[str]:
+    """The --dev- flags a run was played with. [] is a clean run; None-ish for
+    runs recorded before run_start carried the field, which is why `unknown`
+    below is reported separately rather than assumed clean."""
+    head = rows[0]
+    if head.get("e") != "run_start" or "dev" not in head:
+        return ["?"]
+    return list(head.get("dev") or [])
 
 
 def bar(frac: float, width: int = 24) -> str:
@@ -55,6 +72,9 @@ def bar(frac: float, width: int = 24) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", type=Path, default=None)
+    ap.add_argument("--include-dev", action="store_true",
+                    help="also aggregate runs played with --dev- flags "
+                         "(godmode/autopick runs are not balance evidence)")
     args = ap.parse_args()
     d = args.dir or default_dir()
 
@@ -63,17 +83,29 @@ def main() -> int:
         print("play a debug build (or pass -- --dev-telemetry) to generate some.")
         return 1
 
-    runs = load_runs(d)
-    if not runs:
+    all_runs = load_runs(d)
+    if not all_runs:
         print(f"no runs in {d}")
         return 1
 
-    print(f"\n{len(runs)} run(s) from {d}\n")
+    # A godmode or autopick run answers no balance question, and mixing one into
+    # the aggregate silently poisons every number below it.
+    runs = all_runs if args.include_dev else [
+        r for r in all_runs if not [f for f in dev_flags(r) if f != "?"]]
+    skipped = len(all_runs) - len(runs)
+
+    print(f"\n{len(runs)} run(s) from {d}")
+    if skipped:
+        print(f"  ({skipped} dev-flagged run(s) excluded — --include-dev to keep them)")
+    unknown = sum(1 for r in runs if dev_flags(r) == ["?"])
+    if unknown:
+        print(f"  ({unknown} run(s) predate flag recording — dev state unknown)")
+    print()
 
     offered: dict[str, int] = defaultdict(int)
     picked: dict[str, int] = defaultdict(int)
     first_damage: list[float] = []
-    end_rows: list[tuple[float, dict]] = []
+    summaries: list[dict] = []
     dmg_by_source: dict[str, int] = defaultdict(int)
     boss_fights: list[float] = []
     pu_drop: dict[str, int] = defaultdict(int)
@@ -83,6 +115,9 @@ def main() -> int:
     for rows in runs:
         saw_damage = False
         boss_at: float | None = None
+        summary = {"file": rows[0].get("file", "?"), "dev": dev_flags(rows),
+                   "commit": rows[0].get("commit", ""), "end": None, "t": 0.0}
+        summaries.append(summary)
         for r in rows:
             e, t = r.get("e"), float(r.get("t", 0.0))
             if e == "offer":
@@ -107,8 +142,11 @@ def main() -> int:
             elif e == "victory" and boss_at is not None:
                 boss_fights.append(t - boss_at)
                 boss_at = None
-            elif e in ("death", "run_end"):
-                end_rows.append((t, r))
+            elif e == "run_end":
+                summary["end"], summary["t"] = r, t
+            elif e == "death" and summary["end"] is None:
+                # Pre-fix runs recorded `death` but lost `run_end` to a restart.
+                summary["end"], summary["t"] = r, t
         if not saw_damage:
             first_damage.append(float("inf"))
 
@@ -174,10 +212,17 @@ def main() -> int:
         print()
 
     print("RUN ENDINGS")
-    for t, r in end_rows:
-        if r.get("e") == "run_end":
-            print(f"  {t:6.1f}s  {r.get('reason', '?'):<8} kills={r.get('kills', '?')} "
-                  f"lvl={r.get('lvl', '?')} won={r.get('won', False)}")
+    for s in summaries:
+        r = s["end"]
+        tag = "clean" if s["dev"] == [] else ("?" if s["dev"] == ["?"]
+                                              else "dev:" + ",".join(
+                                                  f.removeprefix("--dev-") for f in s["dev"]))
+        head = f"  {s['file']:<14} {s['t']:6.1f}s  {s['commit'] or '--------':<8} {tag:<22}"
+        if r is None:
+            print(f"{head} NO ENDING ROW  <- run lost its finish")
+            continue
+        print(f"{head} {r.get('reason', r.get('e', '?')):<11} "
+              f"kills={r.get('kills', '?')} lvl={r.get('lvl', '?')} won={r.get('won', False)}")
     print()
     return 0
 

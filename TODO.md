@@ -179,16 +179,20 @@ card screen every 7.9s.
 Do these **in order** — it is dependency-driven, not preference. Player DPS at 10:00 is moved by
 items 2 and 3, and item 4 is tuned against it.
 
-**7.1 — Fix the instrument first.** Nothing below is measurable until this is done.
-- [ ] `begin_run()` calls `_close()` instead of `end_run()` (`telemetry.gd:37`) — a restart drops
-      the ending row, so both runs that ever reached a boss have no `run_end`
-- [ ] `_run_t` is never reset in `begin_run()` — a new run's `run_start` carries the previous run's
-      clock (`run_080` opens at `t:660.2`)
-- [ ] `analyze_telemetry.py:28` still defaults to the `PRISM` directory — point it at `BESTAGON`
-- [ ] Record active `--dev-` flags and the commit in `run_start`; proving `run_076` was clean
-      required cross-checking `save.cfg`
-- [ ] Verify: `run_076` hit 2780 kills but `save.cfg` banked `best_kills=1125` — `update_records`
-      appears not to run when a run ends without `run_end`
+**7.1 — Fix the instrument first.** ✅ done 2026-08-03. Nothing below was measurable until this was.
+- [x] `begin_run()` called `_close()` instead of `end_run()` — a restart dropped the ending row,
+      so both runs that ever reached a boss had no `run_end`
+- [x] `_run_t` reset in `begin_run()` — a new run's `run_start` carried the previous run's clock
+- [x] `analyze_telemetry.py` defaults to `BESTAGON` (newest of three app-dir names), and now
+      **excludes dev-flagged runs from every aggregate** (`--include-dev` to keep them)
+- [x] `run_start` records the active `--dev-` flags and the short commit (read straight from
+      `.git/HEAD`, empty in an exported build — no build step)
+- [x] **`Main._finish_run()` is the one place a run ends** — death, restart, quit to title and
+      window close all bank now. Only death used to, which is the actual cause of the records loss
+- [x] Verified: `run_076` peaked at **2757 kills / 660.1s** while `save.cfg` still reads
+      `best_kills=1125`, `best_time=349.2` — and `endless_proven` (PRISM LANCE) was **earned and
+      lost**, because the player restarted instead of dying. Fixed forward; the existing save is
+      left alone (a retro-repair is the human's call)
 
 **7.2 — Progression.** Baseline **~75 levels** with no XP upgrades; boosts move it ±.
 - [ ] Cards gate to **every 3rd level** — ~25 screens per run instead of 78

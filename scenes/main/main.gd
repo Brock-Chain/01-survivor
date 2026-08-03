@@ -64,6 +64,9 @@ var run_state: RunState
 ## True once victory has banked this run, so a later death in endless
 ## improves records without counting a second run.
 var _banked: bool = false
+## True once this run has been finalised (banked + its ending logged), so the
+## death path and the teardown path cannot both bank the same run.
+var _ended: bool = false
 ## Level-ups since the last Rare-or-better. A cold streak that lasts a whole
 ## run is invisible in aggregate stats, so it gets a hard floor.
 var _pity: int = 0
@@ -678,13 +681,38 @@ func _on_upgrade_chosen(upgrade: UpgradeResource) -> void:
 	_check_level_up()  # banked XP can trigger another level immediately
 
 
-func _on_player_died() -> void:
-	Telemetry.event(&"death", {"kills": kills, "lvl": level})
-	Telemetry.end_run("death", {"kills": kills, "lvl": level, "won": run_state.won})
+## The ONE place a run ends. Death used to be the only exit that banked anything:
+## a restart, a quit to title or a closed window dropped both the telemetry
+## ending row and the run's records. That is how a 2780-kill run left
+## `best_kills` at 1125 — the player never died, they restarted.
+func _finish_run(reason: String) -> void:
+	if _ended:
+		return
+	_ended = true
+	Telemetry.end_run(reason, {"kills": kills, "lvl": level, "won": run_state.won})
+	# A run banked at victory only improves its records; absorbing again would
+	# count the same run twice.
 	if _banked:
 		Meta.update_records(run_state.to_result())
 	else:
 		Meta.absorb_run(run_state.to_result())
+
+
+## Restart, quit to title and closing the window all land here — four different
+## scripts call reload_current_scene/change_scene_to_file, so the teardown is the
+## only hook that catches every one of them without wiring a signal through each.
+func _exit_tree() -> void:
+	# Exit propagates children-first, so the HUD has already left the tree: a
+	# banking unlock would try to tween on an exited node. Drop the announcement
+	# before banking — at death the tree is intact and this never runs.
+	if Meta.unlocked.is_connected(_on_unlocked):
+		Meta.unlocked.disconnect(_on_unlocked)
+	_finish_run("abandon")
+
+
+func _on_player_died() -> void:
+	Telemetry.event(&"death", {"kills": kills, "lvl": level})
+	_finish_run("death")
 	Sfx.play(&"death")
 	get_tree().paused = true
 	game_over.show_results(time_survived, kills, level,

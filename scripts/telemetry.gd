@@ -34,7 +34,15 @@ func _ready() -> void:
 func begin_run(seed_value: int) -> void:
 	if not enabled:
 		return
-	_close()
+	# Was `_close()`, which DROPPED the previous run's ending row. Both of the only
+	# two runs that ever reached a boss ended by restart, so both were missing
+	# `run_end` and the endings report systematically omitted exactly the runs that
+	# mattered. Main finishes its own run now, so this is the belt-and-braces path:
+	# if it ever fires, something bypassed Main and that is worth seeing in the log.
+	end_run("interrupted")
+	# ...and reset the clock, or the new run's `run_start` is stamped with the
+	# PREVIOUS run's elapsed time (run_080 opened at t:660.2).
+	_run_t = 0.0
 	DirAccess.make_dir_recursive_absolute(DIR)
 	var path: String = "%s/run_%03d.jsonl" % [DIR, _next_index()]
 	_file = FileAccess.open(path, FileAccess.WRITE)
@@ -43,10 +51,41 @@ func begin_run(seed_value: int) -> void:
 		enabled = false
 		return
 	print("[telemetry] %s" % ProjectSettings.globalize_path(path))
+	# `dev` and `commit` exist because establishing that run_076 was played clean
+	# took a cross-check of save.cfg's best_time against a victory event. A run
+	# that cannot say what it was played with is not evidence.
 	event(&"run_start", {
 		"seed": seed_value,
 		"started": Time.get_datetime_string_from_system(true),
+		"dev": _dev_flags(),
+		"commit": _git_head(),
 	})
+
+
+## The `--dev-` flags active for this run. Empty means a clean run — the single
+## most important fact about a telemetry file, and until now it recorded nothing.
+func _dev_flags() -> Array[String]:
+	var flags: Array[String] = []
+	for arg: String in OS.get_cmdline_user_args():
+		if arg.begins_with("--dev-"):
+			flags.append(arg)
+	return flags
+
+
+## Short commit hash, read straight from .git — no build step, no generated file.
+## Only ever non-empty when running from source, which is how playtests happen;
+## an exported build has no .git in its PCK and simply reports "".
+func _git_head() -> String:
+	var head: FileAccess = FileAccess.open("res://.git/HEAD", FileAccess.READ)
+	if head == null:
+		return ""
+	var line: String = head.get_line().strip_edges()
+	if not line.begins_with("ref: "):
+		return line.substr(0, 8)  # detached HEAD stores the sha itself
+	var ref: FileAccess = FileAccess.open("res://.git/" + line.substr(5), FileAccess.READ)
+	if ref == null:
+		return ""  # a packed ref; not worth a parser
+	return ref.get_line().strip_edges().substr(0, 8)
 
 
 func _next_index() -> int:
@@ -101,8 +140,12 @@ func _close() -> void:
 	_pending = 0
 
 
+## Last resort only. This used to also fire on NOTIFICATION_WM_CLOSE_REQUEST,
+## which an autoload receives BEFORE the main scene does — so every window-close
+## wrote a bare `quit` row with no kills, level or outcome, and Main's finish
+## found the file already closed. Main owns the ending now (it is the only node
+## that knows what the run achieved); PREDELETE runs after Main's _exit_tree, so
+## a `lost` row means nothing finalised the run and that is a bug worth seeing.
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE:
-		# Record the ending even when the player just closes the window,
-		# otherwise quit runs vanish from the endings report entirely.
-		end_run("quit")
+	if what == NOTIFICATION_PREDELETE:
+		end_run("lost")
