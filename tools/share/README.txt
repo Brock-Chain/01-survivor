@@ -59,3 +59,15 @@ rather it stopped rotating.
 
 Found something that reads as BROKEN rather than hard? That distinction is
 the single most useful thing you can report.
+
+
+IF IT CRASHES OR FREEZES (Windows)
+----------------------------------
+Double-click COLLECT-LOGS.bat and send the zip it drops on your Desktop.
+
+That is it. The game writes a log to a folder nobody should be expected to
+find, and the zip also picks up which graphics card and driver you are on,
+which is usually the half of the report that actually answers the question.
+
+If the game is still frozen on screen, close it FIRST, then run the file.
+Nothing is lost by closing it - the log is written as it goes.

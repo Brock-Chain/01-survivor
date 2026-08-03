@@ -75,7 +75,11 @@ Remove-Item $webZip, $winZip -Force -ErrorAction SilentlyContinue
 # itch.io requires. Zipping the folder itself produces a zip that uploads fine
 # and then shows a blank page.
 Compress-Archive -Path (Join-Path $builds "web\*") -DestinationPath $webZip -CompressionLevel Optimal
-Compress-Archive -Path (Join-Path $builds "windows\BESTAGON.exe"), (Join-Path $share "README.txt") `
+# COLLECT-LOGS ships with the WINDOWS zip only. The web build has no log file to
+# collect - a browser build's output goes to the devtools console and never to
+# disk - so shipping it there would be a button that does nothing.
+Compress-Archive -Path (Join-Path $builds "windows\BESTAGON.exe"), (Join-Path $share "README.txt"), `
+  (Join-Path $share "COLLECT-LOGS.bat"), (Join-Path $share "collect-logs.ps1") `
   -DestinationPath $winZip -CompressionLevel Optimal
 
 # Prove the layout rather than trusting it. A web zip whose index.html is not at
@@ -86,6 +90,23 @@ $names = $zip.Entries | ForEach-Object { $_.FullName }
 $zip.Dispose()
 foreach ($required in @("index.html", "index.pck", "index.wasm", "START-HERE.bat")) {
   if ($names -notcontains $required) { Fail "web zip is missing $required at its root" }
+}
+
+# The windows zip had NO assertion at all until 2026-08-03, which is how a zip
+# ships missing the one file that exists to be found after a crash.
+$zip = [System.IO.Compression.ZipFile]::OpenRead($winZip)
+$names = $zip.Entries | ForEach-Object { $_.FullName }
+$zip.Dispose()
+foreach ($required in @("BESTAGON.exe", "README.txt", "COLLECT-LOGS.bat", "collect-logs.ps1")) {
+  if ($names -notcontains $required) { Fail "windows zip is missing $required at its root" }
+}
+
+# The log collector is worthless if the build it ships with buffers its log away.
+# Release builds do exactly that unless this is set, and the setting lives in a
+# different file from the packaging, so assert them together or they drift.
+$proj = Get-Content (Join-Path $root "project.godot") -Raw
+if ($proj -notmatch "run/flush_stdout_on_print\s*=\s*true") {
+  Fail "project.godot lacks run/flush_stdout_on_print=true - a freeze would ship a 0-byte log"
 }
 
 Write-Host ""
