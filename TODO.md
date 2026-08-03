@@ -296,6 +296,19 @@ instead of ~78, so each one is worth 3x and gets looked at 3x as hard.
       HUD; baked stays the fallback
 - [ ] Particles, poppy animations
 
+**7.9 — Measure.** ⚠️ **THE REMAINING WORK.** Everything above is built and soak-verified;
+what a bot cannot verify is tuning.
+- [x] Instrument fixed and proven (7.1) — every exit path banks, flags and commit recorded
+- [x] Structure verified by soak: phases, gates, the fuse, the detonation, guaranteed drops, both
+      endings, shard banking, the whole loop from a fresh profile
+- [ ] **A human run to 10:00, then retune from the telemetry.** Bot variance is now too wide to
+      tune against — two identical soaks produced level 85 and level 50 at 10:00, because autopick
+      takes `offers[0]` and a run has ~25 picks each worth 3x what they used to be
+- [ ] Specific numbers awaiting that run: `RunDirector.MIRROR_LEVEL_STEP` (0.045, produced a 142s
+      fight in a soak against a ~120s target), the 5:00 Prism's length under the new curve, whether
+      the defensive cards revive now that the boss rework asks for defense, and whether the arena
+      still saturates for a weak build around 3:00
+
 **Gate:** a human run to 10:00 where NOGAXEH takes ~2 minutes, the player is genuinely threatened
 before the finale, and the telemetry that says so was recorded by a fixed instrument.
 
@@ -334,7 +347,10 @@ before the finale, and the telemetry that says so was recorded by a fixed instru
 - [x] **v1.1 M6.25** Upgrade rarity (2026-08-02) — 5 tiers, pity floor, superlinear XP, 36 upgrades
 - [x] **v1.1 M6.4** Remaining content (2026-08-02) — Splitter, Ram, Scattergun, Prism Lance, rename
 - [x] **v1.1 M6.5** Design review (2026-08-02) — 31 findings, 27 applied, BESTAGON rename, NOGAXEH, dash
-- [ ] v1.1: **M7 the playtest rework** ← next (spec locked, see `HANDOFF.md`) · M8 ship
+- [x] **v1.1 M7** The playtest rework (2026-08-03) — instrument fixed, cards gate to every 3rd
+      level with a measured drip, weapons drafted, NOGAXEH v2 + true ending, card iconography,
+      THE LATTICE. **Tuning awaits a human run (7.9).**
+- [ ] v1.1: **M8 ship** ← next
 
 *The ship gate moved from M7 to M8 because the first clean human run to 10:00 turned into a rework
 spec rather than a punch list. Scope grew by explicit decision, not by drift.*

@@ -1,4 +1,4 @@
-# Session handoff — 2026-08-02 (late)
+# Session handoff — 2026-08-03
 
 Transient. Delete once the next session has absorbed it. `TODO.md` is the durable
 source of truth; `BRIEF.md` is the spec; `DECISIONS.md` is why things are the way
@@ -6,286 +6,140 @@ they are.
 
 ## Where we are
 
-**Everything is committed** at `cc25881`, working tree clean. The previous
-handoff's "NOTHING IS COMMITTED" warning is resolved — do not act on it.
+**M7 — the whole locked rework — is built and committed.** Working tree clean at
+the last commit; `verify.ps1` green with **117 tests**; Web and Windows exports
+rebuilt from the final code and both produce clean.
 
-Web and Windows exports were rebuilt this session and are current with `cc25881`.
-Both produced clean (exit 0, no `ERROR`/`SCRIPT ERROR`).
+The previous handoff's spec was followed end to end. Three of its numbers were
+changed by measurement, which is what it asked for ("starting points, all to be
+verified by measurement, not argued"). Every change is recorded in
+`DECISIONS.md` with the soak table that forced it.
 
-This session did **no code changes**. It was a grilling session: the first real
-human run to 10:00 was analysed from telemetry, and the result is a locked spec
-for a large rework. Everything below in "The locked spec" is decided. Build it.
+**The one thing left is the thing a bot cannot do: a human run.** See "What still
+needs you" below.
 
-## What the telemetry actually said
+## What shipped, in build order
 
-The evidence is `run_076.jsonl` in `%APPDATA%\Godot\app_userdata\BESTAGON\telemetry`
-— 3312 lines, 11 minutes, **played clean with no dev flags** (confirmed:
-`save.cfg` `best_time=349.1716666666559` matches the run's victory event to the
-millisecond, so it wrote to the real profile, not `save_dev.cfg`).
+| Step | State |
+|---|---|
+| 7.1 telemetry | done — and the real bug was bigger than the spec knew |
+| 7.2 progression | done — drip re-derived from an A/B soak, twice |
+| 7.3 weapon drafts | done — plus a card rebalance measurement forced |
+| 7.4 NOGAXEH v2 | done — structure soak-verified end to end |
+| 7.5 endings | done — true ending screen + death screen |
+| 7.6 card UI | done — iconography, no dead space |
+| 7.7 skill tree | done — THE LATTICE, on the title screen |
+| 7.8 glow | see below |
+| 7.9 measure | **YOURS** |
 
-| Measure | Target | Actual |
-|---|---|---|
-| The Prism @ 5:00 | ~60s | **49s** — accepted, do not touch |
-| NOGAXEH @ 10:00 | ~120s | **~22s** (spawn 599.99, `bosses:3` at 617.0, `bosses:0` at 622.0) |
-| Lowest HP after any hit, whole run | — | **37.5%, once**, at 7:59 |
-| HP at nearly every tick after 3:00 | — | **100%** |
-| Total damage taken in 11 min | — | 168, against a pool that grew 6 → 19 |
-| Level-ups | — | **79**, median one every **7.9s** |
-| Damage by source | — | **96 `bolt` / 20 `contact`** — melee is decorative |
+### The instrument bug was worse than "a dropped log row"
 
-Three diagnoses that drove the whole spec:
+`Main` only banked a run when the player DIED. A restart, a quit to title, or a
+closed window dropped both the telemetry ending row *and* the run's records.
+That is why `run_076` peaked at **2757 kills / 660.1s** while `save.cfg` still
+reads `best_kills=1125` — and worse, that run cleared the victory and survived
+past 600s, which is exactly the `endless_proven` condition. **The human earned
+the PRISM LANCE and the game never gave it to them.**
 
-1. **The mirror's budget was set as an HP ratio and that could never work.**
-   `ESCORT_HP`'s docstring reasons "1.9x the 5:00 event ... which against a ~60s
-   Prism is the ~2 minute climax." Measured: the 5:00 event took 49s and the
-   1.9x-larger 10:00 event took 22s, because **the player's DPS roughly
-   quadrupled over those five minutes**. Budget the fight in seconds at measured
-   DPS, never in HP relative to an earlier fight.
+`Main._finish_run()` is the one place a run ends now. Fixed forward only: the
+existing `save.cfg` was left untouched, because it is your profile and a
+retro-repair is your call, not a side effect. Say the word and it is a one-line
+edit to `best_kills`, `best_time` and the `unlocks` array.
 
-2. **79 levels is not this game's pace — it is the greed-stacked ceiling.**
-   Reaching level 79 needs ~56,200 banked XP; the player's raw gem income was
-   only ~20,500. `greed` is Epic, +50% XP, max 2 stacks, and stacks
-   **multiplicatively** (`upgrade.gd:114`); `scholar` went to 3. Combined
-   `xp_mult` ≈ **3.0x**, held from ~2:30 onward. At 1.0x the same income reaches
-   level ~54. Greed alone was worth 25 levels.
+### Three spec numbers that measurement changed
 
-3. **Three dead cards, and one dead weapon wearing three cards.**
-   `lodestone` 0/16, `magnetism` 0/12, `orbit_radius` 0/11, `tough_hide` 1/12,
-   `orbit_count` 1/10, `carapace` 2/12, `swift_boots` 2/11. All three ORBITAL
-   cards are bottom-five — that is a weapon problem, not a card problem. The
-   defensive cards are dead because the game never asked for defense; the boss
-   rework should revive those on its own, so **leave them and re-measure**.
-   Legendary is already correctly rare: 4 appearances in 234 slots (1.7%), taken 4/4.
+The method: run the *same* soak against a `git worktree` at the pre-rework
+commit and against the working tree, **with the dev profile deleted on both
+sides**. The first attempt at this was invalid and nearly caused a wrong fix —
+the old build granted weapons from the saved profile, so the "blaster-only
+baseline" was secretly a three-weapon run.
 
-## The instrument is lying, and it must be fixed first
+| blaster only, fresh profile | kills @3:00 | kills @3:51 | enemies alive |
+|---|---|---|---|
+| pre-rework (78 picks) | 381 | 626 | 5 |
+| the spec's drip, as written | 86 | 115 | **110 (the cap)** |
+| shipped | 369 | 604 | 18 |
 
-Nothing below can be measured until these are fixed. They are cheap. Do them
-before touching gameplay.
+1. **The damage drip is FLAT, not a percentage.** Early DPS is dominated by the
+   flat bonus on a base-1 weapon; +1.5%/level is +16% of almost nothing at level
+   12, while the seven picks it replaced were worth several whole points.
+2. **Card magnitudes went up ~2-3x.** This is the spec's own other half — "3x
+   fewer, 3x more valuable decisions" — and only the first half of that is a
+   gate. Unique Epic/Legendary effects are untouched.
+3. **The drip also buys BREADTH** (+1 projectile every 20 levels). Damage and
+   fire rate kill one thing faster; only count clears a crowd, and count was
+   card-only. Without it the arena stayed pinned at the enemy cap no matter how
+   much damage was added.
 
-- **`begin_run()` calls `_close()`, not `end_run()`** (`telemetry.gd:37`). A
-  restart drops the previous run's ending row. Both of the only runs that ever
-  reached a boss (`run_074`, `run_076`) have **no `run_end`**, so
-  `analyze_telemetry.py`'s endings report systematically omits exactly the runs
-  that matter.
-- **`_run_t` is never reset in `begin_run()`**, so a new run's `run_start` is
-  stamped with the *previous* run's clock — `run_080` opens at `t:660.2`,
-  `run_074` at `t:119.27`.
-- **`analyze_telemetry.py:28` still defaults to the `PRISM` / `01 Survivor`
-  directory.** Run it bare and it silently analyses pre-rename data and says
-  nothing about any of the above. Point it at `BESTAGON`.
-- **No run records which `--dev-` flags were active.** Establishing that
-  `run_076` was a clean run took a cross-check against `save.cfg`'s
-  `best_time`. Log the active flags and the commit in `run_start`.
-- Related: `run_076` reached 2780 kills but `save.cfg` records `best_kills=1125`,
-  because `update_records` never ran on a run that ended without `run_end`.
-  Verify this when fixing the above.
+### And one the spec could not have known about
 
-## The locked spec
+**The 10:00 fight now scales by LEVEL, not weapon count.** Weapon count was a
+fair DPS proxy while weapons came from the profile; drafting broke it in both
+directions at once — blaster-only at level 91 killed the 11,200 HP event in
+**32 seconds**, while a four-weapon level-77 run took **212**. Level sees the
+drip, the picks and how the run actually went. Re-soaked at **142s** against the
+~120s target. Full reasoning in `DECISIONS.md` and
+`hub/knowledge/proxy-metrics-go-stale.md`.
 
-Every item here was decided this session. Do not relitigate; if something proves
-wrong when measured, record the change in `DECISIONS.md`.
+## What still needs you
 
-**Audience.** Tune for **a stranger's first 10 minutes**. A stranger is by
-definition a zero-skill-tree account, so *every difficulty number is tuned
-against an empty tree*. The tree is the veteran's power fantasy on top.
+**A human run to 10:00, then retune from the telemetry.** Bot variance is now too
+wide to tune against: two identical soak commands produced **level 85** and
+**level 50** at the ten-minute mark, because `--dev-autopick` takes `offers[0]`
+and a run has ~25 picks each worth three times what they used to be. Structure
+is verified; fight lengths are one sample of a wide distribution.
 
-### Progression
+Specific numbers waiting on that run:
 
-- **Cards gate to every 3rd level.** ~25 card screens per run instead of 78.
-- **Every level gives a silent stat drip, no interruption**: damage, fire rate,
-  and a little move speed. **No passive max HP or defense** — the HP pool already
-  grew 6→19 through cards while the player never dropped below 62% at a tick,
-  and defense must stay card-only so it remains a real choice.
-  Starting points, all to be verified by measurement, not argued:
-  +1.5% damage, +0.75% fire rate, +0.3% move speed per level, with the drip's
-  move-speed contribution **capped at +20%** so it cannot stack into un-hittable.
-- **Baseline ~75 levels** in a 10-minute run *with no XP upgrades*; XP boosts
-  move it ±. Today 1.0x yields ~54, so levels get **~2.4x cheaper**. This
-  **supersedes** `CURVE_QUADRATIC = 0.17` and `RATE = 1.45` in `progression.gd`,
-  both added 2026-08-02 to cut level spam. That is coherent, not contradictory:
-  those constants were a proxy fix for **card-screen** spam, and gate-3 fixes
-  that directly, so they are now over-correcting. Record as a supersede.
-- **XP effects become additive into one `xp_mult`, with a cap** (~1.5–1.6).
-  Kills the multiplicative runaway. Same shape as the multishot tax.
+- `RunDirector.MIRROR_LEVEL_STEP` (0.045) — the 10:00 fight's whole difficulty.
+- **The 5:00 Prism under the new curve.** It was accepted at 49s. You now arrive
+  with ~13 picks instead of ~40, offset by the drip. Untouched deliberately;
+  measure it before changing it.
+- **Do the defensive cards revive?** They were dead because the game never asked
+  for defense. NOGAXEH v2 asks. Re-measure before cutting them.
+- **Does the arena still saturate around 3:00 for a weak build?** One soak said
+  yes at level 50. A human plays better than a circling bot, so this is a lower
+  bound, not a verdict.
 
-### NOGAXEH v2 — the 10:00 climax
+```powershell
+# play it (debug build -> telemetry records automatically, real profile)
+..\..\engine\Godot_v4.7.1-stable_win64.exe --path .
+# then read it (dev-flagged runs are excluded from the aggregates automatically)
+python tools/analyze_telemetry.py
+```
 
-Event total **11,200 base HP**, 3.5x today's mirror.
+## New things worth knowing before you edit
 
-- NOGAXEH **4000 HP** (doubled), **double the projectiles**. **No other enemies
-  for the whole fight.**
-- **Phase 1** — spawns with **2 full 1200 HP Prisms**. NOGAXEH invulnerable until
-  both are dead. Full HP, not the current 0.5 escorts: the thing you beat at 5:00
-  returns as a minion at full strength, and that lands harder unweakened.
-- **Phases 2 and 3** — NOGAXEH vulnerable, escalating bullet density.
-- **Phase 4** — high bullets plus **4 more full Prisms**. Shield is back up. This
-  is the final stretch.
-- **The finish.** Breaking the phase-4 shield **stuns** NOGAXEH and it begins
-  charging an explosion. **5 seconds.** Kill it and it simply dies. Fail and it
-  detonates: **70% of max HP near the centre, 50% of max HP everywhere else** —
-  damage as a *percentage of max HP*, so stacking HP cannot trivialise it.
-  **NOGAXEH dies either way**; the 5 seconds decide whether you eat the blast.
-  Because it is %-based, a player who arrives above 50% survives and a player who
-  arrives hurt does not — the attrition phases are what make the finale lethal.
-- **Each of the 6 Prisms drops a guaranteed health pickup.** This is load-bearing,
-  not a nicety: healing is world-drop only at 4.5% on an enemy death
-  (`main.gd:456`), so "no other enemies" would leave the entire ~2-minute fight
-  with six kill events and roughly a 27% chance of a single 2 HP heal. The adds
-  therefore carry three jobs — the shield gate, the threat, and the sustain — and
-  they put the heals exactly where the design wants them, right before the blast.
-- **A distinct TRUE ENDING screen** when NOGAXEH dies: visually different from the
-  5:00 victory screen, run stats, unlock reveal, Restart or Continue into endless.
-  Today `victory` is emitted at most once per run on the *first* boss event
-  (`run_director.gd:22`), so killing the mirror currently produces **nothing** —
-  no screen, no stinger. The director needs a second signal for "a later boss
-  event cleared" alongside the once-per-run `victory`.
-- The death screen is now load-bearing too. A real fraction of runs will end here,
-  and the human has never noticed the screen exists.
-
-### Weapons become drafts, not possessions
-
-- **Weapons are drafted mid-run as cards.** You no longer start a run owning the
-  orbital, scattergun or lance.
-- **A meta unlock adds that weapon's CARD to the draft pool** — beating the Prism
-  means the orbital *can show up*, in this run and every future one. `MetaState`,
-  the milestones and the mid-run announce all stay as built; only the delivery
-  changes from "you own it" to "you may draft it." A stranger's first run is
-  blaster-only to 5:00, then the orbital card enters the pool for the back half.
-- **Drafting a weapon opens that weapon's branch of upgrades.** Today
-  `requires_unlock` gates on the *meta* unlock (`weapon_resource.gd:44,70`,
-  `gen_weapons.gd`); it becomes "drafted this run."
-- **Each weapon gets one Legendary card that boosts it significantly.**
-- **The orbital is boring and weak and needs a real redesign**, not a number buff.
-  Its three cards going 0/11, 1/10 and 3/9 is the symptom.
-- **Merge the three magnet-axis cards into one.** `lodestone` and `magnetism`
-  are pure noise and `greed` already grants gem-magnet.
-- All card changes go through `tools/gen_upgrades.gd` and the manifest, **never by
-  hand** — that is the content-drift trap that already shipped a retired upgrade
-  62 times.
-
-### Meta skill tree (main menu)
-
-Scoped in full this session over a recommendation to defer the tree and ship only
-the catalogue. The concern raised and overruled: a permanent stat tree re-inflates
-the power curve this rework just cut, and does so by a different amount per
-player. Mitigated by tuning everything against a zero-tree account.
-
-- **Currency is depth-weighted**: time survived plus a chunk per boss event
-  cleared. Rewards reaching 10:00 and keeps a failed NOGAXEH attempt worth
-  something. `total_kills` already exists for the running total; this adds an
-  earned-per-run number and a save-schema change.
-- **Small permanent upgrades to base stats.**
-- **A handful of unique cards buyable there, all rarities** — a purchase injects
-  the card into the draft pool.
-- **A catalogue showing locked cards and how to unlock them.**
-- UI must be **measured against the 640x360 viewport**, not the 1280x720 window.
-  A skill tree at that size is genuinely hard. `scenes/dev/pause_layout_check.tscn`
-  is the existing guard; extend it.
-
-### Art
-
-- **Baked glow vs real bloom: build it as a juice-lab variant and decide from the
-  image.** The renderer is `gl_compatibility` at 640x360, and Godot 4.7's
-  Compatibility backend does support real glow, so BRIEF's original worry — a
-  post-process breaking a single-threaded web export — is mostly obsolete, and at
-  that buffer size the cost is negligible. The real risk is visual: bloom at
-  640x360 blooms in chunky pixel steps and hits everything above the threshold
-  including HUD text. So it goes through `scenes/dev/juice_lab.tscn` as a variant
-  next to the shipped one, produces a side-by-side contact sheet of the arena and
-  the HUD, and the human picks from pixels. Baked stays the fallback.
-- **The level-up card UI is now the centrepiece** and still reads as "better,
-  still not there": dead space in the middle, no iconography, plain panel. It now
-  carries 3x fewer, 3x more valuable decisions, plus weapon drafts and per-weapon
-  Legendaries.
-- Particles, poppy animations remain open.
-
-## Build order — this is dependency-driven, not preference
-
-1. **Telemetry fixes.** Nothing after this is measurable without them.
-2. **Progression rework.** Changes the player power curve everything else is
-   tuned against.
-3. **Weapon drafting + card pool + orbital redesign.** Changes it again.
-4. **NOGAXEH v2.** Must come after 2 and 3 — its tuning depends on player DPS at
-   10:00, which both of those move.
-5. **True ending screen + death screen.**
-6. **Level-up card UI.**
-7. **Skill tree + currency + catalogue.** Safe to come last precisely because
-   everything is tuned against a zero tree.
-8. **Glow juice-lab variant.** Independent, any time.
-9. **Measure.** A human run to 10:00, then retune from the telemetry.
-
-The glow variant and the card UI are the only items that can be parallelised
-against the rest without a dependency risk.
-
-## Not decided — do not decide these alone
-
-- **Boss at 3:00 instead of 5:00.** Still explicitly parked: *"we revisit the 3
-  mins later."* It is a rebalance, not a constant — `boss_interval` is one number
-  but the whole wave table is authored against a five-minute ramp.
-- **Melee is decorative** (96 `bolt` vs 20 `contact`). Not raised this session.
-  Either the chase archetypes need a reason to exist or the roster is
-  ranged-plus-texture, and that is a design call.
-- **The floor is deliberately restrained.** The reference art is far brighter, but
-  `BRIEF.md` says the floor "never competes." If it reads too subtle, that is a
-  brief change, not a bug.
-
-## Traps that bit previous sessions — read before editing
-
-1. **Never round-trip a source file through PowerShell 5.1.** `Get-Content` reads
-   UTF-8-without-BOM as cp1252 and `Set-Content` writes the mojibake back as real
-   UTF-8. One bulk edit silently corrupted every em-dash in seven files, and the
-   obvious repair reports every file *clean*. `hub/knowledge/tscn-text-editing.md`.
-   Use the Edit tool or Python.
-2. **`_unhandled_input` is gated by `process_mode`.** A PAUSABLE node receives no
-   input at all while the tree is paused. Every key a pause-time UI advertises
-   must be handled BY that UI. `hub/knowledge/pause-and-process-modes.md`.
-   Directly relevant: the true ending screen and the skill tree.
-3. **Anything a boss does in reaction to damage is inside a physics flush.**
-   `phase_changed` fires from `take_hit` from `body_entered`. Defer every tree
-   mutation reached that way. `hub/knowledge/physics-callbacks.md`. **NOGAXEH v2
-   adds four more damage-triggered spawns and a damage-triggered stun — this trap
-   is going to be hit again.**
-4. **UI must be MEASURED against the 640x360 viewport, not the 1280x720 window.**
-   Two reasoned fixes were wrong before a harness produced the number.
-   `scenes/dev/pause_layout_check.tscn` guards it. `hub/knowledge/ui-must-fit.md`.
-5. **Hand-maintained content lists drift.** Three orphans found in two days.
-   `hub/knowledge/content-drift.md`.
-6. **A music loop's tail-fold is the BRIDGE across the seam.** Shortening a
-   ringing tail to fix a wrap click makes it worse. End the last bar on a rest.
+- **`Main._finish_run()` is the only place a run ends.** Death, restart, quit to
+  title and window close all land there, guarded so nothing banks twice.
+- **`Main._offer_gates()` is the only place card eligibility is decided.** Three
+  kinds of gate — profile unlocks, this run's weapon drafts, skill-tree
+  purchases — flow through one array, because the pool only ever asks "is this
+  gate held".
+- **All content is generated.** `gen_upgrades.gd`, `gen_weapons.gd`,
+  `gen_skills.gd`. The first and third now **prune orphaned .tres**, so removing
+  a definition actually removes the card. Never hand-edit a `.tres`.
+- **`scenes/dev/pause_layout_check.tscn` now guards THREE screens**, and it
+  earned it again: the true ending's first draft measured **633 px tall against
+  a 360 px viewport**. It also doubles as a capture rig — run it windowed with
+  `--screenshot=` to photograph the true ending.
+- The old traps all still apply: never round-trip a source file through
+  PowerShell 5.1; `_unhandled_input` is gated by `process_mode`; defer every
+  tree mutation reached from a damage callback (NOGAXEH v2 adds five more).
 
 ## Commands
 
 ```powershell
 # THE GATE. Run this, not the individual steps.
 powershell -File tools/verify.ps1
-powershell -File tools/verify.ps1 soak     # + 11 minutes clearing both boss events
-
-# play it (debug build -> telemetry records automatically)
-..\..\engine\Godot_v4.7.1-stable_win64.exe --path .
-
-# read the telemetry (NOTE: --dir is REQUIRED until the default path is fixed)
-python tools/analyze_telemetry.py --dir "$env:APPDATA\Godot\app_userdata\BESTAGON\telemetry"
-
-# capture something that MOVES (--dev-autopilot drives a circle; without it the
-# player stands still and every motion effect is invisible)
-..\..\engine\Godot_v4.7.1-stable_win64_console.exe --path . -w --resolution 1280x720 `
-  --fixed-fps 60 res://scenes/main/main.tscn --quit-after 5200 -- `
-  --dev-godmode --dev-autopick --dev-unlocks --dev-autopilot `
-  --screenshot=<abs>/.ai/shot.png --shot-frame=5000
+powershell -File tools/verify.ps1 soak
 
 # content generators (re-run after editing the tool, then --import)
-python tools/gen_assets.py                 # every sprite + the circuit floor
-<console.exe> --headless --path . -s res://tools/gen_waves.gd      # enemies + waves
-<console.exe> --headless --path . -s res://tools/gen_upgrades.gd   # upgrades + manifest
-<console.exe> --headless --path . -s res://tools/gen_weapons.gd    # weapons
-<console.exe> --headless --path . -s res://tools/gen_powerups.gd   # powerups
+<console.exe> --headless --path . -s res://tools/gen_upgrades.gd
+<console.exe> --headless --path . -s res://tools/gen_skills.gd
+<console.exe> --headless --path . -s res://tools/gen_weapons.gd
 
-# audio
-python tools/build_music.py --only track4  # music stems
-python tools/build_sfx.py --only dash      # one-shots
-python tools/score_viewer.py               # visualiser -> .ai/score.html
-
-# exports (both rebuilt clean this session)
+# exports (both current with the final code)
 <console.exe> --headless --path . --export-release "Web" builds/web/index.html
 <console.exe> --headless --path . --export-release "Windows Desktop" builds/windows/BESTAGON.exe
 ```
@@ -295,13 +149,13 @@ python tools/score_viewer.py               # visualiser -> .ai/score.html
 `--dev-godmode` · `--dev-autopick` · `--dev-autocontinue` · `--dev-unlocks`
 · `--dev-stats` · `--dev-autopilot` · `--dev-telemetry`
 
-**Any `--dev-` flag redirects the save to `user://save_dev.cfg`.** Note that
-`--dev-unlocks` will need rethinking once weapons are drafted rather than owned.
+Any `--dev-` flag redirects the save to `user://save_dev.cfg`. **`--dev-unlocks`
+now also DRAFTS every weapon** — since M7.3 an unlock only offers a card, so
+unlocking alone would leave every soak firing the blaster and nothing else.
 
-## Suggested opening prompt for the next session
+## Not decided — do not decide these alone
 
-> Continuing BESTAGON in `D:\Github\Godot\games\01-survivor`. Read `HANDOFF.md`
-> — it holds a fully locked spec from a telemetry grilling session, so do not
-> relitigate the decisions in it. Start at step 1 of the build order (the
-> telemetry fixes), then work down. `TODO.md` M7 has the same items as a
-> checklist.
+- **Boss at 3:00 instead of 5:00.** Still parked, unchanged.
+- **Melee is decorative** (96 `bolt` vs 20 `contact` in the last human run).
+  Still not raised. NOGAXEH v2 does not touch it.
+- **The floor is deliberately restrained.** Still a brief question, not a bug.
