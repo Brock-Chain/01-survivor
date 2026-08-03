@@ -223,7 +223,11 @@ func _warm_up_shaders() -> void:
 
 
 ## --dev-godmode  player takes no damage
-## --dev-stats    print entity counts every 30s of game time
+## --dev-stats    add the [meta] profile line at boot. The 30s [stats] ticker it
+##                used to gate is ALWAYS on now (2026-08-03): it is the flight
+##                recorder, and a recorder only dev runs carry records nothing —
+##                the first remote freeze log survived the kill and still said
+##                only "boot OK", because every marker was behind this flag
 ## --dev-autopick auto-take the first upgrade offer (a paused panel would stall
 ##                a headless soak run forever)
 ## --dev-unlocks  every weapon active regardless of the save — the only way to
@@ -385,9 +389,16 @@ func _modal_open() -> bool:
 			or true_ending.visible)
 
 
-func _pause_if_playing() -> void:
+## `reason` is diagnostic, not behavioural. The focus-out path runs INSIDE the
+## OS window message (Godot dispatches _notification from its WndProc), and the
+## 2026-08-03 freeze dump shows the main thread blocked exactly there — inside
+## user32 dispatch, under engine code, on a kernel wait. If frozen logs keep
+## ending at "reason=focus", that hypothesis graduates to the fix list; a log
+## that ends at "reason=key" points somewhere else entirely.
+func _pause_if_playing(reason: String = "key") -> void:
 	if _modal_open() or pause_panel.visible or get_tree().paused:
 		return
+	print("[pause] t=%.0fs reason=%s" % [time_survived, reason])
 	get_tree().paused = true
 	pause_panel.show_build(UPGRADE_LIST, stacks, level, time_survived, kills, player.stats)
 
@@ -406,14 +417,21 @@ func _physics_process(delta: float) -> void:
 	hud.set_dash(player.dash_ready_fraction())
 	_update_boss_bar()
 	_push_buffs()
-	if _dev_stats:
-		_dev_stats_t += delta
-		if _dev_stats_t >= 30.0:
-			_dev_stats_t = 0.0
-			print("[stats] t=%4.0fs enemies=%3d pickups=%3d proj=%2d bolts=%3d kills=%4d lvl=%2d bosses=%d"
-					% [time_survived, enemies.get_child_count(), pickups.get_child_count(),
-					projectiles.get_child_count(), enemy_bolts.get_child_count(),
-					kills, level, director.bosses_alive])
+	# UNCONDITIONAL since 2026-08-03 — this is the flight recorder, not a dev
+	# readout. The first remote freeze report arrived as a log that had survived
+	# the kill (the flush fix worked) and contained ONE line, because every print
+	# except boot OK was gated behind --dev-stats and no player runs with dev
+	# flags. A log that says nothing localizes nothing: the whole point of these
+	# lines is that the LAST one before the log goes quiet brackets the freeze to
+	# a 30-second window and says what the arena looked like. One print per 30s
+	# of game time; flush-per-print is already on (project.godot).
+	_dev_stats_t += delta
+	if _dev_stats_t >= 30.0:
+		_dev_stats_t = 0.0
+		print("[stats] t=%4.0fs enemies=%3d pickups=%3d proj=%2d bolts=%3d kills=%4d lvl=%2d bosses=%d"
+				% [time_survived, enemies.get_child_count(), pickups.get_child_count(),
+				projectiles.get_child_count(), enemy_bolts.get_child_count(),
+				kills, level, director.bosses_alive])
 
 
 func _push_buffs() -> void:
@@ -481,8 +499,9 @@ func _on_boss_spawned(boss: Node2D) -> void:
 		_boss_event_max_hp += boss.max_hp
 	_announce_boss()
 	Telemetry.event(&"boss_spawn", {"alive": director.bosses_alive})
-	if _dev_stats:
-		print("[boss] spawned t=%.0fs alive=%d" % [time_survived, director.bosses_alive])
+	# Unconditional, like [stats]: both freezes so far were during or near boss
+	# fights, so "which side of the spawn was it on" is the first question.
+	print("[boss] spawned t=%.0fs alive=%d" % [time_survived, director.bosses_alive])
 
 
 ## Name the thing that just arrived. The 5:00 event used to appear with a sound
@@ -548,8 +567,7 @@ func _on_unlocked(ids: Array[StringName]) -> void:
 ## Fired once, on the first boss event cleared. The reward is already banked by
 ## the time this runs — Continue is pure upside.
 func _on_victory(_event_index: int) -> void:
-	if _dev_stats:
-		print("[victory] t=%.0fs kills=%d lvl=%d" % [time_survived, kills, level])
+	print("[victory] t=%.0fs kills=%d lvl=%d" % [time_survived, kills, level])
 	# The victory screen waits on a button, which would stall a headless soak at
 	# the exact moment endless begins — the part that most needs soaking.
 	Telemetry.event(&"victory", {"kills": kills, "lvl": level})
@@ -938,6 +956,11 @@ func _finish_run(reason: String) -> void:
 ## scripts call reload_current_scene/change_scene_to_file, so the teardown is the
 ## only hook that catches every one of them without wiring a signal through each.
 func _exit_tree() -> void:
+	# Every DELIBERATE way out of a run prints this; a freeze that has to be
+	# killed cannot. So a log whose last line is anything else IS a freeze, and
+	# the line before it says when. Removes the ambiguity between "froze while
+	# paused" and "paused, then quit" that [pause] alone would leave.
+	print("[exit] t=%.0fs kills=%d lvl=%d" % [time_survived, kills, level])
 	# Exit propagates children-first, so the HUD has already left the tree: a
 	# banking unlock would try to tween on an exited node. Drop the announcement
 	# before banking — at death the tree is intact and this never runs.
@@ -947,6 +970,10 @@ func _exit_tree() -> void:
 
 
 func _on_player_died() -> void:
+	# The other end-of-run marker. A freeze report whose log ends in [run_end]
+	# froze on the game-over screen, not in the arena — different suspects.
+	print("[run_end] t=%.0fs kills=%d lvl=%d by=%s src=%s"
+			% [time_survived, kills, level, player.last_hit_by, player.last_hit_source])
 	Telemetry.event(&"death", {"kills": kills, "lvl": level})
 	_finish_run("death")
 	Sfx.play(&"death")

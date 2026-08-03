@@ -1057,3 +1057,19 @@ LLM-written). Full reasoning in `tools/share/ITCH-PAGE.md`.
   and left a 0-byte `godot.log`, because a release build buffers the log file and only flushes on a
   clean exit. Measured against the shipped exe, hard-killed after 8 s: 0 bytes off, 73 bytes on.
   Every freeze before this one was unreadable by construction and nobody knew.
+
+- **2026-08-03 — The flight recorder is always on, because the first remote freeze proved
+  persistence without content is still no evidence.** A friend's machine froze; the collector
+  chain worked end to end (log survived the kill, zip arrived); and the log said exactly one
+  thing, "boot OK" — every other print in the game was gated behind `--dev-stats`, a flag no
+  player carries. The 30 s `[stats]` ticker, `[boss]`, `[victory]` now print unconditionally, plus
+  three new one-liners: `[run_end]` on death, `[pause]` with `reason=key|focus` (the focus path
+  runs inside the OS window message, which is where the hang dump shows the main thread blocked —
+  so this line tests hypothesis #2 remotely), and `[exit]` in `_exit_tree`, which every deliberate
+  way out of a run passes through. A log whose last line is not `[exit]` IS a freeze, and the line
+  before it says when. Cost: ~25 prints per 11-minute run, flush already on. The second data point
+  also culled suspects: the friend has no Meta Virtual Monitor and a NEWER driver (595.97), so
+  what survives across both machines is NVIDIA + Windows 26200 + GL Compatibility, and the
+  collector now inventories overlay/capture processes — `nvspcap64.dll` was injected in the one
+  dump we have, and nobody volunteers what overlays they run because none of it feels like
+  running software.

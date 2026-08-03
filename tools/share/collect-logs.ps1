@@ -46,6 +46,25 @@ try {
     # Never let a WMI hiccup cost us the logs, which are the point.
     $info += "sysinfo    : FAILED - $($_.Exception.Message)"
 }
+
+# Overlay and capture software. The one hang dump we have (2026-08-03) had
+# NVIDIA's ShadowPlay capture hook (nvspcap64.dll) injected into the game, and
+# this whole class of tool hooks the GL/present path where that hang lived.
+# Whether the SAME overlays are running on every machine that freezes is the
+# first cross-machine question, and no reporter volunteers it because none of
+# this feels like "software you are running".
+try {
+    $overlayPattern = '^(nvcontainer|nvsphelper|NVDisplay|NVIDIA|RTSS|MSIAfterburner|obs|Discord|Overwolf|Medal|GameBar|XboxGameBar|steamwebhelper)'
+    $found = @(Get-Process | Where-Object { $_.ProcessName -match $overlayPattern } |
+        Select-Object -ExpandProperty ProcessName -Unique | Sort-Object)
+    if ($found.Count -eq 0) {
+        $info += "overlays   : none of the known ones running"
+    } else {
+        foreach ($p in $found) { $info += "overlay    : $p" }
+    }
+} catch {
+    $info += "overlays   : FAILED - $($_.Exception.Message)"
+}
 $info | Set-Content (Join-Path $stage "system.txt")
 
 $desktop = [Environment]::GetFolderPath("Desktop")

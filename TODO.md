@@ -329,10 +329,17 @@ before the finale, and the telemetry that says so was recorded by a fixed instru
       baseline: ~0.20). Not GDScript: every `while` in game code provably terminates, and no thread
       was executing game code. Stack is `ntdll wait ← uxtheme ← KERNELBASE ← [engine] ← user32
       dispatch`, on `gl_compatibility` + NVIDIA 591.86 with `nvspcap64.dll` (ShadowPlay) injected
-- [ ] **Freeze: still unreproduced, still open.** Ranked suspects: (1) NVIDIA GL/ShadowPlay driver
-      stall, (2) `main.gd:_notification` doing scene work synchronously inside the window message,
-      (3) an accessibility `WM_GETOBJECT` provider call, (4) the Windows modal move-size loop. Next
-      probe when it recurs: the focus-stress test. **A 10:45 natural run did not reproduce it**
+- [ ] **Freeze: still unreproduced, still open — now TWO Windows machines (2026-08-03).** A
+      friend's RTX 4070 SUPER (driver 595.97, NEWER than the local 591.86) froze mid-run on the
+      same Windows build 26200. Their collected log survived the kill (flush fix works remotely)
+      but contained only the boot line — which is what forced the always-on breadcrumbs. Suspects
+      culled: the Meta Virtual Monitor (friend has none), driver-version-specific (two versions),
+      rAF (dead earlier). Survivors, ranked: (1) NVIDIA GL/overlay-hook stall — `nvspcap64.dll` was
+      injected in the one dump; the collector now inventories overlays per machine, (2)
+      `main.gd:_notification` doing scene work synchronously inside the window message — every
+      `[pause]` breadcrumb now carries `reason=key|focus` to test exactly this, (3) accessibility
+      `WM_GETOBJECT`, (4) modal move-size loop. Next freeze: last breadcrumb brackets it to a 30 s
+      window; locally the watchdog also takes a dump. **A 10:45 natural run did not reproduce it**
 - [ ] **Review Split Shot vs Scatter as CONTENT.** They are the same card: both `PROJECTILE_COUNT`
       at magnitude 1.0 with byte-identical description text, differing only in rarity (Rare vs
       Uncommon), `max_stacks` (3 vs 2) and weight. `UpgradePool` now refuses to put two
