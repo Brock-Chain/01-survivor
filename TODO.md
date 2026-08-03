@@ -438,11 +438,20 @@ one known profile was bot-contaminated anyway.
       rewritten to match: both generators named, and why the audio renderer is *resolved* rather
       than vendored (it imports AGPL-3.0 packages; Godot only plays the `.ogg` files and never
       links any of it, so the stems stay original works under MIT).
-- [ ] v1.1: **M8 ship** ← next. Remaining: tune the 5:00→10:00 ramp and the 10:00 fight length
-      against a real run, settle the freeze question, flip the itch page Public.
-      **Two numbers are owed a soak rather than an opinion:** the 10:00 mirror event inherited the
-      Prism doubling and is now 18,400 base (was 11,200, last measured at 212 s for a four-weapon
-      run), and `MIRROR_LEVEL_STEP` was fitted against the old base and never re-fitted.
+- [ ] v1.1: **M8 ship** ← next. The freeze is SETTLED as of 2026-08-03 — root-caused (orphaned
+      Legendary-pulse tween; debug-only engine detector) and fixed in `304923c`, regression-gated
+      in verify.ps1. Remaining, in order:
+      1. **Confirmation runs** on `304923c`: local runs deep past LV 17, and the friend's machine
+         (their two zips predate the fix). Every prior freeze hit by ~LV 17, so this is cheap.
+      2. **Tune the 5:00→10:00 ramp and the 10:00 fight length against a real run.** Two numbers
+         owed a soak rather than an opinion: the mirror event inherited the Prism doubling and is
+         now 18,400 base (was 11,200, last measured 212 s for a four-weapon run), and
+         `MIRROR_LEVEL_STEP` was fitted against the old base and never re-fitted.
+      3. **First gamepad session** — controller bindings shipped 2026-08-03 (`1d7f41c`) straight
+         from the editor and have never met a physical pad.
+      4. **itch: butler push + flip Restricted → Public.** Closes hub D15.
+      Then the **v1.1 postmortem in the hub** (D6/D15: written BEFORE v2 work starts), and v2 —
+      `02-sts-lite` — opens from `hub/research/sts/`, which is already planned in full.
 
 *The ship gate moved from M7 to M8 because the first clean human run to 10:00 turned into a rework
 spec rather than a punch list. Scope grew by explicit decision, not by drift.*
