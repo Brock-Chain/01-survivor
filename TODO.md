@@ -171,7 +171,7 @@ playtest feedback on top. Rejections recorded in `DECISIONS.md`.
 ### M7 — The playtest rework ⭐ SPEC LOCKED 2026-08-02
 
 The first clean human run to 10:00 (`run_076`, no dev flags) produced a spec, not a bug list.
-**Full detail and the evidence behind every number is in `HANDOFF.md` — read it before starting.**
+**Full detail and the evidence behind every number is in the 7.1-7.9 entries below and in `DECISIONS.md`.**
 The headline findings: **NOGAXEH died in ~22s against a ~120s target**, the player **never came
 close to dying in 11 minutes** (lowest HP after any hit 37.5%, once), and **79 level-ups** meant a
 card screen every 7.9s.
@@ -377,7 +377,7 @@ one known profile was bot-contaminated anyway.
       overflow + off-centre, `◆` tofu on web, invisible Aegis, silent level-ups, ESC dead in
       fullscreen, bosses too small / enemies latching on. Packaging turned into a script
       (`tools/package.ps1`) after being done by hand wrong twice. **Tuning numbers still owed** —
-      see HANDOFF.
+      recorded in M8 below.
 - [x] **v1.1 M7.95** Second playtest response (2026-08-03) — seven items from the same tester, all
       shipped: enemies and projectiles made readable (baked neon halos; bolts glow AND streak,
       bodies do neither; the Dart stopped rotating along travel), screenshake cut a third at the

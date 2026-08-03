@@ -569,7 +569,7 @@ a ~2 minute climax against a ~60s Prism. Knobs, in order: `nogaxeh.tres:max_hp` 
 No code changed in this session. `run_076.jsonl` — 3312 lines, 11 minutes, **played with no dev
 flags** (confirmed by `save.cfg` `best_time=349.1716666666559` matching the run's `victory` event
 to the millisecond, so it wrote to the real profile rather than `save_dev.cfg`) — was analysed and
-turned into a locked rework spec. `TODO.md` M7 is the checklist; `HANDOFF.md` holds the detail
+turned into a locked rework spec. `TODO.md` M7 is the checklist; the evidence is in this file and in the M7 commits
 while it lasts. The decisions and reversals worth keeping are here.
 
 **Budgeting a boss as an HP ratio to an earlier boss is invalid, and this is the proof.**
