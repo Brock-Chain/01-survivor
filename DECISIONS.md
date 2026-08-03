@@ -260,6 +260,257 @@ on almost everything.
   write the real save — records are bot-inflated (`best_kills=1047`, `elite_hunter` earned by bots).
   Flagged as an M6.5 finding (dev runs should use a separate profile).
 
+## Playtest 2 response — 2026-08-02 (during the M6.5 review)
+
+First human run of the post-M6 build. It ended at 4:11 without reaching the boss, so
+the 5:00 fight is STILL unverified — but the run itself was evidence. Telemetry
+`run_035.jsonl`: 713 kills, level 30, **3 damage events in four minutes**, HP never
+below 5/6. The review's "the run is never dangerous" finding, reproduced live and worse
+than the pre-M6 runs it was derived from.
+
+- **The pause screen could strand the player — two independent causes, both fixed.**
+  The build grid is in a `CenterContainer`, which centres an oversized child by
+  overflowing it at BOTH ends, so at 22 upgrades the Resume/Restart/Menu row was pushed
+  off the bottom of the viewport. The keyboard should have saved it and could not:
+  `Main` is `PROCESS_MODE_PAUSABLE`, and **a paused tree runs no input callbacks on a
+  pausable node**, so every key in `Main._unhandled_input` — ESC, P, M, R — was dead the
+  instant the tree paused. The panel's own Hint label advertised all four. Fixed twice
+  over: the keys moved into `PausePanel` (which is `WHEN_PAUSED`), and the grid went into
+  a `ScrollContainer` whose height is measured from the grid's own minimum and capped.
+  *Lesson: `_unhandled_input` is gated by `process_mode` exactly like `_process` is —
+  moving input out of `_physics_process` does not, on its own, make it survive a pause.*
+
+- **That layout fix took a harness, because two reasoned guesses at it were both wrong.**
+  The first attempt gave the ScrollContainer a fixed 300 px height and made the panel
+  FULL-SCREEN — `ScrollContainer` defaults to `SIZE_EXPAND_FILL` on **both** axes, so it
+  ate every spare pixel in the VBox. The second capped the grid at 150 px and still
+  overflowed, because the budget is against the **640x360 viewport**, not the 1280x720
+  window, and the non-grid overhead is ~222 px rather than the ~199 estimated by reading
+  the scene: fonts render taller than their nominal size.
+  `scenes/dev/pause_layout_check.tscn` now instantiates the real panel at 0/1/3/6/12/22/38
+  upgrades and fails if the footer leaves the viewport — it is what produced the working
+  number (125). Kept rather than deleted: `scenes/dev/*` is already excluded from both
+  export presets, and the unit suite cannot cover this by convention (pure logic, never
+  scenes). VBox separation went 8 → 5 in the same pass to buy back a row of build sheet.
+  *Lesson: UI that must FIT is a measurement, not an argument — and the viewport, not the
+  window, is the ruler.*
+
+- **Level-ups slowed ~15%, as a flat multiplier on the whole curve
+  (`Progression.RATE = 1.45`).** The run hit level 30 at 4:11 — and 30 is exactly
+  `Rarity.PROGRESS_FULL_LEVEL`, where rarity odds saturate, so the entire rarity ladder
+  was climbed before the boss and the climax had nothing left to escalate. Measured the
+  way this dial has always been measured here (levels on a 6000 XP run): 39 → 33.
+  The multiplier is 1.45 rather than 1.15 because the curve is quadratic — a flat 15% on
+  COST buys only ~7% fewer LEVELS. Applied as a multiplier, not a steeper quadratic: the
+  ask was "scarcer", not "back-loaded". A new test pins the real intent — a five-minute
+  run must now arrive at the boss still short of saturation.
+
+- **The level-up cue was replaced.** It was a two-chord sawtooth cadence with a bell —
+  "stately", which is the one thing this game is not, and it read as borrowed from
+  another genre. Replaced with a slow warm three-note rise on triangle. It deliberately
+  takes the opposite pole from the power-up cue (fast/bright/square/delay-shimmer), which
+  fires about as often and was the thing it kept being confused with. Built from stacked
+  FIFTHS AND OCTAVES only — no third — because the gameplay tracks rotate through A
+  Aeolian, D Phrygian and A Dorian, the same key clash that already forced the victory
+  stinger to duck the music.
+
+- **The level-up panel now fades and settles in over 160 ms** instead of snapping in on
+  the frame the level landed. Not awaited by the caller, so a fast player picks through
+  the motion rather than being gated behind it.
+
+- **The documented smoke command never tested the game.** `--headless --path .` boots
+  `run/main_scene`, which is `title.tscn` — so `--quit-after 300` exercised the title
+  screen and exited 0 no matter what was broken in gameplay. Gameplay smoke needs
+  `res://scenes/main/main.tscn` passed explicitly. Note also that `--dev-autopick` skips
+  `LevelUpPanel.show_offers()` entirely, so a soak with autopick never touches the panel.
+
+## BESTAGON — the M6.5 apply pass (2026-08-02)
+
+Renamed, re-shaped, and the whole review acted on. `.ai/review/FINDINGS.md` is the
+source list; 27 of 29 open findings landed here, 21 and 22 deferred to V1.1 as pure
+refactors with no player-visible effect.
+
+- **The game is BESTAGON.** The name comes from the PROTAGONIST now, inverting PRISM's
+  logic: the player is a hexagon and nothing hostile is one. Shipped as the single word
+  rather than the full sentence because a four-word title cannot be a wordmark, and the
+  hexagon IS the logo — which is also how review finding 10 ("no prism in PRISM") gets
+  closed. Tagline "hexagons are the bestagons" carries the joke.
+
+- **Silhouette is FAMILY, size and colour are VARIANT, and `hollow` is a new pattern
+  channel.** The colour law is untouched: hue still encodes allegiance. This mattered
+  because the hostile band was already exhausted at seven enemies — findings 8 (the Ram
+  wore the DART'S sprite and a hue 0.08 from the Lancer's) and 18 (the Splitter sat in
+  the yellow reserved for enemy fire) were both symptoms of running out of hue. Pattern
+  costs no hue budget and survives being 12px tall. First variant proves it: `lancer_heavy`
+  is the same chevron, bigger and hotter, firing 65% faster.
+  *Roster:* player hexagon · Drifter square · Dart needle (rotates) · Ram wedge (rotates)
+  · Lancer chevron · Splitter hollow diamond · Bulwark hollow octagon · Prism pentagon
+  (a pentagonal prism is a real solid, so the boss's name stays accurate) · **Nogaxeh**
+  hollow hexagon.
+  *Also caught during the pass:* the Dart's triangle was the ENEMY BOLT'S triangle, so a
+  Dart read as an oversized piece of enemy fire. Only visible on a contact sheet.
+
+- **NOGAXEH — the 10:00 mirror.** The only hostile hexagon; the silhouette rule holds for
+  ten minutes and then breaks exactly once, and the break is the reveal. Its name is
+  HEXAGON backwards and the HUD banner spells the word forwards before flipping, so the
+  reveal is typography rather than dialogue nobody reads mid-fight. It fights with
+  TESSELLATION — six arms at 60°, each a growing spoke of bolts — because tiling is the
+  actual reason hexagons are the bestagon. Escorted by two elite Prisms, not four Prisms:
+  four copies of one boss is not a mirror match.
+
+- **The 5:00 boss died in SEVEN SECONDS, and the cause was not its HP.** Telemetry
+  `run_041`: 8 projectiles AND +19 flat damage, and those axes MULTIPLIED — ~150x before
+  pierce, ricochet, chain and Prism Core. No single upgrade was overtuned; the product
+  was. Fixed at the root in `Stats.volley_damage_mult`: total volley damage now scales as
+  sqrt(N) rather than N, taxed against each weapon's OWN base count so the scattergun's
+  authored 5 pellets are free and only upgrade-bought growth pays. Multishot stays a
+  crowd tool and stops being a boss-deleter, which narrows the DPS gap between a
+  first-timer and a maxed profile — the thing that lets one boss HP number serve both.
+  *`split_shot`'s draw weight was 2.2, the highest in the pool by more than double*, so
+  the game was actively steering every run onto its most multiplicative axis. Now 1.0.
+  *And Scatter's advertised "-20% damage" was never applied by anything.* The card lied.
+
+- **Boss HP scales with player power, not just event index** (finding 4). A first-timer
+  with the blaster and a returning player with four stacked weapons used to fight the
+  identical 1800 HP. Only the BOSS scales this way — trash stays on the time curve,
+  because enemies that grow because you got stronger read as the game cheating while a
+  boss doing it reads as the boss rising to meet you.
+
+- **The dash is the reward for beating The Prism.** i-frames, 1s cooldown, absent from
+  the first five minutes entirely — so the prime-directive run is unchanged and BRIEF
+  defect #1 cannot regress where it matters. It arrives exactly where 5:00→10:00 turns
+  into bullet hell. *This forced finding 2's fix to be load-bearing:* `Meta.unlocked` had
+  zero listeners, so unlocks applied only on the NEXT run — a player who won and pressed
+  Continue would have met Nogaxeh without the dodge they had just earned.
+
+- **Fluidity is VISUAL ONLY.** Rotation to heading, stretch along travel, cyan afterimage
+  trail, idle spin. `velocity` is still assigned straight from input and never smoothed:
+  acceleration and inertia are how defect #1 gets manufactured, and they are parked as
+  future upgrades or an alternate character. The hexagon's six-fold symmetry is what makes
+  it work — rotating it is visually free, so rotation orients the stretch rather than
+  indicating a facing the player does not have.
+
+- **A retired upgrade was still in the pool for weeks.** Generating the UPGRADE_LIST
+  manifest (finding 23) emitted 37 entries against the hand-written list's 38. The extra
+  was `bandage` — the heal this file records as REMOVED after the first playtest ("a
+  reward you cannot use is a punished level-up"). Telemetry proves it was live:
+  `bandage 24% (15/62)`, offered sixty-two times. Exactly the failure the phantom
+  "generator" comment warned about, running in the opposite direction.
+
+- **`_unhandled_input` is gated by `process_mode`.** Every key the pause panel advertised
+  was dead because Main is PAUSABLE. See the Playtest 2 entry above; repeated here because
+  it will recur in any future pause-time UI.
+
+- **Two dead-code findings, same shape.** `EnemyStats.max_alive` was never enforced
+  (finding 11 — the Shard's cap of 4 was data nothing read) and `Difficulty`'s three
+  tuning curves had no production callers while ELEVEN tests asserted their exact values
+  (finding 20). Both fixed; the difficulty tests that verified nothing are deleted.
+
+- **The documented smoke gate never ran the game** (finding 29). `run/main_scene` is
+  title.tscn, so `--headless --path .` booted the title screen and exited 0 regardless.
+  `tools/verify.ps1` is now the gate: import + tests + gameplay smoke (asserting the boot
+  line actually printed) + the pause-layout harness, with an optional 11-minute soak.
+  *Two Windows PowerShell traps are baked into it:* a .ps1 without a BOM is read as ANSI,
+  so one em-dash in a comment is a parser error; and `& exe 2>&1` wraps native stderr in
+  ErrorRecords whose text contains "NativeCommandError", which the script's own error grep
+  then matched — the gate failed itself on three steps that had passed.
+
+- **Renaming moves `user://`, so the migration is code now.** It was hand-done for PRISM;
+  `Meta._migrate_legacy_user_data` copies save, settings and the telemetry directory from
+  a previous app name once, into a profile that does not exist yet. The forty-odd runs the
+  whole balance pass rests on are not something a rename gets to orphan.
+
+- **Dev runs write a separate profile** (finding 12), keyed off the `--dev-` prefix rather
+  than a list, so a dev flag added later cannot forget to opt in.
+
+**Open, and deliberately so:** every difficulty number in this pass is an ESTIMATE. There
+has been no human run since the changes. A godmode bot clears the 5:00 fight in 48–113s
+across seeds; the target is ~60s for a human. The knobs, in order of leverage:
+`prism.tres:max_hp` (1200) · `RunDirector.POWER_STEP` (0.75) · `Stats.volley_damage_mult`
+(the sqrt) · wave `spawn_interval`/`hp_mult` in `gen_waves.gd`, which was deliberately
+NOT touched so the volley tax could be measured alone.
+
+## Playtest 3 response — 2026-08-02 (first human run of BESTAGON)
+
+Full spec and checklist: `.ai/review/ROUND2-SPEC.md`.
+
+- **The player never deforms again.** The stretch-along-travel added that morning was
+  rejected on sight — *"I dislike that it thins out when moving"* — and the underlying
+  complaint was diagnosed by grilling as "inert and boring", NOT late or slippery. So the
+  input model is untouched for the third time: `velocity = dir * move_speed`, no smoothing.
+  Instead the sprite SPLIT into body + core, and the core lags on an underdamped spring.
+  That is the only motion channel a hexagon has left — six-fold symmetry makes rotation and
+  banking invisible (60° is identical to 0°), and deformation is off the table — so breaking
+  the symmetry from the inside is the whole trick. The same node carries state: dims with
+  HP, flares when the dash returns, breathes at rest, clenches mid-dash.
+
+- **Trail: ribbon plus twin vertex jets.** The ribbon is a world-space `Line2D` through
+  recent positions; the jets leave the two TRAILING vertices, which is the one effect that
+  uses the fact that the player is specifically a hexagon. Length and intensity both scale
+  with speed and the dash is a distinct spike, because that 0.15s is the only moment the
+  player is untouchable and it should look like it. *Two traps, both worth remembering:*
+  trail length is `points x speed / 60`, so the first attempt's 15 points drew a 32px
+  streak on an 18px character and looked like nothing; and it did not render at all until
+  `Floor.z_index` went to -10, because a trail at -3 was drawing behind the arena floor.
+
+- **Enemies +20-30%, bosses and player +10%, projectiles unchanged, balance NOT retuned.**
+  Sizes are now TIERS in `resources/enemy_size.gd` rather than ten hand-picked floats, which
+  is what makes "size is a VARIANT axis" a mechanism instead of a convention. Enemy sprite
+  canvases went 16 -> 24px so the shapes stay crisp instead of nearest-scaling to stairs,
+  and `enemy.gd` now derives its scale divisor from the TEXTURE WIDTH — the hardcoded 16
+  had been silently drawing the 32px boss sprite at 2x for its entire life.
+
+- **Chain lightning is drawn, not fired.** It was duplicate short-lived projectiles, which
+  is why *"the chain lightning doesn't look like lightning at all"* — it was, literally,
+  more bullets. Now damage applies directly and a jagged polyline is drawn with a
+  translucent body under a white-hot core, the same construction as the Lance's beam.
+  Spawning no children also makes the "children must be INERT" recursion rule structural.
+
+- **The sound problem was DENSITY, not pitch.** The complaint arrived as "a bit high pitched
+  and not super clear what's making what sound" and resolved under questioning to *"too many
+  sounds and all too similar"*. Retuning 23 cues would not have helped. Fixed with a central
+  `Sfx.THROTTLE` table rate-limiting the five frequent cues, plus a real loudness hierarchy:
+  boss_telegraph -1 and hurt 0 against pickup -19, hit -17, shoot -16. Texture went under
+  the floor so the safety-critical cues could be heard at all.
+
+- **NOGAXEH: three phases, alone for two, then escorts behind a shield.** `boss.gd` grew
+  `phase_thresholds` (a PackedFloat32Array of HP fractions) so the Prism's two-phase fight is
+  unchanged while the mirror runs three. Phase 1 is one attack, slowly — that restraint IS
+  the dread. Phase 2 it starts dashing with a trail, quoting the player's own verb. Phase 3
+  the escorts arrive AND it becomes invulnerable until they die, so the escorts cannot be
+  ignored and the pentagon beaten at 5:00 comes back as its minion. Three patterns now:
+  LATTICE (six spokes), HONEYCOMB (bolts from the vertices of a hex cell), SHEAR (two
+  counter-rotating rings). Music thins to bass on arrival and rebuilds one stem per phase.
+
+- **The shield needed three indicators, not one.** A player shooting an invulnerable boss
+  with no explanation is BRIEF defect #4. The membrane fills the hollow ring (the cell
+  closes), blocked hits get a grey pulse and a dull thud instead of the white hit-flash, and
+  the HUD bar locks with `SHIELDED — DESTROY THE PRISMS`. Any one of the three alone would
+  have left the state guessable rather than stated.
+
+- **Damage-triggered boss spawns must be DEFERRED.** `phase_changed` is emitted from inside
+  `Boss.take_hit`, which is called from `Projectile._on_body_entered` — a physics flush — so
+  spawning the escorts there threw "Can't change this state while flushing queries" on every
+  mirror fight. Same trap DECISIONS already records for Prism Core and Chain Lightning,
+  reached by a new route. *Anything a boss does in reaction to damage is inside a flush.*
+
+- **Two more orphaned content files.** `chaser.tres` and `fast.tres` were pre-M5 roster
+  leftovers referenced by nothing but a stale comment — the same class as `bandage`. Three
+  in two days is not bad luck; it is what a hand-maintained content directory does.
+
+- **NEVER round-trip a source file through PowerShell 5.1.** `Get-Content` reads a UTF-8 file
+  without a BOM as cp1252, and `Set-Content` writes the mojibake back out as real UTF-8. One
+  read-modify-write silently corrupted every em-dash in seven scripts. Worse, the obvious
+  repair (`text.encode('cp1252').decode('utf-8')`) reports every file CLEAN, because a single
+  non-cp1252 character anywhere raises and aborts the whole file — the fix has to walk
+  character by character. Use the Edit tool, or Python, for source files.
+
+**Still an ESTIMATE, unchanged from the last pass:** every difficulty number here is tuned
+against a godmode bot, which the project's own history says cannot set difficulty. The mirror
+event is budgeted at ~1.9x the 5:00 event by total HP, which is the ratio that should produce
+a ~2 minute climax against a ~60s Prism. Knobs, in order: `nogaxeh.tres:max_hp` (2000),
+`RunDirector.ESCORT_HP` (0.5), `prism.tres:max_hp` (1200), `RunDirector.POWER_STEP` (0.75).
+
 ## Known-open at time of writing (2026-08-02)
 
 **All five resolved in M0 (commit `0b3cdf3`).** Kept for the record:

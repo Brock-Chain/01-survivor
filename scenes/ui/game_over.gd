@@ -13,10 +13,56 @@ func _ready() -> void:
 	menu_button.pressed.connect(_on_menu)
 
 
-func show_results(time_survived: float, kills: int, level: int) -> void:
+## Names for the thing that killed you. Kept beside the screen that shows them
+## rather than on the enemy data, because these are PLAYER-FACING sentences, not
+## content — the .tres files stay pure numbers.
+const KILLER: Dictionary = {
+	&"drifter": "A Drifter caught you.",
+	&"dart": "A Dart ran you through.",
+	&"bulwark": "A Bulwark crushed you.",
+	&"lancer": "A Lancer's bolt found you.",
+	&"splitter": "A Splitter got you.",
+	&"ram": "A Ram ran you down.",
+	&"shard": "A Shard cut you down.",
+	&"prism": "The Prism finished it.",
+}
+
+
+## Review finding 16 and BRIEF defect #4: this screen used to report time, kills
+## and level, and nothing about WHY the run ended. It also never mentioned the
+## player's record — the near-miss ("22s short") is the strongest restart
+## motivator in the game, and it was sitting unread in MetaState the whole time.
+func show_results(time_survived: float, kills: int, level: int,
+		killed_by: StringName = &"", source: StringName = &"",
+		unlocks: Array[StringName] = []) -> void:
 	var minutes: int = int(time_survived) / 60
 	var seconds: int = int(time_survived) % 60
-	stats_label.text = "You survived %02d:%02d\n%d kills — level %d" % [minutes, seconds, kills, level]
+	var lines: PackedStringArray = []
+
+	if KILLER.has(killed_by):
+		lines.append(String(KILLER[killed_by]))
+	elif source == &"bolt":
+		lines.append("A bolt found you.")
+	elif source == &"contact":
+		lines.append("Something ran you down.")
+	lines.append("%02d:%02d · %d kills · level %d" % [minutes, seconds, kills, level])
+
+	# The near-miss line. Only shown when there IS a record to miss, and only
+	# when this run did not beat it — telling a player they were 0s short of
+	# their own new best is nonsense.
+	var best: float = Meta.state.best_time
+	if best > 0.0 and time_survived < best:
+		lines.append("Best %02d:%02d — %ds short." % [
+				int(best) / 60, int(best) % 60, int(ceilf(best - time_survived))])
+	elif best > 0.0 and time_survived >= best:
+		lines.append("NEW BEST.")
+
+	for id: StringName in unlocks:
+		lines.append("")
+		lines.append("UNLOCKED — %s" % MetaState.unlock_label(id))
+		lines.append(MetaState.unlock_blurb(id))
+
+	stats_label.text = "\n".join(lines)
 	visible = true
 	restart_button.grab_focus()
 

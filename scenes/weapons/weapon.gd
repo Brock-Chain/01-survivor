@@ -1,4 +1,4 @@
-class_name Weapon
+﻿class_name Weapon
 extends Node2D
 ## Auto-fires at the nearest enemy in range. Multi-shot fans out in a small
 ## spread. Reads everything from the player's Stats — upgrades tune it live.
@@ -74,8 +74,14 @@ func _fire_at(target: Enemy) -> void:
 	var crit: bool = stats.crit_chance > 0.0 and rng.randf() < stats.crit_chance
 	# The cue is rolled with the shot: a crit must SOUND like it counted, or the
 	# stat only exists in the damage numbers nobody is reading mid-swarm.
-	Sfx.play(&"crit" if crit else resource.fire_sound, -7.0 if crit else -10.0)
-	var base_damage: int = maxi(1, roundi((resource.damage + stats.damage_bonus) * _power_mult()))
+	Sfx.play(&"crit" if crit else resource.fire_sound, -9.0 if crit else -16.0)
+	# Multishot is taxed here, not on the upgrade card, so EVERY source of extra
+	# projectiles pays it and no future one can forget to. See
+	# Stats.volley_damage_mult — without it, count and damage multiply and the
+	# 5:00 boss dies in seven seconds.
+	var spread_tax: float = Stats.volley_damage_mult(resource.count, count)
+	var base_damage: int = maxi(1, roundi(
+			(resource.damage + stats.damage_bonus) * _power_mult() * spread_tax))
 	var damage: int = roundi(base_damage * stats.crit_mult) if crit else base_damage
 	for i: int in count:
 		var offset_deg: float = (i - (count - 1) / 2.0) * resource.spread_deg

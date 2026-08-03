@@ -1,4 +1,4 @@
-class_name Enemy
+﻿class_name Enemy
 extends CharacterBody2D
 ## Chases its target. All numbers come from an EnemyStats resource —
 ## new enemy types are .tres files, not new scripts.
@@ -6,6 +6,24 @@ extends CharacterBody2D
 signal died(xp_value: int, at: Vector2, tint: Color)
 
 const FLASH_TIME: float = 0.12
+## Telegraph colour. NOT white — white already means "you damaged it" (the hit
+## flash mixes toward solid white), so using it for "it is about to damage you"
+## made one colour say two opposite things on the busiest screen in the game.
+## That is review finding 17. Hot yellow is what the colour law already reserves
+## for incoming enemy damage, so a telegraph and a bolt now speak one language.
+const TELEGRAPH: Color = Color(1.0, 0.89, 0.38)
+## Knockback. Review finding 26: a non-lethal hit produced a flash and a sound
+## and moved NOTHING, so the crowd was physically inert to weapon fire and
+## sustained damage on a Bulwark read as a colour blink rather than as pressure.
+##
+## Modelled as a decaying offset ADDED AFTER the behaviour sets velocity, because
+## every behaviour overwrites velocity from scratch each frame — an impulse
+## written into velocity would be erased before it moved anything. Scaled down by
+## size, so a Bulwark shrugs where a Dart is thrown: weight for free, out of a
+## number the enemy data already carries.
+const KNOCKBACK_SPEED: float = 150.0
+const KNOCKBACK_DECAY: float = 9.0
+const KNOCKBACK_REFERENCE_SIZE: float = 13.0
 const BOLT_SCENE: PackedScene = preload("res://scenes/enemies/enemy_projectile.tscn")
 
 var stats: EnemyStats
@@ -30,6 +48,7 @@ var _slow_left: float = 0.0
 var _charge_phase: int = 0
 var _charge_t: float = 0.0
 var _charge_dir: Vector2 = Vector2.ZERO
+var _knockback: Vector2 = Vector2.ZERO
 
 @onready var visual: Sprite2D = $Visual
 @onready var shape: CollisionShape2D = $CollisionShape2D
@@ -55,7 +74,11 @@ func _ready() -> void:
 	visual.modulate = stats.tint
 	_shoot_cd = stats.attack_interval * randf_range(0.4, 1.0)
 	var size: float = stats.size * (Difficulty.ELITE_SCALE if is_elite else 1.0)
-	visual.scale = Vector2.ONE * (size / 16.0)
+	# Divisor comes from the TEXTURE, not a hardcoded 16. Sprite canvases differ
+	# (enemies 24px, the bosses 32 and 40), and a literal here silently rescaled
+	# every boss the moment the enemy sheet changed resolution.
+	var native: float = float(visual.texture.get_width()) if visual.texture != null else 16.0
+	visual.scale = Vector2.ONE * (size / maxf(1.0, native))
 	var rect: RectangleShape2D = shape.shape
 	rect.size = Vector2(size - 2.0, size - 2.0)
 	if is_elite:
@@ -103,9 +126,17 @@ func _physics_process(delta: float) -> void:
 	if stats.behavior == EnemyStats.Behavior.RANGED:
 		_act_ranged(delta)
 	elif stats.behavior == EnemyStats.Behavior.CHARGE:
-		_act_charge(delta)
+		_act_charge(delta)  # owns its own facing — the wedge is its telegraph
 	else:
 		velocity = (target.global_position - global_position).normalized() * speed_now()
+		if stats.faces_travel:
+			_face(velocity)
+	# Applied last: behaviours own velocity, knockback rides on top of it.
+	if _knockback.length_squared() > 1.0:
+		velocity += _knockback
+		_knockback = _knockback.lerp(Vector2.ZERO, minf(1.0, KNOCKBACK_DECAY * delta))
+	else:
+		_knockback = Vector2.ZERO
 	move_and_slide()
 
 
@@ -127,7 +158,7 @@ func _act_ranged(delta: float) -> void:
 		_shoot_cd = stats.attack_interval
 		# Quiet: with several Lancers alive this fires constantly, and the cue's
 		# job is "incoming from off-screen", not percussion.
-		Sfx.play(&"bolt", -14.0)
+		Sfx.play(&"bolt", -16.0)
 		var bolt: EnemyProjectile = BOLT_SCENE.instantiate()
 		bolt.setup(dir * stats.bolt_speed, damage)
 		bolt.global_position = global_position
@@ -143,13 +174,17 @@ func _act_charge(delta: float) -> void:
 	match _charge_phase:
 		0:
 			velocity = to_target.normalized() * speed_now()
+			_face(velocity)
 			if to_target.length() <= stats.charge_range:
 				_charge_phase = 1
 				_charge_t = stats.charge_telegraph
-				# Flare white: the tell has to be visible before it can be fair.
-				visual.modulate = Color(1, 1, 1, 1)
+				# Flare: the tell has to be visible before it can be fair.
+				visual.modulate = TELEGRAPH
 		1:
 			velocity = Vector2.ZERO  # planting is part of the tell
+			# Keep the point aimed while it winds up: the wedge doubles as a
+			# live aiming line, so "where will it go" is answerable on sight.
+			_face(to_target)
 			if _charge_t <= 0.0:
 				_charge_phase = 2
 				_charge_t = stats.charge_time
@@ -166,6 +201,15 @@ func _act_charge(delta: float) -> void:
 				_charge_phase = 0
 
 
+## Point the sprite along `dir`. Only CHARGE types use it — the wedge sprite is
+## drawn pointing up, so forward is `angle + PI/2`. A shape that TURNS TO FACE
+## YOU is the clearest "this one is coming for you" the game can give, and it is
+## now most of what separates the Ram from the Dart at 12px in a crowd.
+func _face(dir: Vector2) -> void:
+	if dir.length_squared() > 0.01:
+		visual.rotation = dir.angle() + PI * 0.5
+
+
 func _bolt_parent() -> Node:
 	return bolt_container if is_instance_valid(bolt_container) else get_parent()
 
@@ -173,13 +217,22 @@ func _bolt_parent() -> Node:
 ## `execute_below` is Executioner: an enemy left under that fraction of its max
 ## HP dies outright. Passed in per hit rather than read from a global, so the
 ## enemy stays ignorant of who shot it.
-func take_hit(amount: int, execute_below: float = 0.0) -> void:
+## `from` is where the hit came from, used only for knockback. Optional and
+## defaulted to INF so the many call sites that have no meaningful origin
+## (Event Horizon's implosion, Second Wind's screen clear) simply do not push.
+func take_hit(amount: int, execute_below: float = 0.0,
+		from: Vector2 = Vector2.INF) -> void:
 	if hp <= 0:
 		return
 	hp -= amount
+	if from.is_finite():
+		var away: Vector2 = global_position - from
+		if away.length_squared() > 0.01:
+			_knockback = away.normalized() * KNOCKBACK_SPEED \
+					* (KNOCKBACK_REFERENCE_SIZE / maxf(8.0, stats.size))
 	if hp > 0 and execute_below > 0.0 and float(hp) <= float(max_hp) * execute_below:
 		hp = 0
-	Sfx.play(&"hit", -8.0)
+	Sfx.play(&"hit", -17.0)
 	if hp <= 0:
 		_split()
 		died.emit(xp_value, global_position, stats.tint)

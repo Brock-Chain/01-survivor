@@ -18,6 +18,12 @@ const SECTION: String = "meta"
 const UNLOCK_ORBITAL: StringName = &"orbital"
 const UNLOCK_ELITE_HUNTER: StringName = &"elite_hunter"
 const UNLOCK_ENDLESS_PROVEN: StringName = &"endless_proven"
+## Beating the Prism also hands over a VERB, not just a weapon. The dash is
+## deliberately absent from the first five minutes — the run a stranger plays is
+## unchanged by it — and arrives exactly when the arena starts turning into
+## bullet hell on the way to Nogaxeh at 10:00. Bullet hell without a dodge is
+## arbitrary rather than hard.
+const UNLOCK_DASH: StringName = &"dash"
 
 var runs_played: int = 0
 var victories: int = 0
@@ -29,6 +35,37 @@ var unlocks: Array[StringName] = []
 
 func has_unlock(id: StringName) -> bool:
 	return unlocks.has(id)
+
+
+## Player-facing name for an unlock. Lives here, next to the ids themselves, so
+## adding a milestone cannot leave the UI announcing a raw StringName — which is
+## the failure mode that made review finding 2 easy to ship in the first place.
+static func unlock_label(id: StringName) -> String:
+	match id:
+		UNLOCK_ORBITAL:
+			return "ORBITALS"
+		UNLOCK_DASH:
+			return "DASH"
+		UNLOCK_ELITE_HUNTER:
+			return "SCATTERGUN"
+		UNLOCK_ENDLESS_PROVEN:
+			return "PRISM LANCE"
+	return String(id).to_upper()
+
+
+## One line telling the player what they can now DO. An unlock the player cannot
+## act on is the same as no unlock at all.
+static func unlock_blurb(id: StringName) -> String:
+	match id:
+		UNLOCK_ORBITAL:
+			return "Shards now orbit you, damaging what they touch."
+		UNLOCK_DASH:
+			return "Press SPACE to dash. You cannot be hit mid-dash."
+		UNLOCK_ELITE_HUNTER:
+			return "Scattergun: a five-pellet cone at close range."
+		UNLOCK_ENDLESS_PROVEN:
+			return "Prism Lance: an instant beam through everything in line."
+	return ""
 
 
 ## Fold one finished run into the persistent record and return the ids unlocked
@@ -79,6 +116,7 @@ func _earned(kills: int, time: float, won: bool) -> Array[StringName]:
 	var earned: Array[StringName] = []
 	if won:
 		earned.append(UNLOCK_ORBITAL)          # beating the Prism buys a second weapon
+		earned.append(UNLOCK_DASH)             # ...and the verb that endless demands
 	if victories >= 1 and time >= 600.0:
 		earned.append(UNLOCK_ENDLESS_PROVEN)   # survived to the double-boss event
 	if total_kills >= 1000:

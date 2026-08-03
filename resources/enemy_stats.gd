@@ -19,8 +19,16 @@ enum Behavior { CHASE, RANGED, CHARGE }
 @export var tint: Color = Color(0.9, 0.3, 0.3)
 @export var size: float = 14.0
 
-## Per-type silhouette. Null keeps the scene's default (the Drifter hexagon).
+## Per-type silhouette. Null keeps the scene's default (the Drifter square).
 @export var sprite: Texture2D
+
+## Rotate the sprite to point along travel. For DIRECTIONAL silhouettes only —
+## the Dart's needle and the Ram's wedge are drawn pointing up and are unreadable
+## at any other angle. A shape that turns is also the cheapest possible "this one
+## is aimed at you", which is most of what now separates those two at 12px.
+## Radially symmetric types (square, octagon, diamond) leave this false: spinning
+## them would read as a bug.
+@export var faces_travel: bool = false
 
 ## Per-type scene, as a PATH rather than a PackedScene. Empty uses the spawner's
 ## default. Set this when a type needs BEHAVIOUR the shared Enemy script lacks —

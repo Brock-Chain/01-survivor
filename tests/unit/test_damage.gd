@@ -20,14 +20,21 @@ func _shots_to_kill(hp: int, damage: int) -> int:
 
 # --- enemy HP scaling -------------------------------------------------------
 
+## HP multipliers are authored per WAVE in tools/gen_waves.gd, not derived from a
+## time curve — `Difficulty.hp_mult` was removed as dead code (review finding
+## 20). These are the real shipped values: opening 1.0, swarm 2.0, endless_1 3.4.
+const WAVE_OPENING: float = 1.0
+const WAVE_SWARM: float = 2.0
+const WAVE_ENDLESS_1: float = 3.4
+
+
 func test_effective_hp_is_base_hp_at_run_start() -> void:
-	assert_eq(_stats(3).effective_hp(Difficulty.hp_mult(0.0)), 3)
+	assert_eq(_stats(3).effective_hp(WAVE_OPENING), 3)
 
 
-func test_effective_hp_scales_with_the_difficulty_curve() -> void:
-	# hp_mult steps +0.5 every 45s, so at t=45 a 4 HP enemy has 6.
-	assert_eq(Difficulty.hp_mult(45.0), 1.5)
+func test_effective_hp_scales_with_the_wave_multiplier() -> void:
 	assert_eq(_stats(4).effective_hp(1.5), 6)
+	assert_eq(_stats(3).effective_hp(WAVE_SWARM), 6)
 
 
 func test_effective_hp_rounds_rather_than_truncates() -> void:
@@ -54,7 +61,7 @@ func test_overkill_damage_still_takes_one_hit() -> void:
 
 
 func test_shots_to_kill_scales_with_enemy_hp_not_damage_alone() -> void:
-	var hp: int = _stats(3).effective_hp(Difficulty.hp_mult(90.0))  # mult 2.0 -> 6 HP
+	var hp: int = _stats(3).effective_hp(WAVE_SWARM)  # 3 * 2.0 -> 6 HP
 	assert_eq(hp, 6)
 	assert_eq(_shots_to_kill(hp, 1), 6)
 	assert_eq(_shots_to_kill(hp, 2), 3)
@@ -63,9 +70,39 @@ func test_shots_to_kill_scales_with_enemy_hp_not_damage_alone() -> void:
 
 func test_damage_curve_keeps_the_base_enemy_killable_late() -> void:
 	# At 5 minutes a chaser must not be a sponge for a player who took no damage
-	# upgrades — this is the balance assumption the 5:00 boss depends on.
-	var hp: int = _stats(3).effective_hp(Difficulty.hp_mult(300.0))
+	# upgrades — this is the balance assumption the 5:00 boss depends on, and it
+	# is now pinned against the wave the run is actually in at that moment.
+	var hp: int = _stats(3).effective_hp(WAVE_ENDLESS_1)
 	assert_lt(_shots_to_kill(hp, 1), 25, "base weapon still kills a chaser in under 25 shots at 5min")
+
+
+# --- multishot tax ----------------------------------------------------------
+
+func test_volley_tax_is_neutral_at_a_weapons_base_count() -> void:
+	# A weapon firing its authored number of projectiles pays nothing. The
+	# scattergun's 5 pellets ARE its design; only growth the player bought is taxed.
+	assert_almost_eq(Stats.volley_damage_mult(1, 1), 1.0, 0.001)
+	assert_almost_eq(Stats.volley_damage_mult(5, 5), 1.0, 0.001)
+	assert_almost_eq(Stats.volley_damage_mult(5, 3), 1.0, 0.001, "never a bonus")
+
+
+func test_volley_damage_grows_sublinearly_with_projectile_count() -> void:
+	# The whole point: total volley damage rises as sqrt(N), not N. The measured
+	# failure was 8 projectiles x +19 damage multiplying into a 7-second boss.
+	var total_at_8: float = 8.0 * Stats.volley_damage_mult(1, 8)
+	assert_almost_eq(total_at_8, 2.83, 0.01, "8 projectiles deal ~2.8x, not 8x")
+	assert_lt(total_at_8, 8.0, "must never scale linearly")
+	assert_gt(total_at_8, 1.0, "must still be worth taking")
+
+
+func test_volley_tax_still_rewards_every_extra_projectile() -> void:
+	# Sub-linear must not mean non-monotonic: taking Split Shot has to be an
+	# upgrade, or the card is a trap.
+	var previous: float = 0.0
+	for n: int in range(1, 13):
+		var total: float = float(n) * Stats.volley_damage_mult(1, n)
+		assert_gt(total, previous, "volley %d must beat volley %d" % [n, n - 1])
+		previous = total
 
 
 # --- XP values --------------------------------------------------------------
@@ -87,8 +124,12 @@ func test_xp_gain_never_returns_zero() -> void:
 
 
 func test_xp_from_a_kill_feeds_the_level_curve() -> void:
-	# Level 1 needs 5 XP; a chaser gives 3, so two kills level you up with 1 banked.
+	# Level 1 needs 7 XP; a chaser gives 3, so THREE kills level you up with 2
+	# banked. It was two kills before the 2026-08-02 RATE retune — the first
+	# level-up going from 2 kills to 3 is that change felt at its smallest scale,
+	# and this test is where it shows up first.
 	var per_kill: int = Progression.xp_gain(_stats(3, 3).xp_value, 1.0)
 	assert_eq(per_kill, 3)
-	assert_gt(per_kill * 2, Progression.xp_required(1))
-	assert_eq(per_kill * 2 - Progression.xp_required(1), 1, "1 XP carries into level 2")
+	assert_lt(per_kill * 2, Progression.xp_required(1), "two kills no longer level you")
+	assert_gt(per_kill * 3, Progression.xp_required(1))
+	assert_eq(per_kill * 3 - Progression.xp_required(1), 2, "2 XP carries into level 2")

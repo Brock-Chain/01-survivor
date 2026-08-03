@@ -1,0 +1,47 @@
+// == TRACK 4 - LAYER 2 - MOTION ==============================================
+// LIGHTCYCLE's hook: the light trail. Fast, bright, and mostly ASCENDING, which
+// is the opposite of track 3's wave-shaped cell — a line that keeps climbing
+// reads as accelerating, and this track wants the player leaning forward.
+//
+// The cell is root - 5th - octave - 5th, a broken power chord rather than a
+// triad. No thirds anywhere in this layer: leaving the third out is what lets
+// the Bb bars sit against the A pedal without the harmony resolving itself. The
+// mode stays ambiguous and slightly wrong, which at speed reads as electric.
+//
+// The multiplier lives INSIDE each cell, never outside the slowcat. Outside, `*n`
+// means n ITEMS PER CYCLE and the whole progression races past n times while the
+// bass makes one pass — a bug that shipped in two other tracks here and was only
+// caught by reading the events sidecar.
+//
+// Delay is a dotted 8th (0.375s at cps 0.5) so echoes land between the 16ths.
+setcps(0.5)
+stack(
+  note(`<[[a4 e5 a5 e5]*4]
+         [[a4 e5 a5 e5]*4]
+         [[bb4 f5 bb5 f5]*4]
+         [[bb4 f5 bb5 f5]*4]
+         [[a4 e5 a5 e5]*4]
+         [[a4 e5 a5 e5]*4]
+         [[g4 d5 g5 d5]*4]
+         [[f4 c5 f5 c5]*4]>`)
+    .s("square")
+    .lpf(sine.range(1400, 5200).slow(4)).lpq(7)   // twice as fast as track 3's
+    .gain(0.15).release(0.04)
+    .delay(0.32).delaytime(0.375).delayfeedback(0.34)
+    .pan(0.54).room(0.16).size(0.6),
+
+  // A second trail an octave up, playing the same cell one 16th LATE. Not a
+  // harmony — a shadow. Two lights running the same line slightly out of step
+  // is the entire visual the track is named for, and a delay cannot do it
+  // because a delay repeats the past rather than running alongside.
+  note(`<[[~ a5 e6 a6]*4]
+         [[~ a5 e6 a6]*4]
+         [[~ bb5 f6 bb6]*4]
+         [[~ bb5 f6 bb6]*4]
+         [[~ a5 e6 a6]*4]
+         [[~ a5 e6 a6]*4]
+         [[~ g5 d6 g6]*4]
+         [[~ f5 c6 f6]*4]>`)
+    .s("triangle").lpf(6500)
+    .gain(0.055).release(0.03).pan(0.36)
+)

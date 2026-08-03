@@ -1,4 +1,4 @@
-class_name Boss
+﻿class_name Boss
 extends Enemy
 ## THE PRISM — a hexagonal core orbited by three shards.
 ##
@@ -40,8 +40,18 @@ const DASH_TIME: float = 0.55
 @export var bolt_speed: float = 122.0
 @export var shard_orbit: float = 40.0
 
-var phase: int = 1
+## HP FRACTIONS at which the phase advances, in descending order. The Prism keeps
+## its single threshold, so its two-phase fight is unchanged; Nogaxeh sets two and
+## gets three phases. Exported so a boss's shape is data, like everything else.
+@export var phase_thresholds: PackedFloat32Array = PackedFloat32Array([0.5])
 
+var phase: int = 1
+## While true the boss cannot be damaged at all. Nogaxeh raises this in phase 3
+## until its escorts are dead; nothing else uses it. The indicator is not
+## optional — see _blocked_feedback and Hud.set_boss_shielded.
+var invulnerable: bool = false
+
+var _block_cd: float = 0.0
 var _shards: Array[Sprite2D] = []
 var _spin: float = 0.0
 var _attack_cd: float = 2.2
@@ -53,8 +63,18 @@ var _ring_offset: float = 0.0
 
 ## Called by the director before add_child. Separate from Enemy.setup so the
 ## director never has to know the boss's stats resource.
-func configure(p_target: Node2D, hp_mult: float = 1.0) -> void:
-	setup(boss_stats, p_target, hp_mult, false)
+func configure(p_target: Node2D, hp_mult: float = 1.0, elite: bool = false) -> void:
+	setup(boss_stats, p_target, hp_mult, elite)
+
+
+## Break the phase lock on multi-boss events. Review finding 13: every boss of an
+## event is instantiated in ONE physics tick with an identical `_attack_cd`, and
+## the intervals are identical too, so they telegraphed and fired on the same
+## frame forever — 44 bolts in a single tick at 5:00, 88 at 10:00, 132 at 15:00,
+## plus N copies of the same telegraph cue summing far louder than the authored
+## -6 dB. Offsetting the FIRST cooldown separates them permanently.
+func stagger(seconds: float) -> void:
+	_attack_cd += seconds
 
 
 func _ready() -> void:
@@ -76,6 +96,7 @@ func _build_shards() -> void:
 func _physics_process(delta: float) -> void:
 	if not is_instance_valid(target):
 		return
+	_block_cd = maxf(0.0, _block_cd - delta)
 	_spin += delta * SHARD_SPIN
 	_orbit_shards()
 	_move(delta)
@@ -118,19 +139,21 @@ func _attack(delta: float) -> void:
 ## player that reward-sound precedes damage. Exactly backwards.
 func _begin_telegraph() -> void:
 	_telegraph_left = telegraph
-	Sfx.play(&"boss_telegraph", -6.0)
+	Sfx.play(&"boss_telegraph", -1.0)
 	for shard: Sprite2D in _shards:
 		if not is_instance_valid(shard):
 			continue
 		var t: Tween = create_tween()
-		t.tween_property(shard, "modulate", Color(1, 1, 1, 1), telegraph * 0.7)
+		# Yellow, not white — same reason as Enemy.TELEGRAPH (finding 17). White
+		# is the hit flash: "you hurt it". This has to say the opposite.
+		t.tween_property(shard, "modulate", Enemy.TELEGRAPH, telegraph * 0.7)
 		t.tween_property(shard, "modulate", stats.tint, telegraph * 0.3)
 
 
 func _fire() -> void:
 	# One cue per VOLLEY, not per bolt — 15+ simultaneous plays would eat the
 	# whole voice pool and read as one loud blast anyway.
-	Sfx.play(&"bolt", -6.0)
+	Sfx.play(&"bolt", -9.0)
 	var count: int = spread_p1 if phase == 1 else spread_p2
 	# Offset the ring by half a step off the player's bearing, so a gap always
 	# sits where they are standing and weaving is a real choice, not a coin flip.
@@ -142,28 +165,66 @@ func _fire() -> void:
 		bolt.setup(Vector2.RIGHT.rotated(angle) * bolt_speed, damage)
 		bolt.global_position = global_position
 		_bolt_parent().add_child(bolt)
-	if phase == 2:
+	if phase >= 2:
 		_dash_dir = (target.global_position - global_position).normalized()
 		_dash_left = DASH_TIME
 	_attack_cd = p1_interval if phase == 1 else p2_interval
 
 
-func take_hit(amount: int, execute_below: float = 0.0) -> void:
+func take_hit(amount: int, execute_below: float = 0.0,
+		from: Vector2 = Vector2.INF) -> void:
+	if invulnerable:
+		_blocked_feedback()
+		return
 	var was_alive: bool = hp > 0
-	# Bosses ignore Executioner — an instant-kill threshold on a 900 HP boss
-	# would delete the fight the run is built around.
-	super.take_hit(amount, 0.0)
-	if was_alive and hp > 0 and phase == 1 and hp <= max_hp / 2:
-		_enter_phase_two()
+	# Bosses ignore Executioner — an instant-kill threshold on a boss would
+	# delete the fight the run is built around. They also ignore knockback:
+	# shoving the boss around would undo its telegraphed positioning, which is
+	# the whole basis of the fight being readable.
+	super.take_hit(amount, 0.0, Vector2.INF)
+	if not was_alive or hp <= 0:
+		return
+	# `while`, not `if`: one very large hit can cross two thresholds at once, and
+	# a skipped phase would skip whatever that phase was supposed to set up.
+	while phase - 1 < phase_thresholds.size() \
+			and float(hp) <= float(max_hp) * phase_thresholds[phase - 1]:
+		_advance_phase()
 
 
-## Shards detach and are replaced by real spawns, so the arena gets busier
-## exactly as the core gets more aggressive.
-func _enter_phase_two() -> void:
-	phase = 2
+## Phase transition. Subclasses override `_on_phase`, never this.
+func _advance_phase() -> void:
+	phase += 1
 	_attack_cd = minf(_attack_cd, 1.0)
+	_on_phase(phase)
+	phase_changed.emit(phase)
+
+
+## Per-boss reaction to entering a phase. The Prism detaches its shards at 2, so
+## the arena gets busier exactly as the core gets more aggressive. Nogaxeh
+## overrides this to run a three-phase fight.
+func _on_phase(new_phase: int) -> void:
+	if new_phase == 2:
+		detach_shards()
+
+
+func detach_shards() -> void:
 	for shard: Sprite2D in _shards:
 		if is_instance_valid(shard):
 			shard.queue_free()
 	_shards.clear()
-	phase_changed.emit(phase)
+
+
+## What a hit on an INVULNERABLE boss looks and sounds like.
+##
+## Deliberately NOT the white hit-flash: white means "you damaged it", and a
+## player who cannot tell "shielded" from "the game is broken" is BRIEF defect
+## #4. A flat grey pulse and a dull, quiet thud say "blocked" with no text at
+## all. Rate-limited, or a four-weapon build would strobe it every frame.
+func _blocked_feedback() -> void:
+	if _block_cd > 0.0:
+		return
+	_block_cd = 0.15
+	Sfx.play(&"hit", -19.0, 0.0)
+	var t: Tween = create_tween()
+	t.tween_property(visual, "modulate", Color(0.5, 0.5, 0.58), 0.05)
+	t.tween_property(visual, "modulate", stats.tint, 0.16)

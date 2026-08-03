@@ -11,6 +11,7 @@ max_hp = 4
 speed = 66.0
 xp_value = 6
 tint = Color(1, 0.42, 0.55, 1)
+size = 18.5
 sprite = ExtResource("2_kxk06")
 attack_range = 195.0
 attack_interval = 1.9

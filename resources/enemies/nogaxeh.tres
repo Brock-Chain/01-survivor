@@ -4,10 +4,10 @@
 
 [resource]
 script = ExtResource("1")
-id = &"fast"
-max_hp = 1
-speed = 110.0
-damage = 1
-xp_value = 2
-tint = Color(1, 0.55, 0.16, 1)
-size = 10.0
+id = &"nogaxeh"
+max_hp = 2000
+speed = 30.0
+damage = 2
+xp_value = 400
+tint = Color(0.86, 0.36, 1, 1)
+size = 44.0

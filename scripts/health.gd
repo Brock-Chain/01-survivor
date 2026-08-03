@@ -52,5 +52,13 @@ func raise_max(amount: int) -> void:
 	changed.emit(hp, max_hp)
 
 
+## Invulnerability that is NOT paid for by taking a hit — the dash's i-frames.
+## Extends rather than overwrites, so dashing while already invulnerable can
+## never SHORTEN the window a hit already bought. Time is injected here for the
+## same reason it is everywhere else in this class: so it stays unit-testable.
+func grant_invuln(now: float, duration: float) -> void:
+	_invuln_until = maxf(_invuln_until, now + duration)
+
+
 func is_invulnerable(now: float) -> bool:
 	return now < _invuln_until

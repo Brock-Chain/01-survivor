@@ -34,7 +34,7 @@ const CASES: PackedStringArray = ["hit_flash", "death_burst", "screenshake", "pi
 ## Sprites are authored at ~12 px for a 640×360 canvas; blown up here because
 ## the lab judges the curve, not the silhouette.
 const SPRITE_SCALE: float = 5.0
-## The chaser's tint (resources/enemies/chaser.tres). Not decoration: enemies are
+## The Drifter's tint (resources/enemies/drifter.tres). Not decoration: enemies are
 ## always tinted in game, and a *white* test sprite makes the hit flash — which
 ## mixes toward white — look like it does nothing. The bench has to reproduce the
 ## conditions the effect ships under or it measures the wrong thing.

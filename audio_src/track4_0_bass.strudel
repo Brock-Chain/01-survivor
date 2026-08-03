@@ -1,0 +1,42 @@
+// == TRACK 4 - LAYER 0 - FOUNDATION ==========================================
+// "LIGHTCYCLE". The neo-racing track: Tron, a grid at speed, something chasing.
+//
+// The other three tracks are songs. This one is an ENGINE. Every decision below
+// trades harmonic interest for forward motion, because the feeling being chased
+// is velocity, and velocity comes from repetition plus a pulse that never lets
+// go — not from a chord progression doing something clever.
+//
+// MODE: A PHRYGIAN (A Bb C D E F G). The flat 2nd is the whole identity. Track 1
+// is A Aeolian and track 3 is A Dorian, so the tonic is shared and the tracks
+// stay interchangeable, but Bb against A is a semitone the other two cannot
+// make. It reads as menace at speed rather than sadness.
+//
+// FORM (8 cycles = 16s @ cps 0.5). Only THREE chord changes in sixteen seconds,
+// where track 3 has eight. That is deliberate: a racing track that keeps
+// modulating feels like it is braking.
+//   A  Am  Am  Bb  Bb     i - i - bII - bII    the Phrygian lean, held
+//   B  Am  Am  G   F      i - i - bVII - bVI   a descent that falls back to A
+setcps(0.5)
+stack(
+  // THE ENGINE. Straight 16ths, no rests, no swing. A pedal on the root with
+  // an octave stab on every 4th 16th, so the ear gets a pulse-within-the-pulse
+  // at four times the kick rate. This is the single loudest element in the
+  // track and it is doing all the work.
+  //
+  // Resonant low-pass rather than a static one: the sweep is slow enough
+  // (one pass per 8-bar loop) that it reads as ACCELERATION rather than as a
+  // filter effect, which is the oldest trick in the genre and still the best.
+  note(`<[a1*12 a2*4] [a1*12 a2*4] [bb1*12 bb2*4] [bb1*12 bb2*4]
+         [a1*12 a2*4] [a1*12 a2*4] [g1*12 g2*4]  [f1*12 f2*4]>`)
+    .s("sawtooth")
+    .lpf(sine.range(380, 1250).slow(8)).lpq(9)
+    .gain(0.42).release(0.035),
+
+  // A single sustained fifth underneath, no third. Power-chord voicing, because
+  // a triad here would state the mode and the point of Phrygian at speed is
+  // that you feel the Bb arrive without being told what it is. Very quiet: it
+  // is glue, not a pad.
+  note("<[a2,e3] [a2,e3] [bb2,f3] [bb2,f3] [a2,e3] [a2,e3] [g2,d3] [f2,c3]>")
+    .s("sawtooth").lpf(700).lpq(2)
+    .gain(0.085).attack(0.3).release(1.2).room(0.4).size(0.8)
+)

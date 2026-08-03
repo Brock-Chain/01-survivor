@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/hud.gd" id="1_hud"]
 
@@ -32,8 +32,73 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
+; The boss bar is the ONE piece of HUD allowed out of the cyan family. It
+; represents the thing trying to kill you, so it wears the hostile band — and
+; review finding 3 was that the run's win condition had no progress readout at
+; all: 1800 HP with a shard-detach at 50% as the only feedback in the fight.
+; Playtest 2026-08-02: "make the hp bar and name a bit smaller and with a more
+; neon tech vibe". Smaller (300x8 -> 220x5, 13px label -> 10px) and rebuilt as a
+; lit strip rather than a filled rectangle: a near-black channel with a thin
+; magenta rule and a bloom under the fill, so it reads as an INSTRUMENT showing a
+; hostile readout instead of a progress bar borrowed from a productivity app.
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_boss"]
+bg_color = Color(1, 0.35, 0.72, 1)
+shadow_color = Color(1, 0.35, 0.72, 0.45)
+shadow_size = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bossbg"]
+bg_color = Color(0.06, 0.02, 0.07, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.62, 0.18, 0.44, 1)
+
 [node name="Hud" type="CanvasLayer"]
 script = ExtResource("1_hud")
+
+[node name="BossPanel" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -112.0
+offset_top = 52.0
+offset_right = 112.0
+offset_bottom = 78.0
+alignment = 1
+theme_override_constants/separation = 2
+
+[node name="BossName" type="Label" parent="BossPanel"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1, 0.6, 0.87, 1)
+theme_override_font_sizes/font_size = 10
+horizontal_alignment = 1
+text = "THE PRISM"
+
+[node name="BossBar" type="ProgressBar" parent="BossPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 5)
+theme_override_styles/background = SubResource("StyleBoxFlat_bossbg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_boss")
+show_percentage = false
+value = 100.0
+
+[node name="Banner" type="Label" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 112.0
+offset_right = 200.0
+offset_bottom = 140.0
+theme_override_colors/font_color = Color(0.66, 1, 0.96, 1)
+theme_override_font_sizes/font_size = 15
+horizontal_alignment = 1
+text = ""
 
 [node name="TopLeft" type="VBoxContainer" parent="."]
 offset_left = 12.0
@@ -113,3 +178,19 @@ theme_override_styles/background = SubResource("StyleBoxFlat_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_xp")
 show_percentage = false
 value = 0.0
+
+[node name="DashLabel" type="Label" parent="Bottom"]
+unique_name_in_owner = true
+visible = false
+theme_override_colors/font_color = Color(0.62, 1, 0.95, 1)
+theme_override_font_sizes/font_size = 10
+text = "DASH"
+
+[node name="DashPip" type="ProgressBar" parent="Bottom"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(44, 10)
+theme_override_styles/background = SubResource("StyleBoxFlat_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_hp")
+show_percentage = false
+value = 100.0

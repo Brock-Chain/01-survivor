@@ -7,6 +7,25 @@ signal died
 signal health_changed(hp: int, max_hp: int)
 ## Second Wind fired. Main clears the screen — the player does not know how.
 signal second_wind(at: Vector2)
+## Fired on a successful dash so Main can juice it without the player knowing how.
+signal dashed(at: Vector2)
+
+## THE DASH — earned by beating the Prism (MetaState.UNLOCK_DASH).
+##
+## Deliberately absent from the first five minutes. The prime-directive run a
+## stranger plays never has it, so BRIEF defect #1 ("floaty or unresponsive")
+## cannot regress in the part of the game that decides the restart click. It
+## arrives exactly when the arena starts filling with bullets on the road to
+## Nogaxeh, because bullet hell without a dodge is arbitrary rather than hard.
+##
+## The i-frames ARE the feature. A dash that only moves you quickly is a movement
+## upgrade; a dash that passes THROUGH a bullet is a verb, and it is what turns a
+## dense pattern from a wall into a puzzle. The window is deliberately longer
+## than the travel so the dodge forgives a slightly early press.
+const DASH_SPEED_MULT: float = 3.6
+const DASH_TIME: float = 0.15
+const DASH_IFRAMES: float = 0.26
+const DASH_COOLDOWN: float = 1.0
 
 ## Weapon data. Everything but the blaster is gated behind a meta unlock:
 ## orbital = first victory, scattergun = 1000 total kills, lance = surviving to
@@ -26,6 +45,16 @@ var buffs: BuffState = BuffState.new()
 ## the permanent modifiers free of run-scoped state.
 var _second_wind_spent: bool = false
 var _aegis_cd: float = 0.0
+## Dash state. `_can_dash` stays false until the unlock is applied, so an
+## un-earned dash costs nothing but a bool check per frame.
+var _can_dash: bool = false
+var _dash_left: float = 0.0
+var _dash_cd: float = 0.0
+var _dash_dir: Vector2 = Vector2.RIGHT
+## What last landed a hit. Read by the game-over screen so a run can end with the
+## player understanding why — BRIEF defect #4, review finding 16.
+var last_hit_source: StringName = &""
+var last_hit_by: StringName = &""
 ## Pause-safe clock: accumulates physics time, used for i-frame windows.
 var _time: float = 0.0
 
@@ -33,6 +62,10 @@ var _time: float = 0.0
 @onready var magnet: Area2D = $Magnet
 @onready var magnet_shape: CollisionShape2D = $Magnet/CollisionShape2D
 @onready var visual: Sprite2D = $Visual
+@onready var core: Sprite2D = %Core
+@onready var trail: Line2D = %Trail
+@onready var jet_a: Line2D = %JetA
+@onready var jet_b: Line2D = %JetB
 @onready var weapon: Weapon = $Weapon
 @onready var scattergun: Weapon = $Scattergun
 @onready var lance: LanceWeapon = $Lance
@@ -69,8 +102,15 @@ func _physics_process(delta: float) -> void:
 	health.shielded = buffs.has(BuffState.SHIELD)
 	_tick_aegis(delta)
 	var dir: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	velocity = dir * stats.move_speed
+	if dev_autopilot:
+		dir = Vector2.RIGHT.rotated(_time * 1.3)
+	_tick_dash(delta, dir)
+	if _dash_left > 0.0:
+		velocity = _dash_dir * stats.move_speed * DASH_SPEED_MULT
+	else:
+		velocity = dir * stats.move_speed
 	move_and_slide()
+	_update_motion_visual(delta)
 	_check_contact_damage()
 	_update_invuln_visual()
 
@@ -83,6 +123,62 @@ func apply_unlocks(unlocks: Array[StringName]) -> void:
 	orbitals.setup(stats, ORBITAL_WEAPON, unlocks)
 	scattergun.configure(SCATTER_WEAPON, unlocks)
 	lance.configure(LANCE_WEAPON, unlocks)
+	# Safe to call again mid-run: Main re-applies on Meta.unlocked so a player who
+	# WINS and hits Continue faces Nogaxeh with the dash they just earned, instead
+	# of having to quit and restart to receive their own reward.
+	_can_dash = unlocks.has(MetaState.UNLOCK_DASH)
+
+
+## Dash cooldown, window, and the press that starts one. Kept separate from
+## _physics_process so the movement line above stays a single readable
+## assignment — `velocity` is still never smoothed.
+func _tick_dash(delta: float, dir: Vector2) -> void:
+	_dash_cd = maxf(0.0, _dash_cd - delta)
+	if _dash_left > 0.0:
+		_dash_left -= delta
+		return
+	if not _can_dash or _dash_cd > 0.0 or not Input.is_action_just_pressed(&"dash"):
+		return
+	# Dash along input; standing still dashes the way the sprite is already
+	# stretched, so a neutral-stick dash never fires in a direction the player
+	# had no way to predict.
+	_dash_dir = dir.normalized() if dir.length_squared() > 0.01 \
+			else Vector2.RIGHT.rotated(visual.rotation)
+	_dash_left = DASH_TIME
+	_dash_cd = DASH_COOLDOWN
+	health.grant_invuln(_time, DASH_IFRAMES)
+	camera.add_trauma(0.16)
+	Sfx.play(&"dash", -9.0)
+	dashed.emit(global_position)
+
+
+## True while the dash is on cooldown, plus how far through it is (0..1). The HUD
+## needs both: a dash you cannot see the cooldown of is a dash you spam blindly.
+func dash_ready_fraction() -> float:
+	if not _can_dash:
+		return -1.0
+	return 1.0 if _dash_cd <= 0.0 else 1.0 - (_dash_cd / DASH_COOLDOWN)
+
+
+## How many weapons are actually firing. The Run Director scales boss HP by this,
+## because boss HP previously scaled by EVENT INDEX ALONE: a first-timer with the
+## blaster and a returning player with four stacked weapons fought the identical
+## 1800 HP. One number cannot serve profiles that are 4x apart in DPS, and the
+## measured result was a seven-second "climax".
+##
+## Weapon count, not a DPS estimate: it is discrete, known the instant the boss
+## spawns, and cannot drift as upgrades change. Trash HP deliberately does NOT
+## use this — enemies that scale to your power read as the game cheating, while a
+## boss that does reads as the boss rising to meet you.
+func active_weapon_count() -> int:
+	var n: int = 1  # the blaster is never gated
+	if orbitals.is_active():
+		n += 1
+	if scattergun.resource != null:
+		n += 1
+	if lance.resource != null:
+		n += 1
+	return n
 
 
 ## Re-read anything derived from stats. Main calls this after upgrades apply.
@@ -97,7 +193,13 @@ func _check_contact_damage() -> void:
 		return
 	for body: Node2D in hurtbox.get_overlapping_bodies():
 		if body is Enemy:
-			if apply_damage((body as Enemy).damage, &"contact"):
+			var enemy: Enemy = body as Enemy
+			# Remember WHAT, not just how. BRIEF defect #4 is a run that ends
+			# without the player understanding why, and "contact" alone does not
+			# answer it — "a Ram ran you down" does.
+			if enemy.stats != null:
+				last_hit_by = enemy.stats.id
+			if apply_damage(enemy.damage, &"contact"):
 				break
 
 
@@ -124,12 +226,18 @@ func apply_damage(amount: int, source: StringName = &"unknown") -> bool:
 		camera.add_trauma(1.0)
 		# The death cue INTO shield_on: "that should have killed you" resolving
 		# into "you are protected" — the whole upgrade in two sounds.
+		#
+		# Review finding 28: both fired on the SAME FRAME, which does not play the
+		# sequence, it plays a chord — and an inverted one, since shield_on ends
+		# ~0.35s in while the death cue runs long. The delay puts the shield on
+		# the death cue's tail, which is what was authored.
 		Sfx.play(&"death", -4.0)
-		Sfx.play(&"shield_on", -4.0)
+		_play_after(0.42, &"shield_on", -4.0)
 		second_wind.emit(global_position)
 		return false
 	if not health.take_damage(amount, _time):
 		return false
+	last_hit_source = source
 	Telemetry.event(&"damage", {"amt": amount, "hp": health.hp,
 			"max_hp": health.max_hp, "src": String(source)})
 	Sfx.play(&"hurt")
@@ -137,23 +245,202 @@ func apply_damage(amount: int, source: StringName = &"unknown") -> bool:
 	return true
 
 
+## FLUIDITY — VISUAL LAYER ONLY.
+##
+## `velocity` is assigned straight from input above and is NEVER smoothed.
+## Acceleration, inertia and momentum are precisely how BRIEF defect #1 ("floaty
+## or unresponsive movement") gets manufactured. Playtest 2026-08-02 confirmed the
+## input model is not the problem — the complaint was "inert and boring", not
+## late or slippery — so none of them appear here. Everything below acts on the
+## SPRITES and cannot cost a single frame of input response.
+##
+## The previous version stretched the body along its travel axis. The human's
+## reaction was unambiguous: "I dislike that it thins out when moving. I would
+## rather it keeps its beautiful hexagonal shape." THE BODY NEVER DEFORMS. Do not
+## reintroduce scale on `visual` under any circumstances.
+##
+## That rules out almost everything, because a hexagon cannot express motion by
+## rotating either — six-fold symmetry means 60 degrees is identical to 0, so
+## banking and lean are invisible on this shape. What is left is breaking the
+## symmetry FROM THE INSIDE (the core lags) and drawing motion OUTSIDE the
+## silhouette (the trail). Those are the two mechanisms below.
+
+## Core lag. How far the core may slide from centre, in pixels — the body is 18px
+## across, so this stays comfortably inside the shell.
+const CORE_LAG: float = 2.7
+## Spring toward the lag target. Deliberately underdamped: the small overshoot
+## when you stop IS the effect. A critically damped core just slides.
+## Critical damping for stiffness k is 2*sqrt(k) = 2*sqrt(160) ~= 25.3. The first
+## version used 11 — less than half — which is not "a little bouncy", it RINGS,
+## and because the core is its own sprite the whole character read as vibrating
+## (playtest 2026-08-02). 24 sits just under critical: it still overshoots once
+## when you stop, which is the effect, and then it is done.
+const CORE_STIFFNESS: float = 160.0
+const CORE_DAMPING: float = 24.0
+
+## Trail length in POINTS. One point is appended per physics frame, so the ribbon
+## also lengthens with speed for free — but do the arithmetic before touching
+## these, because it is not intuitive: at base speed 130 and 60fps the player
+## covers 2.2px per frame, so N points is only N*2.2 pixels of ribbon. The first
+## attempt used 15 and produced a 32px streak on an 18px character, i.e. nothing.
+##   length_px ~= points * speed / 60
+const TRAIL_POINTS_MIN: int = 12
+const TRAIL_POINTS_MAX: int = 34
+## The dash is a SPIKE, not more of the same — the only 0.15s in the game where
+## the player cannot be hit, and it has to look different in kind. The dash only
+## lasts ~9 frames, so this mostly keeps the pre-dash tail alive underneath the
+## fast segment rather than drawing 48 frames at 3.6x speed.
+const TRAIL_POINTS_DASH: int = 48
+const TRAIL_WIDTH_MIN: float = 3.0
+const TRAIL_WIDTH_MAX: float = 7.5
+const TRAIL_WIDTH_DASH: float = 12.0
+## Twin jets leave the two TRAILING vertices of the hexagon, +/- 30 degrees off
+## dead astern — which is exactly where two of the six vertices sit.
+const JET_SPREAD: float = PI / 6.0
+const JET_ORIGIN_RADIUS: float = 6.0
+const JET_LEN_MAX: float = 15.0
+const JET_LEN_DASH: float = 30.0
+
+var _core_offset: Vector2 = Vector2.ZERO
+var _core_spring: Vector2 = Vector2.ZERO
+var _dash_was_ready: bool = false
+var _dash_flash: float = 0.0
+
+## --dev-autopilot: drive the player in a slow circle. Exists because a capture
+## run has no input, so the player stands perfectly still — which makes every
+## MOTION effect (the trail, the jets, the core lag) invisible to exactly the
+## tool built for checking things that move. Inert in normal play.
+var dev_autopilot: bool = false
+var _trail_points: PackedVector2Array = PackedVector2Array()
+
+
+func _update_motion_visual(delta: float) -> void:
+	var frac: float = clampf(velocity.length() / maxf(1.0, stats.move_speed), 0.0, 1.0)
+	var dashing: bool = _dash_left > 0.0
+	_update_core(delta, frac, dashing)
+	_update_trail(frac, dashing)
+	_update_jets(frac, dashing)
+
+
+## The core slides toward the TRAILING edge under motion and springs back when
+## you stop. This is the whole of the "motion personality" ask: the body stays
+## frame-exact so nothing about responsiveness changes, but the shape acquires an
+## inside that has weight — and, incidentally, an orientation, which a hexagon
+## otherwise does not have.
+func _update_core(delta: float, frac: float, dashing: bool) -> void:
+	var target: Vector2 = Vector2.ZERO
+	if frac > 0.02:
+		var reach: float = CORE_LAG * (1.9 if dashing else 1.0)
+		target = -velocity.normalized() * reach * frac
+	var to_target: Vector2 = target - _core_offset
+	_core_spring += to_target * CORE_STIFFNESS * delta
+	_core_spring *= exp(-CORE_DAMPING * delta)
+	_core_offset += _core_spring * delta
+	core.position = _core_offset
+	_update_core_state(dashing)
+
+
+## The REACTIVE half. Same node, carrying state the player would otherwise have
+## to read off the HUD: how close to death they are, and whether the dash is
+## back. Everything stays inside the cyan family — the core is the player's own
+## instrument and the colour law reserves every other hue for things that can
+## hurt them.
+func _update_core_state(dashing: bool) -> void:
+	var hp_frac: float = float(health.hp) / maxf(1.0, float(health.max_hp))
+	# Breathes at rest, clenches during the dash. A still core on a still player
+	# is the "inert" complaint in miniature.
+	var breathe: float = 1.0 + 0.05 * sin(_time * 3.1)
+	core.scale = Vector2.ONE * (0.82 if dashing else breathe)
+
+	var ready_now: bool = _can_dash and _dash_cd <= 0.0
+	if ready_now and not _dash_was_ready:
+		_dash_flash = 1.0  # the moment the verb comes back
+	_dash_was_ready = ready_now
+	_dash_flash = maxf(0.0, _dash_flash - 4.0 * get_physics_process_delta_time())
+
+	# Dim as HP falls. Not a hue shift: at 12px a desaturating core reads faster
+	# than a colour change, and the palette has no spare hue for "you are dying".
+	var lum: float = lerpf(0.45, 1.0, clampf(hp_frac, 0.0, 1.0))
+	lum = minf(1.6, lum + _dash_flash * 0.8)
+	core.modulate = Color(lum, lum, lum, core.modulate.a)
+
+
+## The ribbon. A world-space Line2D (the node is `top_level`, so its points are
+## global coordinates) holding recent positions, oldest first — which is why the
+## scene's width curve and gradient both run thin/transparent at offset 0.
+func _update_trail(frac: float, dashing: bool) -> void:
+	var want: int = TRAIL_POINTS_DASH if dashing else \
+			int(round(lerpf(float(TRAIL_POINTS_MIN), float(TRAIL_POINTS_MAX), frac)))
+	_trail_points.append(global_position)
+	while _trail_points.size() > want:
+		_trail_points.remove_at(0)
+	# Two points is the minimum that draws; below that, hide rather than leave a
+	# stale segment hanging in the arena.
+	trail.visible = _trail_points.size() >= 2 and (frac > 0.04 or dashing)
+	trail.points = _trail_points
+	trail.width = TRAIL_WIDTH_DASH if dashing else lerpf(TRAIL_WIDTH_MIN, TRAIL_WIDTH_MAX, frac)
+	trail.modulate.a = 1.0 if dashing else lerpf(0.4, 1.0, frac)
+
+
+## Two short jets from the trailing vertices. The ribbon says "you are moving";
+## the jets say "you are moving THAT WAY", and they are the only element that
+## uses the fact that the player is specifically a hexagon.
+func _update_jets(frac: float, dashing: bool) -> void:
+	var show: bool = frac > 0.12 or dashing
+	jet_a.visible = show
+	jet_b.visible = show
+	if not show:
+		return
+	var back: Vector2 = -velocity.normalized()
+	var length: float = JET_LEN_DASH if dashing else JET_LEN_MAX * frac
+	var alpha: float = 1.0 if dashing else lerpf(0.35, 1.0, frac)
+	_aim_jet(jet_a, back.rotated(JET_SPREAD), length, alpha)
+	_aim_jet(jet_b, back.rotated(-JET_SPREAD), length, alpha)
+
+
+func _aim_jet(line: Line2D, dir: Vector2, length: float, alpha: float) -> void:
+	var origin: Vector2 = global_position + dir * JET_ORIGIN_RADIUS
+	# Tail first, head second — same ordering the width curve and gradient expect.
+	line.points = PackedVector2Array([origin + dir * length, origin])
+	line.modulate.a = alpha
+
+
+## Fire a cue after a real delay. `process_always` so a screen that pauses the
+## tree between the two halves cannot swallow the second one.
+func _play_after(seconds: float, cue: StringName, volume_db: float) -> void:
+	await get_tree().create_timer(seconds, true, false, false).timeout
+	Sfx.play(cue, volume_db)
+
+
 func _update_invuln_visual() -> void:
 	if health.shielded:
 		# A shield must look different from i-frames, or the player cannot tell
 		# "briefly safe" from "protected".
 		visual.modulate = Color(0.6, 1.0, 1.0, 0.85 + 0.15 * sin(_time * 8.0))
+		core.modulate.a = 1.0
 		return
 	visual.modulate.r = 1.0
 	visual.modulate.g = 1.0
 	visual.modulate.b = 1.0
+	# The core flickers WITH the body. Half the point of splitting them is that
+	# the core carries state, so it must never be the one thing that stays solid
+	# while the player is mid i-frames.
+	var alpha: float = 1.0
 	if health.is_invulnerable(_time):
-		visual.modulate.a = 0.4 + 0.6 * absf(sin(_time * 30.0))
-	else:
-		visual.modulate.a = 1.0
+		alpha = 0.4 + 0.6 * absf(sin(_time * 30.0))
+	visual.modulate.a = alpha
+	core.modulate.a = alpha
 
 
 func _on_died() -> void:
 	set_physics_process(false)
 	weapon.set_physics_process(false)
 	visual.modulate = Color(0.4, 0.4, 0.4, 0.8)
+	core.modulate = Color(0.4, 0.4, 0.4, 0.8)
+	# The trail nodes are top_level, so they are NOT dragged out of view with the
+	# corpse — a live ribbon left hanging in the arena after death would read as
+	# the player still being somewhere.
+	trail.visible = false
+	jet_a.visible = false
+	jet_b.visible = false
 	died.emit()

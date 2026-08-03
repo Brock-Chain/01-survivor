@@ -1,6 +1,31 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/title.gd" id="1_ti"]
+[ext_resource type="Texture2D" path="res://assets/sprites/title_mark.png" id="2_hex"]
+
+; Review finding 10: the title screen taught the WRONG GOAL ("Survive.") when the
+; design's signature is winning at 5:00, and carried none of the game's visual
+; identity — a bare wordmark with no shape on it, which for a game named after a
+; shape is the whole miss. It is also the screenshot that earns the click before
+; anyone plays a second of the game (BRIEF M1).
+;
+; The hexagon IS the logo now. It is the player's own sprite, scaled up and
+; spinning slowly, so the first thing a stranger sees is the thing they are about
+; to control.
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_start"]
+bg_color = Color(0.06, 0.15, 0.19, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.42, 0.97, 0.96, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.42, 0.97, 0.96, 0.25)
+shadow_size = 6
 
 [node name="Title" type="Control"]
 layout_mode = 3
@@ -24,29 +49,62 @@ anchor_bottom = 1.0
 
 [node name="VBox" type="VBoxContainer" parent="Center"]
 layout_mode = 2
-theme_override_constants/separation = 24
+theme_override_constants/separation = 6
+
+[node name="Mark" type="TextureRect" parent="Center/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+size_flags_horizontal = 4
+texture = ExtResource("2_hex")
+stretch_mode = 3
 
 [node name="GameTitle" type="Label" parent="Center/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
+theme_override_colors/font_color = Color(0.62, 1, 0.95, 1)
+theme_override_font_sizes/font_size = 34
 horizontal_alignment = 1
-text = "PRISM"
+text = "BESTAGON"
+
+[node name="Tagline" type="Label" parent="Center/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.62, 0.8, 1)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+text = "hexagons are the bestagons"
 
 [node name="Subtitle" type="Label" parent="Center/VBox"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.88, 1, 1)
+theme_override_font_sizes/font_size = 12
 horizontal_alignment = 1
-text = "WASD to move. Everything else is automatic.
-Survive."
+text = "WASD to move. Your weapons fire themselves.
+Survive five minutes and kill The Prism to win."
+
+[node name="RecordLabel" type="Label" parent="Center/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.68, 0.86, 1)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+text = ""
 
 [node name="StartButton" type="Button" parent="Center/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-custom_minimum_size = Vector2(160, 44)
+custom_minimum_size = Vector2(170, 40)
+size_flags_horizontal = 4
+theme_override_colors/font_color = Color(0.72, 1, 0.98, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_start")
+theme_override_styles/hover = SubResource("StyleBoxFlat_start")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_start")
+theme_override_styles/focus = SubResource("StyleBoxFlat_start")
 text = "START"
 
 [node name="TrackButton" type="Button" parent="Center/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-custom_minimum_size = Vector2(160, 28)
-theme_override_font_sizes/font_size = 11
+custom_minimum_size = Vector2(170, 24)
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 10
 text = "MUSIC: AUTO"

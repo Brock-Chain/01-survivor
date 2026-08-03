@@ -5,9 +5,9 @@
 [resource]
 script = ExtResource("1")
 id = &"prism"
-max_hp = 900
+max_hp = 1200
 speed = 26.0
 damage = 2
 xp_value = 120
 tint = Color(1, 0.42, 0.85, 1)
-size = 32.0
+size = 35.0

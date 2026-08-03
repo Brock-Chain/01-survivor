@@ -41,6 +41,12 @@ func setup(p_stats: Stats, p_resource: WeaponResource,
 	refresh()
 
 
+## Whether this weapon was ever unlocked. Public because the Run Director scales
+## boss HP by how many weapons are actually firing.
+func is_active() -> bool:
+	return _active
+
+
 ## Rebuild the orb ring from current stats. Called on setup and after any
 ## upgrade that changes count or radius.
 func refresh() -> void:
@@ -55,8 +61,12 @@ func refresh() -> void:
 		var orb: Orbital = ORB_SCENE.instantiate()
 		add_child(orb)
 		_orbs.append(orb)
+	# Same multishot tax the projectile weapons pay: extra orbs are extra bodies
+	# hit, so the ring must not also multiply damage-per-orb. Applied here too or
+	# the runaway simply relocates to the axis that was left untaxed.
+	var ring_tax: float = Stats.volley_damage_mult(resource.count, want)
 	for orb: Orbital in _orbs:
-		orb.damage = maxi(1, resource.damage + stats.damage_bonus)
+		orb.damage = maxi(1, roundi((resource.damage + stats.damage_bonus) * ring_tax))
 		# Divided by spin: a faster orbit passes through an enemy more often, so
 		# it must be ALLOWED to hit more often. Without this, Spin Up was a
 		# cosmetic upgrade that measured 1 pick in 10 offers.

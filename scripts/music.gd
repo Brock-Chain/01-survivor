@@ -18,11 +18,16 @@ extends Node
 ## switches it on (the Run Director publishes 0..3, tier 3 being a boss).
 ## Tracks are interchangeable: same tempo, same length, same four-layer shape,
 ## so rotation costs nothing structurally.
-const TRACK_NAMES: Array[String] = ["Neon", "Darksynth", "Outrun"]
+const TRACK_NAMES: Array[String] = ["Neon", "Darksynth", "Outrun", "Lightcycle"]
 const TRACKS: Array = [
 	["gameplay_0_bass", "gameplay_1_drums", "gameplay_2_arp", "gameplay_3_lead"],
 	["track2_0_bass", "track2_1_drums", "track2_2_arp", "track2_3_lead"],
 	["track3_0_bass", "track3_1_drums", "track3_2_arp", "track3_3_lead"],
+	# LIGHTCYCLE — the neo-racing track. A Phrygian, so it shares the tonic with
+	# Neon (Aeolian) and Outrun (Dorian) and stays interchangeable, but the flat
+	# 2nd is an interval neither of them can make. Built as an engine rather than
+	# a song: three chord changes in sixteen seconds where Outrun has eight.
+	["track4_0_bass", "track4_1_drums", "track4_2_arp", "track4_3_lead"],
 ]
 const LAYERS: int = 4
 
@@ -121,13 +126,38 @@ func play_gameplay() -> void:
 	if _title.playing:
 		_title.stop()
 	if _stems[0].playing:
-		return  # already running — a scene reload must not restart the music
-	_load_track(_choose_track())
+		_rotate_running()
+		return
+	_start_track(_choose_track(), 0)
+
+
+## Review finding 9: rotation was DEAD on the restart path — the exact path the
+## prime directive exercises five times in a row.
+##
+## `play_gameplay` used to early-return whenever stems were playing, and rotation
+## lives past that guard inside `_choose_track`. `_stop_gameplay` is only ever
+## called by `play_title`, so every restart — game over, victory, pause panel,
+## the R key — kept the same 16-second loop forever. The anti-fatigue mechanism
+## was unreachable from the one place fatigue actually accumulates.
+##
+## A restart is a NEW RUN and gets the next track. The original guard existed so
+## a scene reload would not jar, which is still respected: the intensity tier is
+## carried across rather than snapping back to bass-only.
+func _rotate_running() -> void:
+	if available_tracks().size() <= 1:
+		return  # nothing to rotate to — keeping the groove is the better failure
+	var previous: int = maxi(0, intensity)
+	_stop_gameplay()
+	_start_track(_choose_track(), previous)
+
+
+func _start_track(index: int, tier: int) -> void:
+	_load_track(index)
 	for player: AudioStreamPlayer in _stems:
 		player.volume_db = SILENT_DB
 		player.play()
 	intensity = -1
-	set_intensity(0)
+	set_intensity(tier)
 
 
 ## Pinned track if one is forced, else the next in rotation. Rotation advances

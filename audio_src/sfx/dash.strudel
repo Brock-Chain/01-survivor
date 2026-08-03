@@ -1,0 +1,12 @@
+// Dash. Breathy whoosh plus a rising triangle lift.
+//
+// MOVEMENT, not a weapon: noise carries the air and there is no sawtooth in it
+// at all, because saw is the hostile half of the vocabulary. It rises, like
+// every friendly cue in the game (penv NEGATIVE is the rise — superdough's penv
+// offsets the START and decays to the written note, so the intuitive reading is
+// backwards). Short and quiet: this fires about once a second in endless and
+// must never become percussion.
+stack(
+  s("white").attack(.004).decay(.13).sustain(0).lpf(4200).hpf(700).gain(.42),
+  note("a4").s("triangle").penv(-5).pdecay(.09).attack(.003).decay(.14).sustain(0).lpf(5000).gain(.4)
+)

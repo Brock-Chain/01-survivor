@@ -1,0 +1,59 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scenes/enemies/nogaxeh.gd" id="1_ng"]
+[ext_resource type="Texture2D" path="res://assets/sprites/boss_mirror.png" id="2_tex"]
+[ext_resource type="Shader" path="res://assets/shaders/flash.gdshader" id="3_sh"]
+[ext_resource type="Resource" path="res://resources/enemies/nogaxeh.tres" id="4_stats"]
+[ext_resource type="Texture2D" path="res://assets/sprites/boss_shield.png" id="5_shield"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_flash"]
+resource_local_to_scene = true
+shader = ExtResource("3_sh")
+shader_parameter/flash = 0.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ng"]
+resource_local_to_scene = true
+size = Vector2(34, 34)
+
+[sub_resource type="Gradient" id="Gradient_mirror"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(0.86, 0.36, 1, 0, 0.95, 0.6, 1, 0.8)
+
+; THREE phases, where the Prism has two. Thresholds are HP fractions: alone and
+; slow above 66%, mirroring the player above 33%, escorts plus the shield below.
+[node name="Nogaxeh" type="CharacterBody2D" groups=["enemies"]]
+collision_layer = 2
+collision_mask = 19
+script = ExtResource("1_ng")
+boss_stats = ExtResource("4_stats")
+phase_thresholds = PackedFloat32Array(0.66, 0.33)
+telegraph = 0.78
+p1_interval = 2.2
+p2_interval = 1.25
+shard_orbit = 56.0
+bolt_speed = 118.0
+
+; Drawn only while dashing. top_level so it stays in world space instead of
+; being dragged along by the boss it belongs to.
+[node name="Trail" type="Line2D" parent="."]
+top_level = true
+z_index = -2
+width = 9.0
+gradient = SubResource("Gradient_mirror")
+joint_mode = 2
+begin_cap_mode = 2
+end_cap_mode = 2
+antialiased = true
+
+[node name="Visual" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_flash")
+texture = ExtResource("2_tex")
+
+; The shield membrane. Hidden until phase 3, then fills the hollow ring: the cell
+; closes. Behind the body so the ring still reads as the boss's own silhouette.
+[node name="Membrane" type="Sprite2D" parent="."]
+z_index = -1
+texture = ExtResource("5_shield")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_ng")

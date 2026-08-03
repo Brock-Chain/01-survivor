@@ -27,18 +27,18 @@ const ELITE_DAMAGE_BONUS: int = 1
 const ELITE_RIM: Color = Color(1.0, 0.95, 0.75, 1.0)
 
 
-## Seconds between spawns: 1.4s at start, linearly down to 0.4s floor (~2min).
-static func spawn_interval(t: float) -> float:
-	return clampf(1.4 - 0.008 * t, 0.4, 1.4)
-
-
-## Enemy HP multiplier: +0.5 every 45s, stepped.
-static func hp_mult(t: float) -> float:
-	return 1.0 + floorf(t / 45.0) * 0.5
-
-
-## Chance a spawn is the fast enemy type: 0 before 2min, ramps to 40% cap.
-static func fast_ratio(t: float) -> float:
-	if t < 120.0:
-		return 0.0
-	return minf(0.4, 0.1 + (t - 120.0) * 0.002)
+## REMOVED 2026-08-02 — `spawn_interval`, `hp_mult` and `fast_ratio` used to live
+## here. Review finding 20: all three had ZERO production callers. The Run
+## Director reads `spawn_interval` and `hp_mult` off each WaveResource `.tres`
+## instead, and enemy-type choice moved to wave weights when the spawner became
+## mechanism-only — `fast_ratio` died with it.
+##
+## They were not harmless. `tests/unit/test_difficulty.gd` asserted eleven exact
+## values against them and passed, so the suite was green on tuning functions
+## that could not affect the game: anyone editing `spawn_interval` to make the
+## run harder would have seen nothing change and all tests still pass. A green
+## check that verifies nothing is worse than no check.
+##
+## The curve now lives in ONE place — `tools/gen_waves.gd` and the `.tres` files
+## it writes. `MAX_ALIVE`, `should_spawn` and the `ELITE_*` constants above are
+## live and stay.

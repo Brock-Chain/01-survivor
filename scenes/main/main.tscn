@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://scenes/director/run_director.gd" id="10_dir"]
 [ext_resource type="Resource" path="res://resources/run_schedule.tres" id="11_sched"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/boss.tscn" id="12_boss"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/nogaxeh.tscn" id="15_mirror"]
 [ext_resource type="PackedScene" path="res://scenes/ui/victory.tscn" id="13_vic"]
 [ext_resource type="PackedScene" path="res://scenes/ui/pause_panel.tscn" id="14_pause"]
 
@@ -24,6 +25,7 @@ size = Vector2(32, 784)
 script = ExtResource("1_main")
 
 [node name="Floor" type="Sprite2D" parent="."]
+z_index = -10
 texture_repeat = 2
 texture = ExtResource("0_floor")
 centered = false
@@ -71,6 +73,7 @@ enemy_scene = ExtResource("4_enemy")
 script = ExtResource("10_dir")
 schedule = ExtResource("11_sched")
 boss_scene = ExtResource("12_boss")
+mirror_scene = ExtResource("15_mirror")
 
 [node name="LevelUpPanel" parent="." instance=ExtResource("6_lup")]
 

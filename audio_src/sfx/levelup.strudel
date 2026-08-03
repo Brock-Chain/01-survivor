@@ -1,6 +1,18 @@
-// Level up — the panel opens on this. A two-chord cadence with a bell on top:
-// stately "you earned something", distinct from the powerup's quick sparkle.
-stack(
-  note("[c4,e4,g4] [g4,b4,d5] ~ ~ ~ ~ ~ ~").s("sawtooth").decay(.3).sustain(0).lpf(3000).gain(.6),
-  note("~ ~ c6 ~ ~ ~ ~ ~").s("triangle").decay(.4).sustain(0).gain(.7)
-)
+// Level up — ONE synth, deep, a single sustained harmony. No ladder, no arrival
+// note, no second voice.
+//
+// It has been three things now. A two-chord sawtooth cadence with a bell was
+// "stately", which is the one thing this game is not. A three-note triangle rise
+// fixed the register but was still a MELODY, and a melody competes with the
+// music for attention at the exact moment the game pauses. This is a chord: it
+// lands, it sits, it gets out of the way.
+//
+// Deep on purpose. The whole sfx palette was pulled down after the 2026-08-02
+// playtest ("too many sounds and all too similar"), and low is the one register
+// nothing else in the game occupies — the level-up cue can own it outright.
+//
+// Root, fifth, octave. No third, because the gameplay tracks rotate through
+// A Aeolian, D Phrygian and A Dorian, and a third is wrong over two of them.
+note("[a2,e3,a3]").s("triangle")
+  .attack(.012).decay(.55).sustain(0)
+  .lpf(1700).gain(.8)

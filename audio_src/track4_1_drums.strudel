@@ -1,0 +1,38 @@
+// == TRACK 4 - LAYER 1 - PULSE ===============================================
+// LIGHTCYCLE's drums. Relentless where track 3's open up only in the B half:
+// this track's whole proposition is that it never eases off, so the 16th hats
+// run for all eight bars and the fills push rather than breathe.
+//
+// The one thing kept sparse is the crash. A racing loop heard for minutes needs
+// somewhere for the ear to rest, and if the kit is constant that rest has to
+// come from what is ABSENT rather than from what is added.
+setcps(0.5)
+stack(
+  s("bd*4").gain(0.40),                                   // four on the floor
+
+  // Backbeat. Clap for width, snare underneath for the crack. Both low: they
+  // land on the same 16th as a kick, and that stack sets the stem's peak.
+  s("~ cp ~ cp").gain(0.15),
+  s("~ sd ~ sd").gain(0.085),
+
+  // 16th hats, every bar, all eight. This is the tyre noise. Panned narrow and
+  // moving, so it sits behind the kick instead of on top of it.
+  s("hh*16").gain(0.055).pan(sine.range(0.40, 0.60).fast(4)),
+
+  // Offbeat open hat, every bar. The lift that stops four-on-the-floor from
+  // reading as a metronome.
+  s("[~ ho]*4").gain(0.085),
+
+  // Rimshot doubling the "and" of 3 and 4 in the B half only. The one place the
+  // groove changes across the loop, and it pushes FORWARD rather than filling.
+  s("<~ ~ ~ ~ [~ ~ [~ rs] [~ rs]] [~ ~ [~ rs] [~ rs]] [~ ~ [~ rs] [~ rs]] [~ ~ [~ rs] [~ rs]]>")
+    .gain(0.075).pan(0.62),
+
+  // Turnarounds on beat 4 of bars 4 and 8, starting after the backbeat so the
+  // run answers the clap instead of doubling it. Bar 8's is longer: it resets
+  // the loop and needs to be heard as an ending, not a stumble.
+  s("<~ ~ ~ [~ ~ ~ [~ ~ sd sd]] ~ ~ ~ [~ ~ [sd sd] [sd sd sd sd]]>").gain(0.155),
+
+  // Crash on the top of each half only.
+  s("<cr ~ ~ ~ cr ~ ~ ~>").gain(0.11)
+)

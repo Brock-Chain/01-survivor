@@ -1,4 +1,4 @@
-# 01-survivor
+# BESTAGON (repo folder `01-survivor`)
 
 Micro arena survivor (Vampire-Survivors-lite) in Godot 4.7.1, GDScript. Game 1 of a 3-game learning roadmap; its "pick 1 of 3 upgrades" loop is deliberate rehearsal for a future deckbuilder. Ship target 2026-08-14: web + Windows on itch.io. **TODO.md is the source of truth for milestones and scope** — read it at session start, update it at session end.
 
@@ -7,15 +7,29 @@ Micro arena survivor (Vampire-Survivors-lite) in Godot 4.7.1, GDScript. Game 1 o
 Engine: `..\..\engine\Godot_v4.7.1-stable_win64_console.exe` (always the `_console` exe).
 
 ```powershell
-# after any external file changes
+# THE GATE. Run this, not the individual steps: import + tests + gameplay smoke +
+# pause-layout harness, with the error grep and the benign-noise list built in.
+powershell -File tools/verify.ps1
+powershell -File tools/verify.ps1 soak     # + an 11-minute run clearing both boss events
+
+# after any external file changes (verify.ps1 does this first anyway)
 <console.exe> --headless --import --path .
-# smoke test (~5s game time); success = exit 0 AND no SCRIPT ERROR/ERROR in output.
-# KNOWN-BENIGN exception: "ERROR: N resources still in use at exit" — the audio
-# server holds every stream that PLAYED during the session past the leak check
-# (engine teardown ordering; _exit_tree nulling proved useless). Anything else is real.
-<console.exe> --headless --path . --quit-after 300
 # tests (must be green before every push)
 <console.exe> --headless --path . -d -s addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit
+
+# GAMEPLAY smoke. The scene MUST be named explicitly: `run/main_scene` is
+# title.tscn, so `--headless --path .` boots the TITLE SCREEN, sits there and
+# exits 0 no matter what is broken in gameplay. That was the documented gate for
+# months and it could not fail (M6.5 review finding 29). Success = exit 0 AND the
+# "BESTAGON boot OK" line present AND no SCRIPT ERROR/ERROR.
+<console.exe> --headless --path . --fixed-fps 60 res://scenes/main/main.tscn --quit-after 2400
+# NOTE: --dev-autopick takes the call_deferred+break path in _check_level_up and
+# NEVER calls LevelUpPanel.show_offers, so an autopick soak leaves the level-up
+# screen untested. The command above (no autopick) is the one that covers it.
+#
+# KNOWN-BENIGN at exit: "N resources still in use at exit" (the audio server holds
+# every stream that played past the leak check) and "RID allocations of type ...
+# leaked at exit" (renderer/physics dummies release after it). Anything else is real.
 # screenshot of the running game → Read the PNG (dir .ai\ is gitignored)
 <console.exe> --path . -w --resolution 1280x720 -- --screenshot=<abs>/.ai/shot.png --shot-frame=30
 # contact sheet — several frames in ONE png, for anything that MOVES (--fixed-fps is mandatory)

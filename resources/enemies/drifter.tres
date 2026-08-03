@@ -8,4 +8,5 @@ script = ExtResource("1_odmc3")
 id = &"drifter"
 speed = 72.0
 tint = Color(1, 0.29, 0.72, 1)
+size = 18.5
 sprite = ExtResource("2_801wv")

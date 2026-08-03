@@ -1,4 +1,4 @@
-class_name LanceWeapon
+﻿class_name LanceWeapon
 extends Node2D
 ## The third weapon: PRISM LANCE — an instant piercing beam.
 ##
@@ -79,7 +79,7 @@ func _fire(dir: Vector2) -> void:
 	var crit: bool = stats.crit_chance > 0.0 and rng.randf() < stats.crit_chance
 	var base: int = maxi(1, roundi((resource.damage + stats.damage_bonus) * _power_mult()))
 	var damage: int = roundi(base * stats.crit_mult) if crit else base
-	Sfx.play(&"crit" if crit else resource.fire_sound, -6.0 if crit else -8.0)
+	Sfx.play(&"crit" if crit else resource.fire_sound, -8.0 if crit else -14.0)
 	var length: float = resource.range
 	for node: Node in get_tree().get_nodes_in_group(&"enemies"):
 		var enemy: Enemy = node as Enemy
@@ -88,7 +88,10 @@ func _fire(dir: Vector2) -> void:
 		# +6: roughly an enemy's half-size, so the corridor tests centers fairly.
 		if segment_hit(global_position, dir, length, HALF_WIDTH + 6.0,
 				enemy.global_position):
-			enemy.take_hit(damage, stats.execute_below)
+			# Pushed along the BEAM, not away from the muzzle: the lance's whole
+			# identity is a line, so the shove should read as the line sweeping.
+			enemy.take_hit(damage, stats.execute_below,
+					enemy.global_position - dir * 24.0)
 	_flash(dir, length, crit)
 
 

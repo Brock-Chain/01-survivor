@@ -48,7 +48,9 @@ func _try_hit(enemy: Enemy) -> void:
 		return
 	_cooldowns[key] = hit_interval
 	var at: Vector2 = enemy.global_position
-	enemy.take_hit(damage)
+	# Shoved away from the ORB, which is what makes the ring read as a physical
+	# barrier sweeping enemies aside rather than a damage aura.
+	enemy.take_hit(damage, 0.0, global_position)
 	# Detonate only on a KILL, not on every contact — a constant AoE would make
 	# the orbital a lawnmower rather than a reward for finishing something off.
 	if nova_radius > 0.0 and not is_instance_valid(enemy):

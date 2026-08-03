@@ -78,7 +78,7 @@ func _on_body_entered(body: Node2D) -> void:
 	var enemy: Enemy = body as Enemy
 	if cryo > 0.0:
 		enemy.apply_slow(cryo, 1.6)
-	enemy.take_hit(damage, execute_below)
+	enemy.take_hit(damage, execute_below, global_position)
 
 	if _can_spawn:
 		if prism_shards > 0:
@@ -121,28 +121,87 @@ func _burst(count: int) -> void:
 		get_parent().add_child.call_deferred(shard)
 
 
-## Chain Lightning: arc to the nearest few other enemies. Modelled as very
-## short-lived fast bolts rather than drawn lightning, so it reuses the whole
-## existing projectile path instead of needing a new render system.
+## Chain Lightning: arc to the nearest few other enemies.
+##
+## Playtest 2026-08-02, verbatim: "the chain lightning doesn't look like lightning
+## at all". It was modelled as very short-lived fast PROJECTILES flying between
+## enemies, which reads as more bullets, because that is exactly what it was.
+##
+## Now the damage is applied DIRECTLY and the arc is DRAWN — a jagged polyline
+## with a wide translucent body under a white-hot core, fading out. That is the
+## same construction as LanceWeapon._flash_line, the project's working precedent
+## for an instant beam, and it is why a lance reads as a beam while this did not.
+##
+## Removing the child projectiles also removes the recursion trap structurally:
+## the rule that chain and burst children must be created INERT (DECISIONS.md,
+## "one shot recurses into thousands") cannot be violated by code that spawns no
+## children at all.
+const ARC_SEGMENTS: int = 7
+## Peak perpendicular deviation, in pixels, at the middle of a hop. Tapered by
+## sin(t*PI) so both ends stay exactly on their enemies — an arc that misses the
+## thing it damaged is worse than a straight line.
+const ARC_JITTER: float = 8.0
+const ARC_FADE: float = 0.17
+const ARC_BODY_WIDTH: float = 4.5
+const ARC_CORE_WIDTH: float = 1.5
+
+
 func _chain(from: Enemy) -> void:
 	var hit: Array[Enemy] = [from]
+	var origin: Vector2 = from.global_position
+	var arc_damage: int = maxi(1, roundi(damage * 0.6))
 	for i: int in chain_targets:
-		var next: Enemy = _nearest_excluding(hit, from.global_position, CHAIN_RANGE)
+		var next: Enemy = _nearest_excluding(hit, origin, CHAIN_RANGE)
 		if next == null:
 			return
 		hit.append(next)
-		var bolt: Projectile = duplicate() as Projectile
-		bolt._can_spawn = false
-		bolt.prism_shards = 0
-		bolt.chain_targets = 0
-		bolt.ricochet = 0
-		bolt._life = 0.3
-		bolt.setup((next.global_position - from.global_position).normalized(), 620.0,
-				maxi(1, roundi(damage * 0.6)))
-		bolt.global_position = from.global_position
-		bolt.scale = Vector2.ONE * 0.7
-		# Same flush rule as _burst: this runs inside body_entered.
-		get_parent().add_child.call_deferred(bolt)
+		var landed: Vector2 = next.global_position
+		# Chains hop OUTWARD from the last enemy struck, so the bolt walks the
+		# crowd instead of spraying from one point.
+		next.take_hit(arc_damage, execute_below, origin)
+		_draw_arc(origin, landed)
+		origin = landed
+
+
+func _draw_arc(a: Vector2, b: Vector2) -> void:
+	var parent: Node = get_parent()
+	if not is_instance_valid(parent):
+		return
+	var span: Vector2 = b - a
+	if span.length_squared() < 1.0:
+		return
+	var perp: Vector2 = span.orthogonal().normalized()
+	var points: PackedVector2Array = PackedVector2Array()
+	for i: int in ARC_SEGMENTS + 1:
+		var t: float = float(i) / float(ARC_SEGMENTS)
+		var wobble: float = 0.0
+		if i > 0 and i < ARC_SEGMENTS:
+			wobble = randf_range(-ARC_JITTER, ARC_JITTER) * sin(t * PI)
+		points.append(a + span * t + perp * wobble)
+	# Player damage is cyan burning to white — same colour grammar as the lance.
+	_add_arc(parent, points, ARC_BODY_WIDTH, Color(0.30, 0.92, 1.0, 0.45))
+	_add_arc(parent, points, ARC_CORE_WIDTH, Color(1.0, 1.0, 1.0, 0.95))
+
+
+func _add_arc(parent: Node, points: PackedVector2Array, width: float,
+		colour: Color) -> void:
+	var line := Line2D.new()
+	line.points = points
+	line.width = width
+	line.default_color = colour
+	line.z_index = 2
+	line.antialiased = true
+	line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	line.end_cap_mode = Line2D.LINE_CAP_ROUND
+	line.joint_mode = Line2D.LINE_JOINT_ROUND
+	# The fade tween is owned by the LINE, not by this projectile: we are inside
+	# body_entered and this projectile is usually freed on the very same frame.
+	line.ready.connect(func() -> void:
+		var fade: Tween = line.create_tween()
+		fade.tween_property(line, "modulate:a", 0.0, ARC_FADE)
+		fade.tween_callback(line.queue_free), CONNECT_ONE_SHOT)
+	# add_child mid-physics-flush is forbidden; same rule the old version followed.
+	parent.add_child.call_deferred(line)
 
 
 func _nearest_excluding(exclude: Array[Enemy], from: Vector2, radius: float) -> Enemy:

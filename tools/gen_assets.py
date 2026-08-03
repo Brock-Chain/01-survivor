@@ -12,7 +12,7 @@ import struct
 import wave
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
 SPRITES = ROOT / "assets" / "sprites"
@@ -39,6 +39,10 @@ SS = 8  # supersample factor
 
 NEON = {
     "player": ((120, 255, 245), (235, 255, 253)),   # cyan, white-hot core
+    # The core is its own SPRITE now, so it needs its own palette entry. It is
+    # nearly white on purpose: it reads as the hot centre of the shape, and once
+    # it is a separate node it can slide, flare and dim independently of the body.
+    "player_core": ((215, 255, 252), (255, 255, 255)),
     "bullet": ((110, 245, 255), (240, 255, 255)),
     "orbital": ((150, 235, 255), (245, 255, 255)),
     "gem": ((120, 255, 190), (240, 255, 230)),      # green-cyan pickup
@@ -49,13 +53,27 @@ NEON = {
     # never be confused when the screen is busy.
     "health": ((150, 255, 235), (255, 255, 255)),
     "powerup": ((140, 255, 244), (255, 255, 255)),
+    # Nogaxeh's shield membrane. Cold white-violet, deliberately outside both the
+    # cyan (yours) and magenta-orange (hostile) bands so "hardened, inert, not
+    # currently a target" is its own read. BRIEF.md already exempts the boss from
+    # the colour law -- "it is allowed to break the law, that is what makes it
+    # read as a boss" -- and this is the one place that exemption earns itself.
+    "shield": ((198, 188, 255), (255, 255, 255)),
     # Greyscale — tinted at runtime. Kept bright: `modulate` MULTIPLIES, so the
     # sprite's own value is a ceiling on how neon the tinted result can look.
     "enemy": ((214, 214, 214), (255, 255, 255)),
 }
 
 FLOOR_BASE = (11, 12, 22)
-FLOOR_GRID = (26, 30, 56)
+FLOOR_GRID = (21, 24, 46)
+## Circuit trace palette. Every value here is deliberately far below the entity
+## palette (enemy sprites are 214 greyscale before tinting, the player's cyan is
+## 120,255,245) so the floor reads as texture and never as an object. If the
+## floor ever competes with a bolt, these are the numbers that are wrong.
+TRACE = (33, 30, 72)
+TRACE_LIT = (54, 42, 116)
+NODE = (74, 55, 148)
+VIA = (44, 88, 122)
 
 
 def _regular(n: int, cx: float, cy: float, r: float, rot: float = 0.0) -> list[tuple[float, float]]:
@@ -83,13 +101,45 @@ def _chevron(cx: float, cy: float, r: float) -> list[tuple[float, float]]:
     return [(cx, cy - r), (cx + r, cy + r * 0.75), (cx, cy + r * 0.2), (cx - r, cy + r * 0.75)]
 
 
+def _sliver(cx: float, cy: float, r: float) -> list[tuple[float, float]]:
+    """A long thin needle pointing up — the Dart. It rotates to face travel.
+
+    The Dart used to be an equilateral triangle, which is ALSO the enemy bolt's
+    shape: on a contact sheet the Dart read as an oversized bolt, collapsing the
+    one distinction the colour law is built to protect ("can this hurt me" before
+    "what is it"). A needle at 10px cannot be mistaken for a bolt at 12px, and
+    the aspect ratio says 'fast' on its own.
+    """
+    return [(cx, cy - r), (cx + r * 0.30, cy), (cx, cy + r * 0.86), (cx - r * 0.30, cy)]
+
+
+def _wedge(cx: float, cy: float, r: float) -> list[tuple[float, float]]:
+    """A tall narrow spearhead pointing up — the Ram.
+
+    The Ram ROTATES to face its target (enemy.gd), so 'up' is its forward. It
+    must not read as the Dart, which is an equilateral triangle: at 12px in a
+    crowd, aspect ratio and motion read long before exact angle does. Narrow
+    plus turning is unmistakable; the Ram used to literally wear the Dart's
+    sprite, which is review finding 8.
+    """
+    return [(cx, cy - r), (cx + r * 0.48, cy + r * 0.78), (cx - r * 0.48, cy + r * 0.78)]
+
+
 SHAPES = {
+    # THE BESTAGON. The player is the only hexagon in the game — until Nogaxeh,
+    # which breaks the rule exactly once, at the climax, and the break IS the
+    # reveal. Nothing else may claim six sides.
     "hexagon": lambda cx, cy, r: _regular(6, cx, cy, r, math.pi / 6),
     "triangle": lambda cx, cy, r: _regular(3, cx, cy, r, -math.pi / 2),
     "octagon": lambda cx, cy, r: _regular(8, cx, cy, r, math.pi / 8),
     "diamond": lambda cx, cy, r: _regular(4, cx, cy, r, -math.pi / 2),
     "chevron": _chevron,
     "square": lambda cx, cy, r: _regular(4, cx, cy, r * 0.92, math.pi / 4),
+    # The Prism. Five sides — the shape that came closest to being a hexagon and
+    # did not. A pentagonal prism is a real solid, so the name stays accurate.
+    "pentagon": lambda cx, cy, r: _regular(5, cx, cy, r, -math.pi / 2),
+    "wedge": _wedge,
+    "sliver": _sliver,
     "plus": _plus,
     "bolt": _bolt,
     "star": lambda cx, cy, r: _regular(12, cx, cy, r, -math.pi / 2),
@@ -113,30 +163,119 @@ def _tint(mask: Image.Image, rgb: tuple[int, int, int], alpha: float = 1.0) -> I
 
 def neon_sprite(name: str, size: int, shape: str, key: str,
                 radius: float | None = None, core_ratio: float = 0.52,
-                glow: float = 1.9, glow_alpha: float = 0.62) -> None:
-    """Glow halo + body + white-hot core, composited bottom-up."""
+                glow: float = 1.9, glow_alpha: float = 0.62,
+                hollow: float = 0.0) -> None:
+    """Glow halo + body + white-hot core, composited bottom-up.
+
+    `hollow` is the PATTERN channel: punch a same-shape void out of the middle,
+    leaving a ring. It exists because the colour law reserves hue for allegiance
+    (cyan yours / magenta-orange hostile / yellow enemy fire), and the hostile
+    band was already full at seven enemies — findings 8 and 18 were both "ran out
+    of distinguishable hues". Pattern differentiates types at ZERO hue cost and
+    survives being 12px tall in a crowd, which a subtle hue shift does not.
+    """
     body_rgb, core_rgb = NEON[key]
     r = radius if radius is not None else size * 0.34
     body = _mask(size, shape, r)
     core = _mask(size, shape, r * core_ratio)
+    if hollow > 0.0:
+        void = _mask(size, shape, r * hollow)
+        body = ImageChops.subtract(body, void)
+        # Keep the core OUTSIDE the void, so a hollow shape gets a hot inner rim
+        # rather than losing its core entirely and going dull.
+        core = ImageChops.subtract(core, void)
 
     out = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     halo = body.filter(ImageFilter.GaussianBlur(glow))
     out.alpha_composite(_tint(halo, body_rgb, glow_alpha))
     out.alpha_composite(_tint(body, body_rgb))
-    out.alpha_composite(_tint(core, core_rgb, 0.92))
+    # core_ratio <= 0 means NO baked core - used by the player body, whose core
+    # is a separate node so it can lag behind the shell under acceleration.
+    if core_ratio > 0.0:
+        out.alpha_composite(_tint(core, core_rgb, 0.92))
     out.save(SPRITES / name)
     print(f"sprite {name} {size}x{size} {shape}")
 
 
 def write_floor() -> None:
-    """Dark indigo with a faint grid — motion parallax without competing."""
-    img = Image.new("RGBA", (32, 32), (*FLOOR_BASE, 255))
+    """The arena floor: a circuit board, seamlessly tiled.
+
+    Art direction 2026-08-02 asked for "neon techno with circuitry". The floor is
+    the single largest surface in the game, so it carries that read almost by
+    itself — but BRIEF.md is equally clear that the floor is "near-black indigo,
+    low contrast, NEVER COMPETES". Those pull against each other and the brief
+    wins: every value here stays far below the entity palette (enemies are 214
+    greyscale before tinting), so the traces are legible as texture and invisible
+    as objects. Reference images for this look are gorgeous precisely because
+    nothing gameplay-critical sits on top of them.
+
+    SEAMLESS TILING is the whole constraint on the layout. The tile is 64px on a
+    16px lattice, and every trace that reaches an edge does so at a lattice point
+    that has a matching stub on the opposite edge — a bus at y=32 crossing left
+    and right, a bus at x=32 crossing top and bottom. Everything else is routed
+    strictly inside. Deterministic: no RNG, so the tile regenerates byte-identical.
+    """
+    # 128, not 64. At 64 the motif repeats ten times across a 640px viewport and
+    # the eye locks onto the pattern instead of reading it as a surface. 128 shows
+    # five across, which is the difference between "circuit board" and "wallpaper".
+    size, lattice = 128, 16
+    img = Image.new("RGBA", (size, size), (*FLOOR_BASE, 255))
     d = ImageDraw.Draw(img)
-    d.line([(0, 0), (31, 0)], fill=(*FLOOR_GRID, 255))
-    d.line([(0, 0), (0, 31)], fill=(*FLOOR_GRID, 255))
-    img.save(SPRITES / "floor.png")
-    print("sprite floor.png 32x32")
+
+    # Substrate grid, dimmer than before — the traces now carry the structure, so
+    # the grid only has to hint at scale for motion parallax.
+    for i in range(0, size, lattice):
+        d.line([(i, 0), (i, size - 1)], fill=(*FLOOR_GRID, 255))
+        d.line([(0, i), (size - 1, i)], fill=(*FLOOR_GRID, 255))
+
+    # The two buses. These are the only traces allowed to touch an edge, and they
+    # cross at the tile's midpoints so neighbours line up in every direction.
+    d.line([(0, 64), (size, 64)], fill=(*TRACE, 255))
+    d.line([(64, 0), (64, size)], fill=(*TRACE, 255))
+
+    # Branches, all interior. Right angles with a few 45-degree runs, which is
+    # what makes it read as a PCB rather than as graph paper. Routed
+    # asymmetrically across the four quadrants on purpose: a tile with rotational
+    # symmetry announces its own repeat.
+    for a, b in (
+            # upper left: a dense cluster feeding the vertical bus
+            ((16, 16), (16, 48)), ((16, 48), (48, 48)), ((48, 48), (48, 32)),
+            ((48, 32), (64, 32)), ((16, 16), (40, 16)), ((32, 16), (32, 40)),
+            # upper right: long runs, sparse
+            ((64, 16), (112, 16)), ((112, 16), (112, 48)), ((96, 16), (96, 44)),
+            ((112, 48), (96, 64)),
+            # lower left: diagonal chase into the bus
+            ((16, 80), (48, 112)), ((16, 96), (16, 120)), ((16, 120), (56, 120)),
+            ((48, 80), (48, 96)), ((48, 96), (64, 96)),
+            # lower right: a small block of parallel traces
+            ((80, 80), (120, 80)), ((80, 96), (120, 96)), ((80, 80), (80, 112)),
+            ((120, 96), (120, 124)), ((96, 96), (96, 112)),
+    ):
+        d.line([a, b], fill=(*TRACE, 255))
+
+    # LIT segments. Sparse on purpose: if everything glows the eye has nowhere to
+    # rest and the floor starts competing after all.
+    for a, b in (((64, 64), (112, 64)), ((32, 16), (32, 40)),
+                 ((16, 120), (56, 120)), ((80, 96), (120, 96))):
+        d.line([a, b], fill=(*TRACE_LIT, 255))
+
+    # Junction pads where traces meet, vias where they would pass through to
+    # another layer. These details are what sell "circuit" at a glance.
+    for x, y in ((64, 64), (16, 48), (48, 48), (112, 16), (16, 120),
+                 (80, 96), (120, 96), (48, 96), (32, 16)):
+        d.rectangle([x - 1, y - 1, x + 1, y + 1], fill=(*NODE, 255))
+    for x, y in ((96, 44), (112, 48), (56, 120), (120, 124), (96, 112), (32, 40)):
+        d.ellipse([x - 2, y - 2, x + 2, y + 2], outline=(*VIA, 255))
+
+    # Bloom on the lit elements only, composited under everything so the traces
+    # stay crisp. Baked, like every other glow in this project — GL Compatibility
+    # on a single-threaded web export is not somewhere to depend on post-process.
+    glow = img.filter(ImageFilter.GaussianBlur(2.2))
+    out = Image.new("RGBA", (size, size), (*FLOOR_BASE, 255))
+    out.alpha_composite(Image.blend(out, glow, 0.45))
+    out.alpha_composite(img)
+    out.save(SPRITES / "floor.png")
+    print(f"sprite floor.png {size}x{size} circuit")
 
 
 # ------------------------------------------------------------------ audio ---
@@ -244,20 +383,77 @@ def main() -> None:
     for d in (SPRITES, SFX, MUSIC):
         d.mkdir(parents=True, exist_ok=True)
     # Player & friendlies — authored in colour (never modulated).
-    neon_sprite("player.png", 16, "diamond", "player", radius=5.6, core_ratio=0.5)
+    # THE BESTAGON: the player is a hexagon, and nothing hostile is, until the
+    # 10:00 mirror. Six sides is the whole premise, so it is the one silhouette
+    # the player must never mistake for anything else on screen.
+    #
+    # Split into BODY and CORE as two sprites. Playtest 2026-08-02: "main character
+    # lacks personality", and a hexagon cannot express motion by rotating — six-fold
+    # symmetry means 60 degrees looks identical to 0. Breaking the symmetry from the
+    # INSIDE is the only option left once deforming the shell is ruled out (it was,
+    # emphatically: "I dislike that it thins out when moving"). A core that slides
+    # toward the trailing edge sells weight while the body stays frame-exact, so it
+    # costs nothing in input latency. The same node then carries every state the
+    # player needs to read: hit, low HP, dash ready, firing.
+    #
+    # Both grew 10% with the rest of the roster.
+    neon_sprite("player_body.png", 18, "hexagon", "player", radius=6.5, core_ratio=0.0)
+    neon_sprite("player_core.png", 10, "hexagon", "player_core", radius=3.3,
+                core_ratio=0.8, glow=1.5, glow_alpha=0.85)
     neon_sprite("bullet.png", 8, "diamond", "bullet", radius=2.5, core_ratio=0.5,
                 glow=1.1, glow_alpha=0.7)
     neon_sprite("orbital.png", 8, "square", "orbital", radius=2.5, core_ratio=0.5,
                 glow=1.1, glow_alpha=0.7)
-    neon_sprite("gem.png", 10, "diamond", "gem", radius=3.2, core_ratio=0.46,
-                glow=1.4, glow_alpha=0.65)
+    # Smaller (radius 3.2 -> 2.5) alongside the shorter idle timeout in
+    # xp_gem.gd. Two halves of the same fix: fewer gems on the floor at once, and
+    # each one reading as TEXTURE rather than as an object competing with the
+    # enemies. Enemies grew 20-30% in the same pass, so holding the gem size
+    # would have widened the gap anyway.
+    neon_sprite("gem.png", 10, "diamond", "gem", radius=2.5, core_ratio=0.46,
+                glow=1.3, glow_alpha=0.6)
+
+    # The title wordmark's hexagon, on its OWN canvas at 96px rather than the
+    # 16px player sprite scaled up 4.5x. M1's gate is "a static screenshot with
+    # the HUD hidden already looks designed", and a magnified 16px sprite reads
+    # as a blurry blob at any filter setting - the shape the whole game is named
+    # after has to be crisp in the one image that earns the click.
+    neon_sprite("title_mark.png", 96, "hexagon", "player", radius=34.0,
+                core_ratio=0.44, glow=6.0, glow_alpha=0.5)
 
     # Enemies — GREYSCALE, tinted per type at runtime. enemy.png stays the
-    # Drifter so existing scenes keep working; the rest are wired up in M5.
-    for name, shape in (("enemy.png", "hexagon"), ("enemy_drifter.png", "hexagon"),
-                        ("enemy_dart.png", "triangle"), ("enemy_bulwark.png", "octagon"),
-                        ("enemy_splitter.png", "diamond"), ("enemy_lancer.png", "chevron")):
-        neon_sprite(name, 16, shape, "enemy", radius=5.5, core_ratio=0.5)
+    # Drifter default so existing scenes keep working.
+    #
+    # NO ENEMY IS A HEXAGON. Shape is the FAMILY, size and colour are the
+    # VARIANT, and `hollow` is the pattern channel. Hue alone can no longer carry
+    # type: seven enemies already exhausted the hostile band, which is exactly
+    # what findings 8 (Ram wore the Dart's triangle) and 18 (Splitter sat in
+    # reserved bolt-yellow) were symptoms of.
+    # Canvas is 24px, up from 16. Playtest 2026-08-02 raised every enemy roughly
+    # 20-30% (see resources/enemy_size.gd), and enemy.gd renders a sprite at
+    # `size / texture_width` — so at 16px the whole roster would have been drawn
+    # at 1.2-1.5x with nearest filtering, turning clean polygon edges into stairs.
+    # Authoring at the size things are actually drawn keeps them crisp. Radii and
+    # glow scale by the same 1.5.
+    for name, shape in (("enemy.png", "square"), ("enemy_drifter.png", "square"),
+                        ("enemy_lancer.png", "chevron")):
+        neon_sprite(name, 24, shape, "enemy", radius=8.25, core_ratio=0.5, glow=2.9)
+
+    # Dart: a needle, not a triangle. The triangle belongs to the enemy BOLT and
+    # sharing it made the Dart read as an oversized piece of enemy fire.
+    neon_sprite("enemy_dart.png", 24, "sliver", "enemy", radius=9.6,
+                core_ratio=0.45, glow=2.9)
+
+    # Bulwark: a thick armoured ring. Hollow says "shell" without a second hue,
+    # and the HP wall should look like one rather than like a big Drifter.
+    neon_sprite("enemy_bulwark.png", 24, "octagon", "enemy", radius=8.7,
+                core_ratio=0.94, hollow=0.58, glow=2.9)
+    # Splitter: hollow because there is literally something inside it. The
+    # pattern IS the mechanic — a shape with a void reads as "this will open".
+    neon_sprite("enemy_splitter.png", 24, "diamond", "enemy", radius=8.4,
+                core_ratio=0.95, hollow=0.5, glow=2.9)
+    # Ram: its own silhouette at last, and the only enemy that rotates.
+    neon_sprite("enemy_ram.png", 24, "wedge", "enemy", radius=9.6,
+                core_ratio=0.5, glow=2.9)
 
     # Enemy fire is bigger and hotter than the player's: it has to read as a
     # threat across a busy screen, and the playtest asked for more menace.
@@ -267,8 +463,25 @@ def main() -> None:
                 glow=1.8, glow_alpha=0.7)
     # The boss is the one place detail is affordable, so it gets its own canvas
     # rather than a scaled-up enemy. Greyscale — boss.gd tints core and shards.
-    neon_sprite("boss_core.png", 32, "hexagon", "enemy", radius=11.5,
+    neon_sprite("boss_core.png", 32, "pentagon", "enemy", radius=11.5,
                 core_ratio=0.54, glow=3.2, glow_alpha=0.6)
+
+    # NOGAXEH — the 10:00 mirror, and the ONLY hostile hexagon in the game. The
+    # silhouette rule holds for ten minutes and then breaks exactly once, here,
+    # and the break is the reveal.
+    #
+    # Hollow and much larger than the player, because "a hexagon that is not you"
+    # has to be legible in the half-second before colour registers: a honeycomb
+    # CELL rather than a filled shape. Hue finishes the job — it sits in the
+    # hostile band, the player is cyan.
+    neon_sprite("boss_mirror.png", 40, "hexagon", "enemy", radius=14.6,
+                core_ratio=0.92, hollow=0.54, glow=3.6, glow_alpha=0.62)
+
+    # The shield membrane. FILLED where boss_mirror is a ring, so raising it
+    # visibly SEALS the cell -- the silhouette itself announces invulnerability
+    # and no text is required. Sized to sit just inside the ring.
+    neon_sprite("boss_shield.png", 40, "hexagon", "shield", radius=13.4,
+                core_ratio=0.55, glow=2.6, glow_alpha=0.45)
 
     # Power-ups: one hue, four silhouettes (colour law - hue is allegiance).
     for name, shape in (("pu_shield.png", "octagon"), ("pu_power.png", "plus"),

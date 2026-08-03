@@ -42,3 +42,29 @@ extends Resource
 @export var overclock_every: int = 0
 @export var second_wind: bool = false
 @export var chain_targets: int = 0
+
+
+## Damage multiplier applied to EACH projectile once multishot has widened the
+## volley. Volley damage must not scale linearly with projectile count.
+##
+## Measured 2026-08-02: a level-45 run reached 8 projectiles (+7) AND +19 flat
+## damage. Those axes multiplied — 8 x 19 against a base of 1 x 1, roughly 150x,
+## before pierce, ricochet, chain and Prism Core. The 5:00 boss died in SEVEN
+## seconds. No single upgrade was overtuned; the product was.
+##
+## Square root, so total volley damage scales with sqrt(N) rather than N: eight
+## projectiles deal ~2.8x one projectile's damage, not 8x. Multishot stays a
+## strong CROWD tool — more projectiles still means more bodies hit — while
+## single-target DPS, which is what deletes a boss, grows far more slowly. That
+## split is the whole point: it narrows the DPS gap between a first-timer and a
+## maxed profile, which is what lets one boss HP number serve both.
+##
+## Taxed against the weapon's OWN base count, not against 1. The scattergun fires
+## 5 pellets by design and its damage was authored around that; only growth the
+## player bought with upgrades is taxed.
+static func volley_damage_mult(base_count: int, total_count: int) -> float:
+	var base: float = float(maxi(1, base_count))
+	var total: float = float(maxi(1, total_count))
+	if total <= base:
+		return 1.0
+	return sqrt(base / total)

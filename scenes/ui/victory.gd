@@ -18,11 +18,27 @@ func _ready() -> void:
 	restart_button.pressed.connect(_on_restart)
 
 
-func show_results(time_survived: float, kills: int, level: int) -> void:
+## Review findings 2 and 27. The old screen said "Run banked." — jargon a
+## stranger cannot parse — and never mentioned the unlock the player had just
+## earned, which is the single strongest reason to press Continue or Restart.
+## BRIEF.md:109 also specifies the button as "Continue (Endless)"; the shipped
+## label had quietly drifted to "Continue".
+func show_results(time_survived: float, kills: int, level: int,
+		unlocks: Array[StringName] = []) -> void:
 	var minutes: int = int(time_survived) / 60
 	var seconds: int = int(time_survived) % 60
-	stats_label.text = "The Prism is down at %02d:%02d\n%d kills — level %d\nRun banked." % [
-			minutes, seconds, kills, level]
+	var lines: PackedStringArray = [
+		"THE PRISM IS DOWN — %02d:%02d" % [minutes, seconds],
+		"%d kills · level %d" % [kills, level],
+		"",
+		"This win is already saved. Endless is pure upside:",
+		"dying out there cannot take it back.",
+	]
+	for id: StringName in unlocks:
+		lines.append("")
+		lines.append("UNLOCKED — %s" % MetaState.unlock_label(id))
+		lines.append(MetaState.unlock_blurb(id))
+	stats_label.text = "\n".join(lines)
 	visible = true
 	continue_button.grab_focus()
 

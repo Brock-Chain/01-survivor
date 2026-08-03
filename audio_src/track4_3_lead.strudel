@@ -1,0 +1,48 @@
+// == TRACK 4 - LAYER 3 - THREAT (boss tier only) =============================
+// LIGHTCYCLE's top layer. Only audible at boss intensity, so it has one job:
+// make the thing already at full speed feel like it just got faster.
+//
+// It does that with the interval the other layers deliberately avoid. Layers 0
+// and 2 are built from roots, fifths and octaves — no thirds — so the mode has
+// never actually been stated. This layer states it, hard: Bb over A is the
+// PHRYGIAN b2, and it lands on the downbeat of the bars where the bass has
+// already moved there, then holds when the bass leaves. The semitone rubbing
+// against the pedal is the whole payload.
+//
+// Shape: a two-bar call that climbs, answered by a two-bar fall. The rest in
+// slot 3 of each cell keeps it from becoming another arpeggio — this has to read
+// as something WITH you on the track, not as more texture.
+setcps(0.5)
+stack(
+  note(`<[[a5 c6 ~ bb5]*2]
+         [[c6 e6 ~ d6]*2]
+         [[bb5 d6 ~ c6]*2]
+         [[d6 f6 ~ e6]*2]
+         [[e6 c6 ~ a5]*2]
+         [[f6 d6 ~ bb5]*2]
+         [[d6 bb5 ~ g5]*2]
+         [[c6 a5 ~ f5] [c6 a5 ~ ~]]>`)
+    // WRAP SEAM. The build measures the discontinuity where the loop meets
+    // itself and flagged this stem at 7% of peak — an audible click every 16s.
+    //
+    // The instinct is to shorten the tail. That is BACKWARDS, and shortening it
+    // measured worse (8.4%): the tail-fold ADDS the ring-out onto the head, and
+    // that addition is precisely what bridges the seam. Less tail means less
+    // bridge.
+    //
+    // The actual cause is that bar 8 was still sounding a note when the body was
+    // cut, so the last sample was loud while the first was a fresh attack near
+    // zero. Ending bar 8 on a REST leaves the seam carrying only ring-out on
+    // both sides, which is what it is supposed to be. The reverb and delay are
+    // therefore left generous — they are load-bearing here, not decoration.
+    .s("sawtooth").lpf(4200).lpq(5)
+    .gain(0.175).attack(0.015).release(0.14)
+    .room(0.3).size(0.75)
+    .delay(0.28).delaytime(0.375).delayfeedback(0.26),
+
+  // Sub-octave stab on the bar root, 8ths not 16ths. Half the rate of the layer
+  // 0 engine, so it reads as a heavier machine pulling alongside rather than as
+  // the same engine louder. Filtered hard to stay clear of the bass.
+  note("<[a2*8] [a2*8] [bb2*8] [bb2*8] [a2*8] [a2*8] [g2*8] [f2*8]>")
+    .s("square").lpf(420).gain(0.07).release(0.03)
+)

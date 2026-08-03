@@ -12,7 +12,14 @@ const COLLECT_DIST: float = 12.0
 ## live gem count — without it an uncollected gem lives for the whole run, and
 ## the set only ever grows. Homing rather than expiring so XP is never lost;
 ## the magnet upgrade still buys *immediacy*, which is what makes it feel good.
-const IDLE_TIMEOUT: float = 20.0
+##
+## Cut 20.0 -> 6.0 after the 2026-08-02 playtest capture: at 02:40 and 04:00 the
+## uncollected gem field visually outnumbered the enemies, and the arena read as
+## a floor of green dots with a fight somewhere in it. A 20 second grace on a
+## game that kills 3+ enemies a second means hundreds of gems idling at once.
+## Six still leaves the magnet upgrade a real purchase — it buys the gem
+## IMMEDIATELY instead of six seconds later — while keeping the floor clear.
+const IDLE_TIMEOUT: float = 6.0
 
 var xp_value: int = 1
 
