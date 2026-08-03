@@ -1,4 +1,4 @@
-// ── TRACK 3 · LAYER 1 · PULSE ─────────────────────────────────────────────
+// == TRACK 3 - LAYER 1 - PULSE ===============================================
 // Four-on-the-floor, because that is the genre and it doubles as the game's
 // heartbeat. Everything else is arranged to mark the A/B form so the player
 // can feel where they are in the 16s loop without being told.
@@ -7,38 +7,71 @@
 //   - fills on the LAST beat of bars 4 and 8, building INTO the downbeat.
 //     A fill stranded mid-bar reads as a mistake; a fill that lands on the
 //     next "1" reads as intentional.
+//
+// SYNTHESISED, NOT SAMPLED - same port as track 4. `s("bd")` with no bank
+// pulls Dirt-Samples (acoustic kit) and `.bank()` is silently ignored by the
+// renderer, so the kit is built from oscillators and noise, which is what a
+// drum machine physically is. Rounder settings than track 4's kit: this is
+// the hopeful outrun track, not the relentless one.
+//
+// PITCH ENVELOPES ARE POSITIVE HERE. superdough's penv OFFSETS THE START of
+// the note upward and decays to the WRITTEN pitch, so a drum - which starts
+// high and falls - is penv(POSITIVE). Do not "fix" these to negative.
 setcps(0.5)
 stack(
-  s("bd*4").gain(0.40),                          // four on the floor
+  // Four on the floor - sine with a downward sweep, softer than track 4's
+  // (smaller penv, shorter decay). Distortion on the kick ALONE: it is the
+  // only element with headroom to spend on harmonics.
+  note("a0*4").s("sine").penv(22).pdecay(0.045)
+    .attack(0.001).decay(0.15).sustain(0)
+    .distort("1.3:.5").gain(0.42),
 
   // Backbeat: clap on top, snare underneath. The snare supplies the crack the
   // clap alone lacks; the clap supplies the width. Both are kept low because
-  // they land on the same 16th as a kick — that three-way stack on beats 2 and
+  // they land on the same 16th as a kick - that three-way stack on beats 2 and
   // 4 is what sets this stem's peak, so the kick gets the headroom.
-  s("~ cp ~ cp").gain(0.15),
-  s("~ sd ~ sd").gain(0.09),
+  // The clap is two voices: a train of three noise bursts ~31 ms apart (the
+  // thing that physically makes a clap a clap) plus a longer body underneath.
+  s("~ [[white white white ~] ~ ~ ~] ~ [[white white white ~] ~ ~ ~]")
+    .hpf(1100).lpf(6800).attack(0.001).decay(0.022).sustain(0).gain(0.24),
+  s("~ white ~ white")
+    .hpf(1000).lpf(5800).attack(0.012).decay(0.17).sustain(0)
+    .gain(0.06).room(0.22).size(0.5),
+  s("~ white ~ white")
+    .hpf(1500).lpf(8000).attack(0.001).decay(0.055).sustain(0).gain(0.12),
 
-  // Offbeat 8th hats — straight 8ths plod, the offbeat is the genre's lift.
-  s("[~ hh]*4").gain(0.12).pan(sine.range(0.36, 0.64).fast(2)),
+  // Offbeat 8th hats - straight 8ths plod, the offbeat is the genre's lift.
+  // Closed hat = high-passed noise with an almost instant decay.
+  s("[~ white]*4").hpf(9200).attack(0.0005).decay(0.014).sustain(0)
+    .gain(0.06).pan(sine.range(0.36, 0.64).fast(2)),
 
   // B half only: a 16th on the tail of each beat. Adds motion without adding
   // volume, and its arrival at bar 5 is the second half announcing itself.
-  s("<~ ~ ~ ~ [~ ~ ~ hh]*4 [~ ~ ~ hh]*4 [~ ~ ~ hh]*4 [~ ~ ~ hh]*4>").gain(0.05),
+  s("<~ ~ ~ ~ [~ ~ ~ white]*4 [~ ~ ~ white]*4 [~ ~ ~ white]*4 [~ ~ ~ white]*4>")
+    .hpf(9200).attack(0.0005).decay(0.014).sustain(0).gain(0.027),
 
   // Rimshot on the "and of 3": a small forward shove every bar. Sits in a gap
-  // — nothing else is on that 8th — so it reads as groove, not clutter.
-  s("~ ~ [~ rs] ~").gain(0.11).pan(0.66),
+  // - nothing else is on that 8th - so it reads as groove, not clutter.
+  // A rim is a click with a pitch: triangle, huge penv, almost no decay.
+  note("~ ~ [~ c6] ~").s("triangle").penv(22).pdecay(0.006)
+    .attack(0.0005).decay(0.022).sustain(0).gain(0.16).pan(0.66),
 
-  // Open hat on the "and of 4" every other bar: the classic lift.
-  s("<~ [~ ~ ~ [~ ho]]>").gain(0.15),
+  // Open hat on the "and of 4" every other bar: the classic lift. Lower hpf
+  // and a longer decay is the whole difference from the closed hat.
+  s("<~ [~ ~ ~ [~ white]]>")
+    .hpf(7600).attack(0.0005).decay(0.135).sustain(0).gain(0.085),
 
   // Turnarounds. Bar 4 is a two-note push into the B half; bar 8 is the full
   // run resetting the loop. Both occupy beat 4 only, and both start AFTER the
-  // beat-4 backbeat rather than on it — so the fill answers the clap instead
+  // beat-4 backbeat rather than on it - so the fill answers the clap instead
   // of doubling it, which keeps the run audible without adding a new peak.
-  s("<~ ~ ~ [~ ~ ~ [~ ~ sd sd]] ~ ~ ~ [~ ~ ~ [~ sd sd sd]]>").gain(0.16),
+  s("<~ ~ ~ [~ ~ ~ [~ ~ white white]] ~ ~ ~ [~ ~ ~ [~ white white white]]>")
+    .hpf(1500).lpf(8000).attack(0.001).decay(0.055).sustain(0).gain(0.16),
 
   // Crash kept deliberately low: it lands on the same 16th as a kick, and the
   // sum of the two is what sets this stem's peak for the whole 16 seconds.
-  s("<cr ~ ~ ~>").gain(0.12)                     // tops of both halves
+  // Broadband noise, long tail, low-ish hpf - filter too high and it hisses.
+  s("<white ~ ~ ~>")
+    .hpf(3400).attack(0.002).decay(1.5).sustain(0)
+    .gain(0.11).room(0.35).size(0.7)                // tops of both halves
 )

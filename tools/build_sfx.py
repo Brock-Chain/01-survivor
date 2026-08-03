@@ -41,10 +41,12 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
+from strudel_renderer import explain, find_renderer
+
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "audio_src" / "sfx"
 OUT = ROOT / "assets" / "audio" / "sfx"
-RENDERER = Path("REDACTED/render_superdough.mjs")
+RENDERER = find_renderer()   # $STRUDEL_RENDERER, a vendored copy, or the hub — see strudel_renderer.py
 
 CPS = 0.5           # 2 s per cycle: room for any one-shot plus its tail
 TARGET_PEAK = 0.9
@@ -104,8 +106,8 @@ def main() -> int:
     ap.add_argument("--only", default=None)
     args = ap.parse_args()
 
-    if not RENDERER.exists():
-        print(f"renderer not found: {RENDERER}")
+    if RENDERER is None:
+        print(explain())
         return 1
 
     OUT.mkdir(parents=True, exist_ok=True)

@@ -61,7 +61,11 @@ OUTDIR = ROOT / ".ai"
 DEFAULT_CPS = 0.5
 
 # Reading order for the selector; anything unknown is appended alphabetically.
-PREFERRED_TRACKS = ["gameplay", "track2", "track3", "title", "victory"]
+PREFERRED_TRACKS = ["gameplay", "track2", "track3", "track4", "title", "victory"]
+
+# In-game names (music.gd TRACK_NAMES), so the page says LIGHTCYCLE, not TRACK4.
+TRACK_LABELS = {"gameplay": "NEON", "track2": "DARKSYNTH",
+                "track3": "OUTRUN", "track4": "LIGHTCYCLE"}
 
 # Drum lanes read top-to-bottom the way a drummer sits behind the kit:
 # cymbals up high, kick on the floor. Anything unrecognised lands just above bd.
@@ -395,7 +399,8 @@ def build_track(prefix: str, cps: float) -> tuple[dict | None, list[str]]:
         "total": round(total, 6),
         "stems": stems,
     }
-    return {"id": prefix, "label": prefix.upper(), "score": score, "audio": audio}, warnings
+    return {"id": prefix, "label": TRACK_LABELS.get(prefix, prefix.upper()),
+            "score": score, "audio": audio}, warnings
 
 
 def discover_prefixes() -> list[str]:
@@ -601,6 +606,12 @@ TEMPLATE = r"""<!doctype html>
      reflow the whole line of code once per bar. */
   .on-cell.cs{box-shadow:-3px 0 0 0 var(--magenta),0 0 16px #ff4ab826}
 
+  #sysbar{margin-top:0}
+  .syslab{font:600 10px/1 var(--mono);letter-spacing:.18em;color:var(--magenta);text-transform:uppercase}
+  #sysstatus{color:var(--cyan)}
+  #sysbar button.trk.on{background:#ff4ab822;border-color:var(--magenta);color:var(--magenta)}
+  #sysbar button.tier.on{background:#78fff51a;color:var(--cyan);border-color:var(--cyan)}
+
   footer{margin-top:16px;font:10px/1.8 var(--mono);color:var(--dim);letter-spacing:.06em}
   footer b{color:var(--cyan);font-weight:400}
   .legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin-bottom:6px}
@@ -629,6 +640,23 @@ TEMPLATE = r"""<!doctype html>
     <div class="tabs"><button id="tabRoll" class="on">Roll</button><button id="tabCode">Code</button></div>
     <div class="spacer"></div>
     <div class="hint">click roll to seek &nbsp;&middot;&nbsp; hover a note for detail &nbsp;&middot;&nbsp; space = play/pause</div>
+  </div>
+
+  <!-- The adaptive engine, verbatim: same constants and same behaviour as
+       scripts/music.gd (tiers fade stems, switches wait for the bar line and
+       crossfade phase-locked, rotation ping-pongs the circle of fifths). -->
+  <div class="transport" id="sysbar">
+    <span class="syslab">System</span>
+    <div class="tabs" id="systracks"></div>
+    <span class="syslab">Tier</span>
+    <div class="tabs" id="systiers"></div>
+    <button id="sysauto" class="tog">Chain</button>
+    <div class="picker"><label for="sysbars">every</label><select id="sysbars">
+      <option value="8">8 bars</option><option value="12">12 bars</option>
+      <option value="16">16 bars</option><option value="4">4 bars</option></select></div>
+    <button id="sysstop">&#9632; Off</button>
+    <div class="spacer"></div>
+    <div class="hint" id="sysstatus">off &mdash; pick a track to start the adaptive engine</div>
   </div>
 
   <div class="stack" id="stack">
@@ -1026,6 +1054,10 @@ function applyMix(){
 }
 
 function now(){
+  // While the SYSTEM engine below is running and the roll is showing its
+  // active track, the playhead follows the engine's clock: the roll becomes a
+  // live view of the adaptive mix instead of a second, silent transport.
+  if (sys.playing && trackId === sys.activeId) return sysPos() % total;
   if (!ready || !playing) return pausedAt;
   const t = ctxA.currentTime - startAt;
   return looping ? t % total : Math.min(t, total);
@@ -1046,6 +1078,7 @@ function spawn(offset){
 }
 
 async function play(){
+  sysStop();                                 // one player at a time
   const id = trackId;
   await prepare();
   if (trackId !== id || !ready) return;      // a switch landed while we were decoding
@@ -1128,6 +1161,195 @@ addEventListener("keydown", e => {
   else if (e.code === "ArrowLeft"){ seek(now() - SCORE.cycleSeconds); }
 });
 
+/* ---------- SYSTEM: the in-game adaptive engine, mirrored ----------
+   Constants copied from scripts/music.gd, not re-derived. Behaviour mirrored:
+   tiers change stem VOLUME only (nothing restarts), and a track switch is an
+   8-BAR STEM MIGRATION: it waits for the bar line, starts the incoming track
+   at the outgoing track's exact phase, then swaps the organs one at a time —
+   old lead exits (bars 0-2) while drums crossfade (0-3), bass+arp pivot as a
+   block (3-5), new lead rises (5-8). Melodies never overlap across keys.
+   Auto-chain ping-pongs the circle of fifths: Bb - F - C - G, one accidental
+   per move. Own AudioContext, so the roll player above stays untouched. */
+const SYS = {
+  STEM_DB: -3, FADE_IN: 1.1, FADE_OUT: 2.2,
+  BAR: 2.0, LOOP: 16.0, MIGRATE: 16.0,
+  XF_IN:  [[6, 4], [0, 6], [6, 4], [10, 6]],   // per layer [delay, duration]
+  XF_OUT: [[6, 4], [0, 6], [6, 4], [0, 4]],
+  FIFTHS: ["track2", "track4", "gameplay", "track3"],   // Darksynth Lightcycle Neon Outrun
+};
+const sys = {
+  ctx: null, master: null, buffers: {}, gains: [], sources: [],
+  activeId: null, tier: 3, playing: false, switching: false,
+  phaseStart: 0, rotPos: 0, rotDir: 1, auto: false, nextAutoAt: Infinity,
+};
+const sysIds = SYS.FIFTHS.filter(id => AUDIO[id]);
+const sysLabel = id => (TRACKS.find(t => t.id === id) || {label: id}).label;
+const sysLin = db => Math.pow(10, db / 20);
+
+async function sysInit(){
+  sys.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  sys.master = sys.ctx.createGain(); sys.master.gain.value = 0.9;
+  sys.master.connect(sys.ctx.destination);
+  for (const id of sysIds){
+    sysStatus(`decoding ${sysLabel(id)}…`);
+    const names = Object.keys(AUDIO[id]).sort();   // <t>_0_bass < _1_drums < _2_arp < _3_lead
+    sys.buffers[id] = [];
+    for (const n of names) sys.buffers[id].push(await sys.ctx.decodeAudioData(b64buf(AUDIO[id][n])));
+  }
+}
+
+function sysPos(){
+  const p = (sys.ctx.currentTime - sys.phaseStart) % SYS.LOOP;
+  return p < 0 ? p + SYS.LOOP : p;
+}
+
+function spawnBank(id, at, offset){
+  sys.gains = []; sys.sources = [];
+  for (let i = 0; i < 4; i++){
+    const g = sys.ctx.createGain(); g.gain.value = 0; g.connect(sys.master);
+    const src = sys.ctx.createBufferSource();
+    src.buffer = sys.buffers[id][i];
+    src.loop = true; src.loopStart = 0; src.loopEnd = SYS.LOOP;
+    src.connect(g);
+    src.start(at, offset % src.buffer.duration);
+    sys.gains.push(g); sys.sources.push(src);
+  }
+}
+
+/* setTargetAtTime, not a linear ramp: overlap-safe when a fade lands on a
+   fade (music.gd kills the old tween; here the new target simply wins), and
+   its exponential approach is close to the dB-linear tween the game runs. */
+function sysFade(g, targetDb, at, seconds){
+  g.gain.cancelScheduledValues(at);
+  g.gain.setTargetAtTime(targetDb === null ? 0 : sysLin(targetDb), at, seconds / 4);
+}
+
+function applyTier(level, at){
+  sys.tier = level;
+  for (let i = 0; i < sys.gains.length; i++){
+    const on = i <= level;
+    sysFade(sys.gains[i], on ? SYS.STEM_DB : null, at, on ? SYS.FADE_IN : SYS.FADE_OUT);
+  }
+  document.querySelectorAll("#systiers button").forEach((b, i) =>
+    b.classList.toggle("on", i === level));
+}
+
+async function sysStart(id){
+  pause();                                   // one player at a time
+  if (!sys.ctx) await sysInit();
+  if (sys.ctx.state === "suspended") await sys.ctx.resume();
+  const at = sys.ctx.currentTime + 0.05;
+  sys.phaseStart = at;
+  spawnBank(id, at, 0);
+  sys.activeId = id; sys.playing = true;
+  sys.rotPos = Math.max(0, sysIds.indexOf(id));
+  sys.rotDir = sys.rotPos >= sysIds.length - 1 ? -1 : 1;
+  applyTier(sys.tier, at);
+  sys.nextAutoAt = at + sysBarsPer() * SYS.BAR;
+  syncRollTo(id);
+  sysButtons();
+}
+
+function sysSwitch(id){
+  if (!sys.playing){ sysStart(id); return; }
+  if (sys.switching || id === sys.activeId) return;
+  sys.switching = true;
+  const t = sys.ctx.currentTime;
+  // Next bar line, in context time. phaseStart never moves, so every bank ever
+  // spawned shares one phase - the invariant the whole trick rests on.
+  const at = sys.phaseStart + Math.ceil((t - sys.phaseStart + 0.02) / SYS.BAR) * SYS.BAR;
+  const offset = (at - sys.phaseStart) % SYS.LOOP;
+  const old = { gains: sys.gains, sources: sys.sources };
+  spawnBank(id, at, offset);
+  // The 8-bar migration, per layer. τ = dur/3 so a fade is ~95% done inside
+  // its window; complementary exponential rise+fall sums to constant power.
+  for (let i = 0; i < 4; i++){
+    if (i <= sys.tier)
+      sysFade(sys.gains[i], SYS.STEM_DB, at + SYS.XF_IN[i][0], SYS.XF_IN[i][1] * 4 / 3);
+    sysFade(old.gains[i], null, at + SYS.XF_OUT[i][0], SYS.XF_OUT[i][1] * 4 / 3);
+  }
+  for (const s of old.sources){ try { s.stop(at + SYS.MIGRATE + 2.0); } catch (e) {} }
+  sys.migrateFrom = sysLabel(sys.activeId);
+  sys.migrateAt = at;
+  sys.activeId = id;
+  sys.nextAutoAt = at + SYS.MIGRATE + sysBarsPer() * SYS.BAR;
+  document.querySelectorAll("#systiers button").forEach((b, i) =>
+    b.classList.toggle("on", i === sys.tier));
+  setTimeout(() => { syncRollTo(id); sysButtons(); }, (at - t) * 1000 + 60);
+  setTimeout(() => { sys.switching = false; }, (at - t + SYS.MIGRATE) * 1000);
+}
+
+function sysNextInRotation(){
+  if (sysIds.length < 2) return sys.activeId;
+  sys.rotPos += sys.rotDir;
+  if (sys.rotPos >= sysIds.length){ sys.rotPos = sysIds.length - 2; sys.rotDir = -1; }
+  else if (sys.rotPos < 0){ sys.rotPos = 1; sys.rotDir = 1; }
+  return sysIds[sys.rotPos];
+}
+
+function sysStop(){
+  if (!sys.ctx) return;
+  const t = sys.ctx.currentTime;
+  for (const g of sys.gains) sysFade(g, null, t, 0.3);
+  for (const s of sys.sources){ try { s.stop(t + 1.0); } catch (e) {} }
+  sys.gains = []; sys.sources = [];
+  sys.playing = false; sys.switching = false;
+  sysStatus("off");
+  sysButtons();
+}
+
+function sysBarsPer(){ return Number(document.getElementById("sysbars").value); }
+function sysStatus(msg){ document.getElementById("sysstatus").innerHTML = msg; }
+function syncRollTo(id){ if (sel.value !== id){ sel.value = id; loadTrack(id); } }
+
+function sysButtons(){
+  document.querySelectorAll("#systracks button").forEach(b =>
+    b.classList.toggle("on", sys.playing && b.dataset.id === sys.activeId));
+}
+
+/* Called every animation frame from the roll's own loop. Drives auto-chain and
+   the status line; scheduling stays inside WebAudio, this only decides WHEN. */
+function sysTick(){
+  if (!sys.playing) return;
+  if (sys.auto && !sys.switching && sys.ctx.currentTime >= sys.nextAutoAt)
+    sysSwitch(sysNextInRotation());
+  if (sys.switching && sys.migrateAt !== undefined){
+    const mb = Math.floor((sys.ctx.currentTime - sys.migrateAt) / SYS.BAR) + 1;
+    sysStatus(mb < 1
+      ? `${sys.migrateFrom} → ${sysLabel(sys.activeId)} @ next bar line…`
+      : `merging ${sys.migrateFrom} → <b>${sysLabel(sys.activeId)}</b> · bar ${Math.min(mb, 8)}/8`);
+  }
+  if (!sys.switching){
+    const bar = Math.floor(sysPos() / SYS.BAR) + 1;
+    let peek = sys.rotPos + sys.rotDir;                    // same bounce as sysNextInRotation
+    if (peek >= sysIds.length) peek = sysIds.length - 2;
+    else if (peek < 0) peek = 1;
+    const chain = sys.auto ? ` &nbsp;·&nbsp; next: ${sysLabel(sysIds[peek])}` : "";
+    sysStatus(`<b>${sysLabel(sys.activeId)}</b> &nbsp;·&nbsp; tier ${sys.tier} ` +
+              `&nbsp;·&nbsp; bar ${bar}/8${chain}`);
+  }
+}
+
+const trkBox = document.getElementById("systracks");
+trkBox.innerHTML = sysIds.map(id =>
+  `<button class="trk" data-id="${id}">${sysLabel(id)}</button>`).join("");
+trkBox.querySelectorAll("button").forEach(b => b.onclick = () => sysSwitch(b.dataset.id));
+const tierBox = document.getElementById("systiers");
+tierBox.innerHTML = ["bass", "+drums", "+arp", "+lead"].map((n, i) =>
+  `<button class="tier${i === 3 ? " on" : ""}">${i} ${n}</button>`).join("");
+tierBox.querySelectorAll("button").forEach((b, i) => b.onclick = () => {
+  if (sys.playing) applyTier(i, sys.ctx.currentTime);
+  else { sys.tier = i; tierBox.querySelectorAll("button").forEach((x, j) => x.classList.toggle("on", j === i)); }
+});
+document.getElementById("sysauto").onclick = e => {
+  sys.auto = !sys.auto;
+  e.target.classList.toggle("on", sys.auto);
+  if (sys.auto && sys.playing) sys.nextAutoAt = sys.ctx.currentTime + sysBarsPer() * SYS.BAR;
+  if (sys.auto && !sys.playing) sysStart(sysIds[0]);
+};
+document.getElementById("sysstop").onclick = sysStop;
+if (sysIds.length < 2) document.getElementById("sysbar").style.display = "none";
+
 /* ---------- playhead + per-frame repaint ---------- */
 const headEl = document.getElementById("head");
 function moveHead(t){ headEl.style.transform = `translateX(${(headOffset + t2x(t)).toFixed(2)}px)`; }
@@ -1166,7 +1388,7 @@ function frame(force){
   }
   if (!looping && playing && t >= total - 0.01) pause();
 }
-(function loopFrame(){ frame(false); requestAnimationFrame(loopFrame); })();
+(function loopFrame(){ frame(false); sysTick(); requestAnimationFrame(loopFrame); })();
 
 /* ---------- pointer: click seeks, hover explains ---------- */
 const tip = document.getElementById("tip");

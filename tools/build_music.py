@@ -7,6 +7,11 @@ Source of truth is `audio_src/*.strudel` — a few dozen lines of readable code,
 diffable in git. The .ogg files under assets/audio/music/ are BUILD ARTIFACTS:
 delete them and this regenerates byte-identical copies (the renderer is seeded).
 
+That last claim holds ONLY if you have the renderer, which is a separate tool and
+is not committed here — see `strudel_renderer.py` for the three places this looks
+and why it is not vendored. You do not need it to build or play the game; the
+.ogg files are committed. You need it to change the music.
+
 Two non-obvious steps, both learned the hard way (hub/knowledge/audio-authoring.md):
 
 1. TAIL-FOLD. The render is longer than the music: reverb and release tails ring
@@ -31,10 +36,12 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
+from strudel_renderer import explain, find_renderer
+
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "audio_src"
 OUT = ROOT / "assets" / "audio" / "music"
-RENDERER = Path("REDACTED/render_superdough.mjs")
+RENDERER = find_renderer()   # $STRUDEL_RENDERER, a vendored copy, or the hub — see strudel_renderer.py
 
 CPS = 0.5
 BLOCK = 65536
@@ -81,7 +88,9 @@ def render(name: str, cycles: int) -> dict:
     proc = subprocess.run(
         ["node", str(RENDERER), str(SRC / f"{name}.strudel"), str(wav),
          "--cps", str(CPS), "--cycles", str(cycles)],
-        capture_output=True, text=True, timeout=600)
+        # 1800, not 600: the synthesised-noise kit made the 32-cycle title render
+        # blow past ten minutes on 2026-08-03. Renders are offline; slow is fine.
+        capture_output=True, text=True, timeout=1800)
     match = re.search(r"\{[\s\S]*\}\s*$", proc.stdout)
     if not match:
         raise RuntimeError(f"{name}: renderer gave no summary\n{proc.stdout[-800:]}\n{proc.stderr[-800:]}")
@@ -132,8 +141,8 @@ def main() -> int:
     ap.add_argument("--only", default=None)
     args = ap.parse_args()
 
-    if not RENDERER.exists():
-        print(f"renderer not found: {RENDERER}")
+    if RENDERER is None:
+        print(explain())
         return 1
 
     stems: dict[str, np.ndarray] = {}

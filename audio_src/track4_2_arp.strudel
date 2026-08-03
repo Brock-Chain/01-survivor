@@ -1,58 +1,49 @@
 // == TRACK 4 - LAYER 2 - MOTION ==============================================
-// LIGHTCYCLE's hook: the light trail. Fast, bright, and mostly ASCENDING, which
-// is the opposite of track 3's wave-shaped cell — a line that keeps climbing
-// reads as accelerating, and this track wants the player leaning forward.
+// LIGHTCYCLE's engine-room hook. REWRITTEN from the broken-power-chord arp:
+// that version ran root-5th-octave-5th in a bright square at c5-c6, and
+// root-5th-octave in a clean square at that register is a music box — it read
+// as CHRISTMAS, not as a grid at speed. Same notes, same rhythm, one octave
+// down and one waveform over, and the genre flips.
 //
-// The cell is root - 5th - octave - 5th, a broken power chord rather than a
-// triad. No thirds anywhere in this layer: leaving the third out is what lets
-// the Bb bars sit against the A pedal without the harmony resolving itself. The
-// mode stays ambiguous and slightly wrong, which at speed reads as electric.
+// What replaced it is the trance workhorse: a ROLLING OCTAVE LINE. Sixteenth
+// alternation between the root and the root an octave up, sawtooth, with the
+// downbeat sixteenth of every beat DUCKED via a gain pattern. The duck is the
+// point: it fakes the sidechain pump this genre is built on (superdough has no
+// compressor), and the accent landing on the offbeat octave is what makes the
+// line roll forward instead of march.
 //
-// The multiplier lives INSIDE each cell, never outside the slowcat. Outside, `*n`
-// means n ITEMS PER CYCLE and the whole progression races past n times while the
-// bass makes one pass — a bug that shipped in two other tracks here and was only
-// caught by reading the events sidecar.
+// Color tones only at bar EDGES: b7 and b2 as walk-ins to the next chord
+// (a->g, a->bb, bb->a...). The body of every bar is pure root-octave — the
+// hypnosis comes from repetition, and the mode is still stated by the bass and
+// lead, not here.
 //
-// Delay is a dotted 8th (0.375s at cps 0.5) so echoes land between the 16ths.
+// The multiplier trap does not apply here: each cell is a flat 16-element bar,
+// one cell per cycle in the slowcat — nothing for `*n` to misplace.
 setcps(0.5)
 stack(
-  // THE TRAIL. Measured 3.5 dB quieter than the equivalent layer on the other
-  // three tracks, which is most of why tier 2 used to arrive and change nothing.
-  note(`<[[a4 e5 a5 e5]*4]
-         [[a4 e5 a5 e5]*4]
-         [[bb4 f5 bb5 f5]*4]
-         [[bb4 f5 bb5 f5]*4]
-         [[a4 e5 a5 e5]*4]
-         [[a4 e5 a5 e5]*4]
-         [[g4 d5 g5 d5]*4]
-         [[f4 c5 f5 c5]*4]>`)
-    .s("square")
-    .lpf(sine.range(1400, 5200).slow(4)).lpq(7)   // twice as fast as track 3's
-    .gain(0.23).release(0.04)
-    .delay(0.32).delaytime(0.375).delayfeedback(0.34)
-    .pan(0.54).room(0.16).size(0.6),
+  // THE ROLLER. One flat cell per bar, 16 sixteenths each.
+  note(`<[a3 a4 a3 a4 a3 a4 a3 a4 a3 a4 a3 a4 a3 a4 g3 a4]
+         [a3 a4 a3 a4 a3 a4 a3 a4 a3 a4 a3 a4 g3 a4 bb3 a4]
+         [bb3 bb4 bb3 bb4 bb3 bb4 bb3 bb4 bb3 bb4 bb3 bb4 bb3 bb4 a3 bb4]
+         [bb3 bb4 bb3 bb4 bb3 bb4 bb3 bb4 bb3 bb4 c4 bb4 d4 bb4 c4 a3]
+         [a3 a4 a3 a4 a3 a4 a3 a4 a3 a4 a3 a4 a3 a4 g3 a4]
+         [a3 a4 a3 a4 a3 a4 a3 a4 a3 a4 a3 a4 a3 a4 a3 g3]
+         [g3 g4 g3 g4 g3 g4 g3 g4 g3 g4 g3 g4 g3 g4 f3 g4]
+         [f3 f4 f3 f4 f3 f4 f3 f4 f3 f4 f3 f4 e3 f3 g3 a3]>`)
+    .s("sawtooth")
+    // The pump. Beat shape [duck accent mid accent]: the ear reads the hole on
+    // the downbeat as compression breathing, same trick as the bass layer.
+    .gain("[0.19 0.30 0.24 0.30]*4")
+    .lpf(sine.range(700, 3400).slow(4)).lpq(9)
+    .release(0.045)
+    .delay(0.30).delaytime(0.375).delayfeedback(0.30)
+    .pan(0.52).room(0.15).size(0.5),
 
-  // THE STAB — the instrument this track did not have, in the band it did not
-  // cover. Everything else lives below 1.3 kHz (bass, filtered to 380-1250) or
-  // above 1.4 kHz (trail, lead); nothing occupied 200 Hz - 1 kHz, which is
-  // exactly where filtered house chords live. A hole that wide reads as thin
-  // rather than as clean.
-  //
-  // It also fixes a rhythm problem. Bass, trail and hats were all on the 16th
-  // grid at once, so nothing owned a subdivision and the layers blurred into
-  // one texture instead of stacking. The stab is on OFFBEAT EIGHTHS — the only
-  // voice in the track on that pulse — so it separates by rhythm as well as by
-  // frequency. Kick on quarters, stab on offbeat eighths, trail on sixteenths,
-  // bass on sixteenths-with-holes: four distinguishable pulses.
-  //
-  // Root-fifth-octave, still no third: the layer-3 lead is what states the mode,
-  // and a stab this prominent stating it early would spend the payload.
-  //
-  // This replaces the triangle "shadow" trail that used to sit here. That voice
-  // was offset by exactly one sixteenth — a whole grid step — so instead of two
-  // lights running slightly out of step it simply doubled the trail and thickened
-  // the same 16th grid. The dotted-eighth delay already on the trail does the
-  // out-of-step job properly, because 0.375s is not a grid multiple.
+  // THE STAB — filtered house chords on OFFBEAT EIGHTHS, the only voice on
+  // that pulse. Fills the 200Hz-1kHz band nothing else occupies and separates
+  // from the roller by rhythm (8ths vs 16ths) and by band (its filter tops out
+  // where the roller's sweep starts reaching). Root-fifth-octave, no third:
+  // the lead states the mode, the stab just pumps.
   note(`<[[~ [a3,e4,a4]]*4]
          [[~ [a3,e4,a4]]*4]
          [[~ [bb3,f4,bb4]]*4]
@@ -64,5 +55,5 @@ stack(
     .s("sawtooth")
     .lpf(sine.range(520, 1150).slow(8)).lpq(11)
     .attack(0.002).decay(0.13).sustain(0)
-    .gain(0.20).pan(0.44).room(0.2).size(0.55)
+    .gain(0.26).pan(0.44).room(0.2).size(0.55)
 )

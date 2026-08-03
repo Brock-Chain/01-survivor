@@ -10,7 +10,22 @@ stack(
     .s("square").lpf(700).gain(0.20).release(0.08),
   note("<[a5 ~ c#6 ~] [~ d6 ~ ~] [~ ~ b5 ~] [a6 ~ ~ ~]>")
     .s("triangle").gain(0.17).room(0.5).delay(0.3).delaytime(0.25),
-  s("bd ~ bd ~").gain(0.42),
-  s("cr ~ ~ ~").gain(0.26),
-  s("~ ~ ~ [cp cp cp cp]").gain(0.22)
+  // KICK -- synthesized, not sampled: sine with a fast downward sweep. penv(22)
+  // instead of the loop tracks' 26, a softer thump so the chords stay in front.
+  note("a0 ~ a0 ~").s("sine").penv(22).pdecay(0.045)
+    .attack(0.001).decay(0.17).sustain(0)
+    .distort("1.3:.5").gain(0.56),
+  // CRASH -- broadband noise, long tail, low-ish hpf so it stays bright without
+  // thinning to hiss. This is the splash the whole stinger hangs off; one-shot,
+  // so the ring-out is kept, never folded.
+  s("white ~ ~ ~")
+    .hpf(3400).attack(0.002).decay(1.5).sustain(0)
+    .gain(0.25).room(0.35).size(0.7),
+  // CLAP -- two voices on the same four hits: a burst train (three noise hits
+  // ~31 ms apart, the flam that makes a clap a clap) plus a longer body under it.
+  s("~ ~ ~ [[white white white ~] [white white white ~] [white white white ~] [white white white ~]]")
+    .hpf(1100).lpf(6800).attack(0.001).decay(0.022).sustain(0).gain(0.26),
+  s("~ ~ ~ [white white white white]")
+    .hpf(1000).lpf(5800).attack(0.012).decay(0.17).sustain(0)
+    .gain(0.11).room(0.22).size(0.5)
 )
