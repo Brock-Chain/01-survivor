@@ -449,7 +449,21 @@ one known profile was bot-contaminated anyway.
          `MIRROR_LEVEL_STEP` was fitted against the old base and never re-fitted.
       3. **First gamepad session** — controller bindings shipped 2026-08-03 (`1d7f41c`) straight
          from the editor and have never met a physical pad.
-      4. **itch: butler push + flip Restricted → Public.** Closes hub D15.
+      4. **Two destructive-action defects found in the 2026-08-03 audit, deliberately NOT bundled
+         with the R fix.** (a) Pause **QUIT** is one click, no confirmation, run gone — the same
+         defect R had, and the footer stacks Resume / Restart / Quit so both destructive rows sit
+         directly under the safe one; proposed fix is a two-click confirm (label flips to
+         `SURE? — QUIT`), not a modal, because the 640×360 viewport has no room and
+         `pause_layout_check` would have to be re-argued. (b) **`T` = cycle speed is undocumented**
+         in `README.txt` while being the neighbour key that made R dangerous — a player's first
+         encounter with it is accidental. Checked and already correct, so nobody re-audits: end
+         screens focus the non-destructive option (Continue on victory/true ending, Restart on
+         game over), `Meta.reset()` is reachable from no UI, level-up insta-pick is guarded by
+         `PICK_LOCKOUT` + withheld focus.
+      5. *(decide, do not rush)* **`best_time` mixes SPEED x1 and x3 runs** — it records game time,
+         so one record number means two different real-time reflex demands. Unmeasured; a
+         records-design question, not a bug.
+      6. **itch: butler push + flip Restricted → Public.** Closes hub D15.
       Then the **v1.1 postmortem in the hub** (D6/D15: written BEFORE v2 work starts), and v2 —
       `02-sts-lite` — opens from `hub/research/sts/`, which is already planned in full.
 

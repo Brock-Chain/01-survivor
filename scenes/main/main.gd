@@ -288,6 +288,18 @@ func _apply_dev_flags() -> void:
 				Meta.state.best_time, Meta.state.best_kills, str(Meta.state.unlocks)])
 
 
+## Mid-run restart needs a SECOND press of R inside this window. R sits one key
+## from T (speed) on QWERTY, and with speed cycled mid-fight all run long, a
+## slipped finger was a full-run wipe with no confirmation (playtest 2026-08-03:
+## "game ruining"). First press arms and announces; the window then expires in
+## silence, so an accident costs nothing and a real reroll costs one tap.
+##
+## REAL milliseconds, not game time — LevelUpPanel.PICK_LOCKOUT's reasoning: a
+## human confirmation window must not shrink to a third at SPEED x3.
+const RESTART_CONFIRM_MS: int = 2000
+var _restart_armed_ms: int = -100000
+
+
 ## Input lives in _unhandled_input, not _physics_process, because a paused tree
 ## runs no physics — pause would be unable to un-pause itself.
 func _unhandled_input(event: InputEvent) -> void:
@@ -303,6 +315,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed(&"restart") and not _modal_open():
 		get_viewport().set_input_as_handled()
+		if Time.get_ticks_msec() - _restart_armed_ms > RESTART_CONFIRM_MS:
+			_restart_armed_ms = Time.get_ticks_msec()
+			Sfx.play(&"click", -10.0)
+			hud.announce("PRESS  R  AGAIN TO RESTART")
+			return
 		get_tree().paused = false
 		get_tree().reload_current_scene()
 		return

@@ -104,7 +104,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_mute()
 	elif event.is_action_pressed(&"restart"):
 		get_viewport().set_input_as_handled()
-		_on_restart()
+		# Two-step here too — one slipped R while reading the build sheet was a
+		# full-run wipe (playtest 2026-08-03). The confirmation is WATCHING THE
+		# HIGHLIGHT MOVE: first R lands focus on the RESTART button, R again
+		# (or ENTER, now that it is focused) actually restarts. Focus returns
+		# to Resume on the next open via show_build.
+		if restart_button.has_focus():
+			_on_restart()
+		else:
+			restart_button.grab_focus()
 
 
 ## Also reachable by the M key while unpaused, so muting never requires stopping.

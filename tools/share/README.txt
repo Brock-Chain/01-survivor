@@ -43,7 +43,7 @@ CONTROLS
   ESC / P         pause — also where the build sheet, the volume sliders
                   and the music track selector live
   M               mute
-  R               restart
+  R  (twice)      restart — first press asks, second confirms
 
 
 NOTES
