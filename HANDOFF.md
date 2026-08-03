@@ -1,4 +1,4 @@
-# Session handoff — 2026-08-02
+# Session handoff — 2026-08-03
 
 Transient. Delete once the next session has absorbed it. `TODO.md` is the durable
 source of truth; `BRIEF.md` is the spec; `DECISIONS.md` is why things are the way
@@ -6,156 +6,89 @@ they are.
 
 ## Where we are
 
-**M7 — the whole locked rework — is built and committed.** Working tree clean at
-the last commit; `verify.ps1` green with **117 tests**; Web and Windows exports
-rebuilt from the final code and both produce clean.
+**The game is on itch.io and a human who did not build it has played it.** That is
+the milestone: 7.9 ("measure with a human run") is no longer pending, and M8 is
+the only thing between here and ship.
 
-The previous handoff's spec was followed end to end. Three of its numbers were
-changed by measurement, which is what it asked for ("starting points, all to be
-verified by measurement, not argued"). Every change is recorded in
-`DECISIONS.md` with the soak table that forced it.
+Working tree clean, `verify.ps1` green with **117 tests**, both builds packaged by
+`tools/package.ps1`. The page is `brock-chain.itch.io/bestagon`, **Restricted +
+password** — not public, deliberately, until the tuning below is settled.
 
-**The one thing left is the thing a bot cannot do: a human run.** See "What still
-needs you" below.
+## What the first external session produced
 
-## What shipped, in build order
+Six defects, all fixed and shipped. Three were reported by the player, three were
+found by looking where the report pointed.
 
-| Step | State |
-|---|---|
-| 7.1 telemetry | done — and the real bug was bigger than the spec knew |
-| 7.2 progression | done — drip re-derived from an A/B soak, twice |
-| 7.3 weapon drafts | done — plus a card rebalance measurement forced |
-| 7.4 NOGAXEH v2 | done — structure soak-verified end to end |
-| 7.5 endings | done — true ending screen + death screen |
-| 7.6 card UI | done — iconography, no dead space |
-| 7.7 skill tree | done — THE LATTICE, on the title screen |
-| 7.8 glow | see below |
-| 7.9 measure | **YOURS** |
+| # | Found by | Defect |
+|---|---|---|
+| 1 | screenshot before packaging | title menu overflowed the viewport AND sat against the bottom edge |
+| 2 | screenshot of the live build | `◆` rendered as a tofu box — the font ships with zero fallbacks |
+| 3 | player | Aegis "practically invisible, cant tell when it's on or off" |
+| 4 | player | "0 indication we are getting stat boosts when leveling up" |
+| 5 | player | ESC does not pause in fullscreen (the browser owns that key) |
+| 6 | player | bosses too small; enemies "latch on weirdly" after they hit you |
 
-### The instrument bug was worse than "a dropped log row"
+Every one is written up in `DECISIONS.md` with its reasoning, and the reusable
+half is in the hub (`knowledge/web-fonts-and-missing-glyphs.md`,
+`the-browser-owns-your-runtime.md`, `power-the-player-cannot-perceive.md`,
+`ui-must-fit.md`, `pipeline/publish-to-itch.md`).
 
-`Main` only banked a run when the player DIED. A restart, a quit to title, or a
-closed window dropped both the telemetry ending row *and* the run's records.
-That is why `run_076` peaked at **2757 kills / 660.1s** while `save.cfg` still
-reads `best_kills=1125` — and worse, that run cleared the victory and survived
-past 600s, which is exactly the `endless_proven` condition. **The human earned
-the PRISM LANCE and the game never gave it to them.**
+## The open question: the freeze
 
-`Main._finish_run()` is the one place a run ends now. Fixed forward only: the
-existing `save.cfg` was left untouched, because it is your profile and a
-retro-repair is your call, not a side effect. Say the word and it is a one-line
-edit to `best_kills`, `best_time` and the `unlocks` array.
+The player twice saw the game **freeze and then recover** in a fullscreen browser
+tab, at 3:52/588 kills and 4:19/699 kills. Not fixed, because not reproduced.
 
-### Three spec numbers that measurement changed
+What was ruled out **by measurement**, not by inspection:
 
-The method: run the *same* soak against a `git worktree` at the pre-rework
-commit and against the working tree, **with the dev profile deleted on both
-sides**. The first attempt at this was invalid and nearly caused a wrong fix —
-the old build granted weapons from the saved profile, so the "blaster-only
-baseline" was secretly a three-weapon run.
+- **No leak.** Desktop soak: nodes oscillate 176→632→391 and return, objects flat
+  at ~2400, memory pinned at ~38 MB, orphans zero, through 1068 kills. A
+  self-playing web build in a clean browser: flat through 833 kills / 4:45 —
+  past both freeze points — with zero main-thread stalls over 200 ms.
+- **No engine error.** Every red line in the player's console came from two
+  crypto-wallet extensions fighting over `window.ethereum`. The only game-origin
+  line is a harmless `screen.orientation.lock()` at startup.
+- **No synchronous work to blame** — no runtime `load()`, no disk I/O during a
+  run, SFX voice-pooled, telemetry hard-disabled on web.
 
-| blaster only, fresh profile | kills @3:00 | kills @3:51 | enemies alive |
-|---|---|---|---|
-| pre-rework (78 picks) | 381 | 626 | 5 |
-| the spec's drip, as written | 86 | 115 | **110 (the cap)** |
-| shipped | 369 | 604 | 18 |
+**Working hypothesis:** the browser stops `requestAnimationFrame` for a tab it
+considers hidden, and Godot's web build drives its whole main loop from rAF — so
+the loop stops and later resumes exactly where it left off, which is
+indistinguishable from a freeze that recovers, and logs nothing. Auto-pause on
+focus loss now makes that stop deliberate rather than mysterious.
 
-1. **The damage drip is FLAT, not a percentage.** Early DPS is dominated by the
-   flat bonus on a base-1 weapon; +1.5%/level is +16% of almost nothing at level
-   12, while the seven picks it replaced were worth several whole points.
-2. **Card magnitudes went up ~2-3x.** This is the spec's own other half — "3x
-   fewer, 3x more valuable decisions" — and only the first half of that is a
-   gate. Unique Epic/Legendary effects are untouched.
-3. **The drip also buys BREADTH** (+1 projectile every 20 levels). Damage and
-   fire rate kill one thing faster; only count clears a crowd, and count was
-   card-only. Without it the arena stayed pinned at the enemy cap no matter how
-   much damage was added.
-
-### And one the spec could not have known about
-
-**The 10:00 fight now scales by LEVEL, not weapon count.** Weapon count was a
-fair DPS proxy while weapons came from the profile; drafting broke it in both
-directions at once — blaster-only at level 91 killed the 11,200 HP event in
-**32 seconds**, while a four-weapon level-77 run took **212**. Level sees the
-drip, the picks and how the run actually went. Re-soaked at **142s** against the
-~120s target. Full reasoning in `DECISIONS.md` and
-`hub/knowledge/proxy-metrics-go-stale.md`.
+**This is a hypothesis, not a diagnosis.** If it recurs while the tab is
+demonstrably focused and in the foreground, the hypothesis is wrong and the next
+step is different: instrument frame times inside the build itself and get the
+number, rather than reasoning further. The untried cheap test is an
+incognito/no-extension run.
 
 ## What still needs you
 
-**A human run to 10:00, then retune from the telemetry.** Bot variance is now too
-wide to tune against: two identical soak commands produced **level 85** and
-**level 50** at the ten-minute mark, because `--dev-autopick` takes `offers[0]`
-and a run has ~25 picks each worth three times what they used to be. Structure
-is verified; fight lengths are one sample of a wide distribution.
+1. **Re-upload** `builds/BESTAGON-web-2026-08-03.zip` and play it. Confirm the six
+   fixes, and see whether the freeze recurs.
+2. **Tune 7.9 with real numbers.** Nothing below has been touched by a human run
+   yet — bot soaks cannot judge any of it:
+   - is the 10:00 fight the ~2 minute climax it is budgeted as?
+   - does the difficulty ramp hold between 5:00 and 10:00?
+   - do the level-up cards feel like decisions at one per three levels?
+   - **note:** doubling the bosses also doubled their hitboxes, so both fights are
+     now easier to land shots on. Read the next timings with that in mind.
+3. **Decide on a licence.** There is no `LICENSE` file and this repo is public.
 
-Specific numbers waiting on that run:
+## Do not re-litigate
 
-- `RunDirector.MIRROR_LEVEL_STEP` (0.045) — the 10:00 fight's whole difficulty.
-- **The 5:00 Prism under the new curve.** It was accepted at 49s. You now arrive
-  with ~13 picks instead of ~40, offset by the drip. Untouched deliberately;
-  measure it before changing it.
-- **Do the defensive cards revive?** They were dead because the game never asked
-  for defense. NOGAXEH v2 asks. Re-measure before cutting them.
-- **Does the arena still saturate around 3:00 for a weak build?** One soak said
-  yes at level 50. A human plays better than a circling bot, so this is a lower
-  bound, not a verdict.
+- **GRID**, not "The Lattice" — named by the human. A hex-cell layout for it is
+  parked in `TODO.md` as a later idea, not a todo.
+- **AI disclosure is Yes with all four sub-classifications ticked**, reasoned in
+  `tools/share/ITCH-PAGE.md`. Decided on asymmetry: under-tagging risks
+  delisting, over-tagging costs a browse filter already accepted.
+- **The web zip must have `index.html` at its root** and must ship
+  `START-HERE.bat`. `tools/package.ps1` asserts both — use it, do not zip by hand.
 
-```powershell
-# play it (debug build -> telemetry records automatically, real profile)
-..\..\engine\Godot_v4.7.1-stable_win64.exe --path .
-# then read it (dev-flagged runs are excluded from the aggregates automatically)
-python tools/analyze_telemetry.py
-```
+## Superseded
 
-## New things worth knowing before you edit
-
-- **`Main._finish_run()` is the only place a run ends.** Death, restart, quit to
-  title and window close all land there, guarded so nothing banks twice.
-- **`Main._offer_gates()` is the only place card eligibility is decided.** Three
-  kinds of gate — profile unlocks, this run's weapon drafts, skill-tree
-  purchases — flow through one array, because the pool only ever asks "is this
-  gate held".
-- **All content is generated.** `gen_upgrades.gd`, `gen_weapons.gd`,
-  `gen_skills.gd`. The first and third now **prune orphaned .tres**, so removing
-  a definition actually removes the card. Never hand-edit a `.tres`.
-- **`scenes/dev/pause_layout_check.tscn` now guards THREE screens**, and it
-  earned it again: the true ending's first draft measured **633 px tall against
-  a 360 px viewport**. It also doubles as a capture rig — run it windowed with
-  `--screenshot=` to photograph the true ending.
-- The old traps all still apply: never round-trip a source file through
-  PowerShell 5.1; `_unhandled_input` is gated by `process_mode`; defer every
-  tree mutation reached from a damage callback (NOGAXEH v2 adds five more).
-
-## Commands
-
-```powershell
-# THE GATE. Run this, not the individual steps.
-powershell -File tools/verify.ps1
-powershell -File tools/verify.ps1 soak
-
-# content generators (re-run after editing the tool, then --import)
-<console.exe> --headless --path . -s res://tools/gen_upgrades.gd
-<console.exe> --headless --path . -s res://tools/gen_skills.gd
-<console.exe> --headless --path . -s res://tools/gen_weapons.gd
-
-# exports (both current with the final code)
-<console.exe> --headless --path . --export-release "Web" builds/web/index.html
-<console.exe> --headless --path . --export-release "Windows Desktop" builds/windows/BESTAGON.exe
-```
-
-## Dev flags
-
-`--dev-godmode` · `--dev-autopick` · `--dev-autocontinue` · `--dev-unlocks`
-· `--dev-stats` · `--dev-autopilot` · `--dev-telemetry`
-
-Any `--dev-` flag redirects the save to `user://save_dev.cfg`. **`--dev-unlocks`
-now also DRAFTS every weapon** — since M7.3 an unlock only offers a card, so
-unlocking alone would leave every soak firing the blaster and nothing else.
-
-## Not decided — do not decide these alone
-
-- **Boss at 3:00 instead of 5:00.** Still parked, unchanged.
-- **Melee is decorative** (96 `bolt` vs 20 `contact` in the last human run).
-  Still not raised. NOGAXEH v2 does not touch it.
-- **The floor is deliberately restrained.** Still a brief question, not a bug.
+The previous handoff (2026-08-02, M7 rework) is fully absorbed: its open item was
+7.9, which this session closed by putting the game in front of a person. The
+telemetry/records bug it described is fixed; `save.cfg` was left untouched by
+deliberate choice, and repairing `best_kills`/`best_time`/`unlocks` in the human's
+own profile is still a one-line edit awaiting their say-so.

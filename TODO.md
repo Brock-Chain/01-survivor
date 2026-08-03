@@ -356,7 +356,14 @@ before the finale, and the telemetry that says so was recorded by a fixed instru
 - [x] **v1.1 M7** The playtest rework (2026-08-02) — instrument fixed, cards gate to every 3rd
       level with a measured drip, weapons drafted, NOGAXEH v2 + true ending, card iconography,
       THE LATTICE. **Tuning awaits a human run (7.9).**
-- [ ] v1.1: **M8 ship** ← next
+- [x] **v1.1 M7.9** First external playtest (2026-08-03) — game published to itch.io as a restricted
+      page and played by someone who did not build it. Six defects found and fixed: title menu
+      overflow + off-centre, `◆` tofu on web, invisible Aegis, silent level-ups, ESC dead in
+      fullscreen, bosses too small / enemies latching on. Packaging turned into a script
+      (`tools/package.ps1`) after being done by hand wrong twice. **Tuning numbers still owed** —
+      see HANDOFF.
+- [ ] v1.1: **M8 ship** ← next. Remaining: tune the 5:00→10:00 ramp and the 10:00 fight length
+      against a real run, settle the freeze question, choose a licence, flip the itch page Public.
 
 *The ship gate moved from M7 to M8 because the first clean human run to 10:00 turned into a rework
 spec rather than a punch list. Scope grew by explicit decision, not by drift.*

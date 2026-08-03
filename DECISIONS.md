@@ -799,3 +799,126 @@ the only difference between variants is the post-process.
 
 Deliberately not chased further this session. Baked is shipped, baked is the fallback, and the
 question is cosmetic while 7.9 (a human tuning run) is the thing actually blocking the milestone.
+
+---
+
+# First external playtest — 2026-08-03
+
+The game went onto itch.io as a restricted page and a person who had not built it
+played it. Six defects, and the pattern in *how* they were found is the useful
+part: **three came from the player, and three came from looking at the screen
+before shipping.** The automated gate was green throughout all six.
+
+## The gate was green and the title screen was broken
+
+Adding a third stacked button to the title pushed the last one off the bottom of
+the 640×360 viewport. It also left the whole menu jammed against the bottom edge,
+because a `CenterContainer` whose content is taller than itself does not overflow
+symmetrically — it clamps to the top. One cause, two symptoms, and the second one
+reads as "misaligned" rather than "broken", which sends you looking in the wrong
+place.
+
+Neither was visible in the 1280×720 window everything is developed in, and
+`verify.ps1` passed because it measured four screens and the title was not one of
+them. **A harness only guards the screens enrolled in it.** The title is enrolled
+now, and the check asserts *centring* as well as fit, with a record line present —
+that label is empty on a fresh profile and appears only for a returning player, so
+the screen is at its tallest for the person who has seen it most.
+
+Third occurrence of this defect class in this project. Written up in the hub.
+
+## `◆` was a tofu box on web and perfect on desktop
+
+The export ships **Open Sans SemiBold with zero fallbacks**. U+25C6 is not in it.
+It looked right on desktop only because Godot falls back to a system font there,
+which a browser build has none of — so the missing glyph was invisible in every
+screenshot and every local run, and appeared on the title screen of the build a
+stranger opened.
+
+Answered with `Font.has_char` rather than reasoning about Unicode blocks, which
+also paid for itself: `·` and `—` are present, so the em dashes in seven other
+user-visible strings were fine and the fix narrowed to three. The diamond became
+the word `SHARDS`, which a first-time player can read anyway — a symbol nobody has
+been taught is not communication.
+
+## Two reports, one cause: power with no perceptual channel
+
+*"Aegis is practically invisible. cant tell when it's on or off"* and *"0
+indication we are getting stat boosts when leveling up"* are the same bug.
+
+Aegis tinted the player cyan — but hue is spent on allegiance by the colour law
+(cyan yours, magenta-orange hostile, yellow enemy fire), so it could not also
+carry a timed buff, and the cue landed on a player who was already that colour.
+Fixed with **pattern**, the channel nothing else uses: a ring at 2.4× the body,
+pulsing, counter-rotating against the orbitals so the two never read as one thing.
+
+The drip was made silent deliberately — cards were cut to one level in three
+because a decision every 7.9 seconds had stopped being a decision. That was right.
+What went with it by accident was all feedback for the other two levels, which
+carry most of the run's cumulative power. A toast now names the **delta** (`+1
+DAMAGE`, `+1 PROJECTILE`), with fire rate as the fallback line only when nothing
+louder happened — it moves every level, so promoting it would make every level
+look identical.
+
+## The browser owns things we assumed were ours
+
+ESC does not pause in fullscreen because the browser consumes it to exit
+fullscreen — deliberately, as the guaranteed way out of a page that took the
+screen. Unfixable from inside the page and correctly so, so every run now opens by
+announcing **P TO PAUSE**. A keybinding the player does not know about is not a
+fix.
+
+The reported freeze-that-recovers is almost certainly the same family: Godot's web
+build runs its whole main loop from `requestAnimationFrame`, which a browser stops
+for a tab it considers hidden and later resumes exactly where it left off.
+Auto-pause on focus loss makes that stop deliberate. **Recorded as a hypothesis,
+not a diagnosis** — it was never reproduced. What *was* established by measurement
+is that there is no leak (flat node/object/memory counts through 1068 kills on
+desktop and 833 in-browser, past both freeze points) and no engine error at all;
+every red line in the player's console came from crypto-wallet extensions.
+
+## Bosses 2×, and a shove instead of a latch
+
+Prism 35 → 70, NOGAXEH 44 → 88. `stats.size` drives both sprite scale and hitbox,
+so one number per boss moves everything — except two things that were **not**
+derived from it and would have ended up inside the body: `shard_orbit`, authored
+per boss, scaled in step rather than overridden; and the shards' own scale, an
+absolute `0.42` that had *always* meant resizing a boss silently changed how big
+its shards looked relative to it. Derived from the body now. Note this doubles the
+boss hitboxes too, so both fights are easier to land shots on — deliberate, but
+the next fight timings should not be read as pure tuning data.
+
+Enemies "latched on weirdly" because contact damage grants i-frames, so whatever
+hits you sits inside you for the whole invulnerable window doing nothing — hiding
+the fact that you are briefly safe. Every enemy is now pushed ~75 px, damage-free:
+a breather, not a weapon, because a shove that also hurt would make taking damage
+a crowd-control button. `Enemy.shove` takes a **distance in pixels** rather than an
+impulse, since travel is speed÷decay and multiplying the decay back out means the
+caller asks for 75 and gets 75 even if the decay is retuned later.
+
+## Packaging is a script now, because it was done by hand wrong twice
+
+The first hand-built zip carried stray `.import` sidecars the editor had generated
+inside `builds/`, and no launcher — so the tester double-clicked `index.html`, hit
+the browser's `file://` fetch block, and got the Godot splash over "Failed to
+fetch". Nothing was broken; the package was wrong. `tools/package.ps1` now does
+export → clean → copy → zip and **asserts** `index.html`, `index.pck`, `index.wasm`
+and `START-HERE.bat` sit at the zip root, because itch looks for `index.html`
+there and nowhere else and a folder-level zip uploads fine and then serves a blank
+page. Export presets also exclude `builds/*` now, or the importer starts consuming
+previous exports.
+
+## Naming and disclosure
+
+**GRID**, chosen by the human over "The Lattice". A hexagonal-cell layout for that
+screen is parked as a later idea — it fits the game's whole shape language, and it
+needs a layout that still passes the 640×360 harness, which is why it is parked
+rather than done.
+
+**AI disclosure: Yes, all four sub-classifications.** Decided on asymmetry rather
+than on where the line truly falls: under-tagging risks delisting, which itch
+states outright, while over-tagging costs a browse filter already accepted by
+answering Yes at all. Code and the 45 upgrade names and descriptions are
+unarguable; the sprites and music are the genuinely arguable case (deterministic
+scripts, no model at render time — squarely itch's carve-out — but the scripts are
+LLM-written). Full reasoning in `tools/share/ITCH-PAGE.md`.

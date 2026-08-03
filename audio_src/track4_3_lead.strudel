@@ -12,6 +12,14 @@
 // Shape: a two-bar call that climbs, answered by a two-bar fall. The rest in
 // slot 3 of each cell keeps it from becoming another arpeggio — this has to read
 // as something WITH you on the track, not as more texture.
+//
+// TIMBRE: supersaw, not a single sawtooth. Detuned stacked saws are the sound
+// this genre is actually made of, and nothing else in the soundtrack uses one —
+// so the boss layer arriving is a NEW INSTRUMENT rather than more of the same
+// oscillator. That matters more than the extra 4 dB below: measured against the
+// other three tracks, this stem was 11.8 dB under its own drum kit where
+// Darksynth's equivalent is 6.6 dB under. The tier was written as a climax and
+// mixed as a garnish.
 setcps(0.5)
 stack(
   note(`<[[a5 c6 ~ bb5]*2]
@@ -35,8 +43,14 @@ stack(
     // zero. Ending bar 8 on a REST leaves the seam carrying only ring-out on
     // both sides, which is what it is supposed to be. The reverb and delay are
     // therefore left generous — they are load-bearing here, not decoration.
-    .s("sawtooth").lpf(4200).lpq(5)
-    .gain(0.175).attack(0.015).release(0.14)
+    // The trailing rest in bar 8 is why this stem must not be "tidied".
+    .s("supersaw").unison(7).detune(0.2).spread(0.6)
+    .lpf(4200).lpq(5)
+    // 0.085 where the single sawtooth ran 0.175. unison(7) sums SEVEN detuned
+    // voices and superdough does not normalise for voice count, so the same
+    // written gain measured 3.25x hotter. Level is set by the meter, not by
+    // keeping the old number and trusting it to mean the same thing.
+    .gain(0.085).attack(0.015).release(0.14)
     .room(0.3).size(0.75)
     .delay(0.28).delaytime(0.375).delayfeedback(0.26),
 
@@ -44,5 +58,5 @@ stack(
   // 0 engine, so it reads as a heavier machine pulling alongside rather than as
   // the same engine louder. Filtered hard to stay clear of the bass.
   note("<[a2*8] [a2*8] [bb2*8] [bb2*8] [a2*8] [a2*8] [g2*8] [f2*8]>")
-    .s("square").lpf(420).gain(0.07).release(0.03)
+    .s("square").lpf(420).gain(0.085).release(0.03)
 )

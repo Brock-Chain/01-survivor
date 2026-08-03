@@ -3,36 +3,87 @@
 // this track's whole proposition is that it never eases off, so the 16th hats
 // run for all eight bars and the fills push rather than breathe.
 //
+// SYNTHESISED, NOT SAMPLED — the one change that moves this track from "near
+// the genre" to "in it". Every other stem here is an oscillator; the kit was
+// the only sampled thing in the whole soundtrack, and `s("bd")` with no bank
+// pulls Dirt-Samples, which is an acoustic/lo-fi kit. Against a Tron brief that
+// reads as a live drummer sitting in a synth track.
+//
+// The instinct is `.bank("RolandTR909")`. It would silently do nothing:
+// render_superdough.mjs hardcodes Dirt-Samples as the only default sample map
+// and the TR machines live in a pack that is never loaded, so the bank control
+// is accepted and ignored. Adding a --samples flag would also put a network
+// fetch in the middle of a build that is otherwise offline and deterministic.
+//
+// So the kit is built from oscillators and noise instead, which is what a 909
+// physically is — sampling one is the detour. Same vocabulary the SFX bank
+// already ships (audio_src/sfx/*.strudel), so this is proven in this pipeline,
+// not a new dependency. Side benefit: no sample sound is referenced anywhere in
+// the stem, so the renderer skips sample loading entirely.
+//
+// PITCH ENVELOPES ARE POSITIVE HERE. superdough's penv OFFSETS THE START of the
+// note upward and decays to the WRITTEN pitch (audio-authoring.md gotcha 4), so
+// a drum — which starts high and falls — is penv(POSITIVE) with the note
+// written as the pitch it lands on. Do not "fix" these to negative.
+//
 // The one thing kept sparse is the crash. A racing loop heard for minutes needs
 // somewhere for the ear to rest, and if the kit is constant that rest has to
 // come from what is ABSENT rather than from what is added.
 setcps(0.5)
 stack(
-  s("bd*4").gain(0.40),                                   // four on the floor
+  // KICK — sine with a fast downward sweep: a0 + penv(26) starts near c3 and
+  // falls to 27.5 Hz in 45 ms. Distortion on the kick ALONE, never on a bus:
+  // it is the only element with the headroom to spend on harmonics, and those
+  // harmonics are what let a 27 Hz fundamental survive a laptop speaker.
+  note("a0*4").s("sine").penv(26).pdecay(0.045)
+    .attack(0.001).decay(0.17).sustain(0)
+    .distort("1.3:.5").gain(0.46),
 
-  // Backbeat. Clap for width, snare underneath for the crack. Both low: they
-  // land on the same 16th as a kick, and that stack sets the stem's peak.
-  s("~ cp ~ cp").gain(0.15),
-  s("~ sd ~ sd").gain(0.085),
+  // CLAP — three noise bursts 31 ms apart, then a longer body underneath. That
+  // burst train is what physically makes a clap a clap; a single burst reads as
+  // a snare no matter how it is filtered. The 32nd-note nesting is doing the
+  // 31 ms spacing, so the flam is on the grid rather than hand-placed.
+  s("~ [[white white white ~] ~ ~ ~] ~ [[white white white ~] ~ ~ ~]")
+    .hpf(1100).lpf(6800).attack(0.001).decay(0.022).sustain(0).gain(0.28),
+  s("~ white ~ white")
+    .hpf(1000).lpf(5800).attack(0.012).decay(0.17).sustain(0)
+    .gain(0.12).room(0.22).size(0.5),
+
+  // SNARE body under the clap, for the crack the noise cannot make on its own.
+  // A tuned triangle with its own short drop — the pitched component of a snare,
+  // separated out so its level can be set independently of the noise.
+  note("~ d3 ~ d3").s("triangle").penv(9).pdecay(0.02)
+    .attack(0.001).decay(0.085).sustain(0).gain(0.13),
 
   // 16th hats, every bar, all eight. This is the tyre noise. Panned narrow and
   // moving, so it sits behind the kick instead of on top of it.
-  s("hh*16").gain(0.055).pan(sine.range(0.40, 0.60).fast(4)),
+  // Noise hats carry far more sustained energy than the sampled hats they
+  // replaced — the whole stem measured 4.5 dB over its siblings on the first
+  // render, and these 16ths were most of it.
+  s("white*16").hpf(9200).attack(0.0005).decay(0.014).sustain(0)
+    .gain(0.085).pan(sine.range(0.40, 0.60).fast(4)),
 
   // Offbeat open hat, every bar. The lift that stops four-on-the-floor from
-  // reading as a metronome.
-  s("[~ ho]*4").gain(0.085),
+  // reading as a metronome. Lower hpf and a long decay is the entire difference
+  // between a closed hat and an open one when both are filtered noise.
+  s("[~ white]*4").hpf(7600).attack(0.0005).decay(0.135).sustain(0).gain(0.11),
 
   // Rimshot doubling the "and" of 3 and 4 in the B half only. The one place the
   // groove changes across the loop, and it pushes FORWARD rather than filling.
-  s("<~ ~ ~ ~ [~ ~ [~ rs] [~ rs]] [~ ~ [~ rs] [~ rs]] [~ ~ [~ rs] [~ rs]] [~ ~ [~ rs] [~ rs]]>")
-    .gain(0.075).pan(0.62),
+  // A rim is a click with a pitch, so: triangle, huge penv, almost no decay.
+  note("<~ ~ ~ ~ [~ ~ [~ c6] [~ c6]] [~ ~ [~ c6] [~ c6]] [~ ~ [~ c6] [~ c6]] [~ ~ [~ c6] [~ c6]]>")
+    .s("triangle").penv(22).pdecay(0.006)
+    .attack(0.0005).decay(0.022).sustain(0).gain(0.20).pan(0.62),
 
   // Turnarounds on beat 4 of bars 4 and 8, starting after the backbeat so the
   // run answers the clap instead of doubling it. Bar 8's is longer: it resets
   // the loop and needs to be heard as an ending, not a stumble.
-  s("<~ ~ ~ [~ ~ ~ [~ ~ sd sd]] ~ ~ ~ [~ ~ [sd sd] [sd sd sd sd]]>").gain(0.155),
+  s("<~ ~ ~ [~ ~ ~ [~ ~ white white]] ~ ~ ~ [~ ~ [white white] [white white white white]]>")
+    .hpf(1500).lpf(8000).attack(0.001).decay(0.055).sustain(0).gain(0.25),
 
-  // Crash on the top of each half only.
-  s("<cr ~ ~ ~ cr ~ ~ ~>").gain(0.11)
+  // Crash on the top of each half only. Noise with a long tail and a low-ish
+  // hpf — a cymbal is broadband, so filtering it too high leaves a hiss.
+  s("<white ~ ~ ~ white ~ ~ ~>")
+    .hpf(3400).attack(0.002).decay(1.5).sustain(0)
+    .gain(0.15).room(0.35).size(0.7)
 )

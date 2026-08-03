@@ -11,6 +11,11 @@
 // stay interchangeable, but Bb against A is a semitone the other two cannot
 // make. It reads as menace at speed rather than sadness.
 //
+// A Phrygian is the F-major collection, which puts this track ONE accidental
+// from Neon (C) and one from Darksynth (Bb) on the circle of fifths. `music.gd`
+// rotates along that circle, so this stem's key is load-bearing for how the
+// track changes sound, not just for how it sounds alone.
+//
 // FORM (8 cycles = 16s @ cps 0.5). Only THREE chord changes in sixteen seconds,
 // where track 3 has eight. That is deliberate: a racing track that keeps
 // modulating feels like it is braking.
@@ -18,19 +23,49 @@
 //   B  Am  Am  G   F      i - i - bVII - bVI   a descent that falls back to A
 setcps(0.5)
 stack(
-  // THE ENGINE. Straight 16ths, no rests, no swing. A pedal on the root with
-  // an octave stab on every 4th 16th, so the ear gets a pulse-within-the-pulse
-  // at four times the kick rate. This is the single loudest element in the
-  // track and it is doing all the work.
+  // THE ENGINE. True 16ths with a HOLE on the downbeat sixteenth of every beat.
+  //
+  // The previous version claimed "straight 16ths, an octave stab on every 4th"
+  // and did not do that. `[a1*12 a2*4]` is a bracket of TWO elements, so each
+  // took HALF THE BAR: twelve a1 across beats 1-2 (0.0833s apart — sextuplets)
+  // and four a2 across beats 3-4 (eighths). Against straight 16th hats that is
+  // 3-against-2 for half of every bar, and the pulse rate changing at the
+  // halfway point is why the engine lurched instead of pulling. Caught by
+  // reading the events sidecar, not the code — same discipline that caught the
+  // slowcat bug in gotcha 3, one level of nesting further down.
+  //
+  // The rest on each downbeat does two jobs. It is the only rhythmic identity
+  // this layer has that the 16th hats do not already own — everything else in
+  // the track is a full grid, so the holes are the shape. And it IS the
+  // sidechain: superdough has no compressor, but a bass that is simply absent
+  // where the kick lands pumps for free. That is how the machines this genre
+  // was built on did it, years before sidechaining was a technique.
+  //
+  // The octave lift moves to beats 3 and 4 only, so the bar has a front half
+  // and a back half without changing pulse rate to say so.
   //
   // Resonant low-pass rather than a static one: the sweep is slow enough
   // (one pass per 8-bar loop) that it reads as ACCELERATION rather than as a
   // filter effect, which is the oldest trick in the genre and still the best.
-  note(`<[a1*12 a2*4] [a1*12 a2*4] [bb1*12 bb2*4] [bb1*12 bb2*4]
-         [a1*12 a2*4] [a1*12 a2*4] [g1*12 g2*4]  [f1*12 f2*4]>`)
+  note(`<[[~ a1 a1 a1]  [~ a1 a1 a1]  [~ a1 a1 a2]  [~ a1 a1 a2]]
+         [[~ a1 a1 a1]  [~ a1 a1 a1]  [~ a1 a1 a2]  [~ a1 a1 a2]]
+         [[~ bb1 bb1 bb1] [~ bb1 bb1 bb1] [~ bb1 bb1 bb2] [~ bb1 bb1 bb2]]
+         [[~ bb1 bb1 bb1] [~ bb1 bb1 bb1] [~ bb1 bb1 bb2] [~ bb1 bb1 bb2]]
+         [[~ a1 a1 a1]  [~ a1 a1 a1]  [~ a1 a1 a2]  [~ a1 a1 a2]]
+         [[~ a1 a1 a1]  [~ a1 a1 a1]  [~ a1 a1 a2]  [~ a1 a1 a2]]
+         [[~ g1 g1 g1]  [~ g1 g1 g1]  [~ g1 g1 g2]  [~ g1 g1 g2]]
+         [[~ f1 f1 f1]  [~ f1 f1 f1]  [~ f1 f1 f2]  [~ f1 f1 f2]]>`)
     .s("sawtooth")
     .lpf(sine.range(380, 1250).slow(8)).lpq(9)
-    .gain(0.42).release(0.035),
+    .distort("1.18:.5")
+    // 0.30, not the 0.42 this used before the waveshaper went on. distort()
+    // multiplies BEFORE its post-gain divides, and measured 1.39x net here —
+    // at 0.72 the render clipped flat at 1.00 and the build normalised it down,
+    // which loses the transient rather than the level.
+    // Set by meter against the siblings' bass stems (-20.5 to -23.3 dBFS RMS),
+    // not by ear: the waveshaper compresses, so written gain and rendered level
+    // stopped tracking each other the moment distort() went on.
+    .gain(0.19).release(0.035),
 
   // A single sustained fifth underneath, no third. Power-chord voicing, because
   // a triad here would state the mode and the point of Phrygian at speed is

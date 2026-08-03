@@ -16,6 +16,8 @@
 // Delay is a dotted 8th (0.375s at cps 0.5) so echoes land between the 16ths.
 setcps(0.5)
 stack(
+  // THE TRAIL. Measured 3.5 dB quieter than the equivalent layer on the other
+  // three tracks, which is most of why tier 2 used to arrive and change nothing.
   note(`<[[a4 e5 a5 e5]*4]
          [[a4 e5 a5 e5]*4]
          [[bb4 f5 bb5 f5]*4]
@@ -26,22 +28,41 @@ stack(
          [[f4 c5 f5 c5]*4]>`)
     .s("square")
     .lpf(sine.range(1400, 5200).slow(4)).lpq(7)   // twice as fast as track 3's
-    .gain(0.15).release(0.04)
+    .gain(0.23).release(0.04)
     .delay(0.32).delaytime(0.375).delayfeedback(0.34)
     .pan(0.54).room(0.16).size(0.6),
 
-  // A second trail an octave up, playing the same cell one 16th LATE. Not a
-  // harmony — a shadow. Two lights running the same line slightly out of step
-  // is the entire visual the track is named for, and a delay cannot do it
-  // because a delay repeats the past rather than running alongside.
-  note(`<[[~ a5 e6 a6]*4]
-         [[~ a5 e6 a6]*4]
-         [[~ bb5 f6 bb6]*4]
-         [[~ bb5 f6 bb6]*4]
-         [[~ a5 e6 a6]*4]
-         [[~ a5 e6 a6]*4]
-         [[~ g5 d6 g6]*4]
-         [[~ f5 c6 f6]*4]>`)
-    .s("triangle").lpf(6500)
-    .gain(0.055).release(0.03).pan(0.36)
+  // THE STAB — the instrument this track did not have, in the band it did not
+  // cover. Everything else lives below 1.3 kHz (bass, filtered to 380-1250) or
+  // above 1.4 kHz (trail, lead); nothing occupied 200 Hz - 1 kHz, which is
+  // exactly where filtered house chords live. A hole that wide reads as thin
+  // rather than as clean.
+  //
+  // It also fixes a rhythm problem. Bass, trail and hats were all on the 16th
+  // grid at once, so nothing owned a subdivision and the layers blurred into
+  // one texture instead of stacking. The stab is on OFFBEAT EIGHTHS — the only
+  // voice in the track on that pulse — so it separates by rhythm as well as by
+  // frequency. Kick on quarters, stab on offbeat eighths, trail on sixteenths,
+  // bass on sixteenths-with-holes: four distinguishable pulses.
+  //
+  // Root-fifth-octave, still no third: the layer-3 lead is what states the mode,
+  // and a stab this prominent stating it early would spend the payload.
+  //
+  // This replaces the triangle "shadow" trail that used to sit here. That voice
+  // was offset by exactly one sixteenth — a whole grid step — so instead of two
+  // lights running slightly out of step it simply doubled the trail and thickened
+  // the same 16th grid. The dotted-eighth delay already on the trail does the
+  // out-of-step job properly, because 0.375s is not a grid multiple.
+  note(`<[[~ [a3,e4,a4]]*4]
+         [[~ [a3,e4,a4]]*4]
+         [[~ [bb3,f4,bb4]]*4]
+         [[~ [bb3,f4,bb4]]*4]
+         [[~ [a3,e4,a4]]*4]
+         [[~ [a3,e4,a4]]*4]
+         [[~ [g3,d4,g4]]*4]
+         [[~ [f3,c4,f4]]*4]>`)
+    .s("sawtooth")
+    .lpf(sine.range(520, 1150).slow(8)).lpq(11)
+    .attack(0.002).decay(0.13).sustain(0)
+    .gain(0.20).pan(0.44).room(0.2).size(0.55)
 )
