@@ -23,11 +23,22 @@ enum Behavior { CHASE, RANGED, CHARGE }
 @export var sprite: Texture2D
 
 ## Rotate the sprite to point along travel. For DIRECTIONAL silhouettes only —
-## the Dart's needle and the Ram's wedge are drawn pointing up and are unreadable
-## at any other angle. A shape that turns is also the cheapest possible "this one
-## is aimed at you", which is most of what now separates those two at 12px.
+## the Ram's wedge is drawn pointing up and is unreadable at any other angle. A
+## shape that turns is also the cheapest possible "this one is aimed at you".
 ## Radially symmetric types (square, octagon, diamond) leave this false: spinning
 ## them would read as a bug.
+##
+## THE DART TURNED THIS OFF on 2026-08-03, and the reason generalises. Playtest:
+## "orange dart looks more like a projectile". It did, and the neon pass did not
+## fix it — a 1:1 crop showed the Dart still reading as a tracer round with the
+## glow on. The cause was never colour. A small pointed shape ROTATED ALONG ITS
+## VELOCITY is the visual grammar of a bullet, and the Dart had every part of it:
+## needle silhouette, warm hue, 16px, aimed where it was going.
+##
+## So the rule this flag now follows: **bolts point where they travel, bodies do
+## not.** Facing is reserved for a shape whose ROTATION IS A TELEGRAPH the player
+## must read (the Ram's wind-up). Spending it on a plain chaser buys a little
+## "flying at you" and pays for it by making that chaser look like ammunition.
 @export var faces_travel: bool = false
 
 ## Per-type scene, as a PATH rather than a PackedScene. Empty uses the spawner's

@@ -25,6 +25,16 @@ const GAP: int = 4
 const BACKDROP: Color = Color(0.08, 0.08, 0.11, 1.0)
 const DEFAULT_FRAME: int = 30
 
+## True while a capture run is in flight. Public because Main has to know: it
+## pauses the run on focus loss, and a capture launched from a terminal NEVER has
+## focus — so the gameplay screenshot rig silently started photographing the
+## PAUSE MENU the day that shipped. Nothing errored, no frame number changed, the
+## tool just stopped taking pictures of the game.
+##
+## A capture run is not a player, and this is the flag that says so. Set in
+## `_ready` before the first frame, so the notification cannot beat it.
+var capturing: bool = false
+
 ## Frames elapsed since boot. Counted here rather than by awaiting N times in a
 ## row because `RenderingServer.frame_post_draw` consumes an unspecified number
 ## of frames, so a capture would shift every later frame number in the sheet.
@@ -60,6 +70,7 @@ func _ready() -> void:
 		# pure waste — small, but paid every frame of every player's run.
 		set_process(false)
 		return
+	capturing = true
 	if frames.is_empty():
 		frames = PackedInt32Array([DEFAULT_FRAME])
 	if scale < 0.0:

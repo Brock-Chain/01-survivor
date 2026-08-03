@@ -25,8 +25,19 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 
+# Python bytecode from the tools/ scripts. Never ignored before, so it sat
+# untracked-but-not-ignored in every `git status` — which is exactly how a
+# `git add -A` ends up committing .pyc files nobody meant to ship.
+__pycache__/
+*.pyc
+
 # Strudel render intermediates (the .ogg/.wav build artifacts under assets/ ARE
 # committed; these are the renderer's raw output next to the sources)
 audio_src/**/*.wav
 audio_src/**/*.events.json
 audio_src/**/*.import
+
+# If the Strudel renderer is ever vendored into tools/strudel/, its dependencies
+# are 67 MB of AGPL-3.0 packages and are never committed — package.json and
+# package-lock.json declare them, `npm install` fetches them.
+tools/strudel/node_modules/

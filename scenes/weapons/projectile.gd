@@ -16,7 +16,8 @@ var speed: float = 340.0
 var damage: int = 1
 ## Extra enemies this shot survives before dying.
 var pierce: int = 0
-## Extra targets it redirects to after a hit (Ricochet).
+## Extra targets it redirects to after a hit, carrying only whatever damage the
+## last target could not absorb (Ricochet).
 var ricochet: int = 0
 ## Shards it bursts into on first impact (Prism Core).
 var prism_shards: int = 0
@@ -78,7 +79,7 @@ func _on_body_entered(body: Node2D) -> void:
 	var enemy: Enemy = body as Enemy
 	if cryo > 0.0:
 		enemy.apply_slow(cryo, 1.6)
-	enemy.take_hit(damage, execute_below, global_position)
+	var absorbed: int = enemy.take_hit(damage, execute_below, global_position)
 
 	if _can_spawn:
 		if prism_shards > 0:
@@ -86,10 +87,24 @@ func _on_body_entered(body: Node2D) -> void:
 		if chain_targets > 0:
 			_chain(enemy)
 
+	# Playtest 2026-08-03: "bounces should only carry over the remainder of the
+	# damage, they're too strong right now." They were — a bounce redirected at
+	# FULL damage, so Ricochet at two stacks was a flat 5x on every shot, and the
+	# 5x landed on a boss exactly as happily as on a crowd of 1 HP Darts.
+	#
+	# Carrying only the OVERKILL makes the card what its fiction always claimed:
+	# a shot that punches through chaff keeps going, a shot that was fully
+	# stopped is stopped. Against a boss the remainder is always 0, so Ricochet
+	# now adds nothing to single-target DPS — which is the whole point of the
+	# nerf, and the same split the multishot tax already draws.
 	if ricochet > 0:
-		var next: Enemy = _nearest_excluding([enemy], global_position, RICOCHET_RANGE)
+		var carry: int = maxi(0, damage - absorbed)
+		var next: Enemy = null
+		if carry > 0:
+			next = _nearest_excluding([enemy], global_position, RICOCHET_RANGE)
 		if next != null:
 			ricochet -= 1
+			damage = carry
 			direction = (next.global_position - global_position).normalized()
 			rotation = direction.angle()
 			return  # redirected rather than consumed

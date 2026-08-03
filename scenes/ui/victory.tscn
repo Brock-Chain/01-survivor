@@ -2,6 +2,18 @@
 
 [ext_resource type="Script" path="res://scenes/ui/victory.gd" id="1_vic"]
 
+; THE 5:00 WIN. Cyan-green where the true ending is gold, and a narrower frame:
+; at 640x360 the palette and the panel's silhouette are what the player reads
+; first, well before any text.
+;
+; Rebuilt 2026-08-03 ("prism shattered ui sucks"). The old screen was ONE Label
+; holding every line — title, stats, reassurance, and a heading PLUS a blurb for
+; each unlock — inside a CenterContainer. A CenterContainer centres content
+; taller than the screen by overflowing it at BOTH ends, so with two unlocks the
+; buttons left the viewport and the panel was clipped top and bottom. Exactly
+; the trap the pause panel shipped and the true ending hit at 633px. There is a
+; victory case in pause_layout_check now, which is why it could not be caught
+; before: that harness covered four screens and never this one.
 [node name="Victory" type="CanvasLayer"]
 process_mode = 2
 visible = false
@@ -11,7 +23,7 @@ script = ExtResource("1_vic")
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.02, 0.06, 0.09, 0.68)
+color = Color(0.02, 0.06, 0.09, 0.78)
 
 [node name="Center" type="CenterContainer" parent="."]
 anchors_preset = 15
@@ -22,12 +34,18 @@ anchor_bottom = 1.0
 
 [node name="Margin" type="MarginContainer" parent="Center/Panel"]
 theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 16
+theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_bottom = 12
 
 [node name="VBox" type="VBoxContainer" parent="Center/Panel/Margin"]
-theme_override_constants/separation = 12
+theme_override_constants/separation = 7
+
+[node name="Kicker" type="Label" parent="Center/Panel/Margin/VBox"]
+theme_override_colors/font_color = Color(0.35, 0.78, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+text = "VICTORY"
 
 [node name="Title" type="Label" parent="Center/Panel/Margin/VBox"]
 theme_override_colors/font_color = Color(0.55, 1, 0.86, 1)
@@ -35,21 +53,97 @@ theme_override_font_sizes/font_size = 24
 horizontal_alignment = 1
 text = "PRISM SHATTERED"
 
-[node name="StatsLabel" type="Label" parent="Center/Panel/Margin/VBox"]
+; The run's numbers as a SCOREBOARD, not a sentence. "1000 kills · level 43" is
+; something you read; three value-over-label columns is something you take in at
+; a glance. This is the moment the player is proudest of the run, so the numbers
+; earn second place on the screen rather than a clause in a line of prose.
+[node name="StatStrip" type="HBoxContainer" parent="Center/Panel/Margin/VBox"]
+alignment = 1
+theme_override_constants/separation = 26
+
+[node name="TimeCol" type="VBoxContainer" parent="Center/Panel/Margin/VBox/StatStrip"]
+theme_override_constants/separation = 0
+
+[node name="TimeValue" type="Label" parent="Center/Panel/Margin/VBox/StatStrip/TimeCol"]
 unique_name_in_owner = true
+theme_override_colors/font_color = Color(0.86, 1, 0.96, 1)
+theme_override_font_sizes/font_size = 19
 horizontal_alignment = 1
-text = "The Prism is down at 00:00"
+text = "00:00"
+
+[node name="TimeCap" type="Label" parent="Center/Panel/Margin/VBox/StatStrip/TimeCol"]
+theme_override_colors/font_color = Color(0.45, 0.62, 0.7, 1)
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+text = "SURVIVED"
+
+[node name="KillsCol" type="VBoxContainer" parent="Center/Panel/Margin/VBox/StatStrip"]
+theme_override_constants/separation = 0
+
+[node name="KillsValue" type="Label" parent="Center/Panel/Margin/VBox/StatStrip/KillsCol"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(0.86, 1, 0.96, 1)
+theme_override_font_sizes/font_size = 19
+horizontal_alignment = 1
+text = "0"
+
+[node name="KillsCap" type="Label" parent="Center/Panel/Margin/VBox/StatStrip/KillsCol"]
+theme_override_colors/font_color = Color(0.45, 0.62, 0.7, 1)
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+text = "KILLS"
+
+[node name="LevelCol" type="VBoxContainer" parent="Center/Panel/Margin/VBox/StatStrip"]
+theme_override_constants/separation = 0
+
+[node name="LevelValue" type="Label" parent="Center/Panel/Margin/VBox/StatStrip/LevelCol"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(0.86, 1, 0.96, 1)
+theme_override_font_sizes/font_size = 19
+horizontal_alignment = 1
+text = "1"
+
+[node name="LevelCap" type="Label" parent="Center/Panel/Margin/VBox/StatStrip/LevelCol"]
+theme_override_colors/font_color = Color(0.45, 0.62, 0.7, 1)
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+text = "LEVEL"
+
+[node name="Banked" type="Label" parent="Center/Panel/Margin/VBox"]
+theme_override_colors/font_color = Color(0.66, 0.8, 0.88, 1)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+text = "This win is already saved. Endless is pure upside —
+dying out there cannot take it back."
+
+[node name="UnlockHeader" type="Label" parent="Center/Panel/Margin/VBox"]
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(0.35, 0.78, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+horizontal_alignment = 1
+text = "UNLOCKED"
+
+; HFlow, not HBox: up to four unlocks can land on one kill, and a row that WRAPS
+; grows downward by one chip instead of widening the panel past the viewport.
+[node name="Unlocks" type="HFlowContainer" parent="Center/Panel/Margin/VBox"]
+unique_name_in_owner = true
+alignment = 1
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 4
 
 [node name="Buttons" type="HBoxContainer" parent="Center/Panel/Margin/VBox"]
 alignment = 1
 theme_override_constants/separation = 12
 
+; "Continue (Endless)" is what BRIEF.md's victory row specifies. The label had
+; drifted to a bare "Continue", which drops the one word telling a first-time
+; player what they are agreeing to.
 [node name="ContinueButton" type="Button" parent="Center/Panel/Margin/VBox/Buttons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(150, 36)
-text = "Continue"
+custom_minimum_size = Vector2(150, 32)
+text = "Continue (Endless)"
 
 [node name="RestartButton" type="Button" parent="Center/Panel/Margin/VBox/Buttons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 36)
+custom_minimum_size = Vector2(110, 32)
 text = "Restart"

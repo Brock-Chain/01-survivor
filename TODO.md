@@ -362,8 +362,20 @@ before the finale, and the telemetry that says so was recorded by a fixed instru
       fullscreen, bosses too small / enemies latching on. Packaging turned into a script
       (`tools/package.ps1`) after being done by hand wrong twice. **Tuning numbers still owed** —
       see HANDOFF.
+- [x] **v1.1 M7.95** Second playtest response (2026-08-03) — seven items from the same tester, all
+      shipped: enemies and projectiles made readable (baked neon halos; bolts glow AND streak,
+      bodies do neither; the Dart stopped rotating along travel), screenshake cut a third at the
+      ceiling with a tighter per-frame kill cap and a **SHAKE toggle** in the pause menu, Siphon
+      14%→6% with the lifesteal cap 0.6→0.25, Ricochet bounces now carry only the damage the last
+      target could not absorb, Prism HP 1200→2400, and the victory screen rebuilt as a scoreboard
+      with unlock chips. Two things fell out of it that nobody asked for: the gameplay screenshot
+      rig had been photographing the **pause menu** since focus-pause shipped, and
+      `pause_layout_check` guarded five screens while never guarding this one.
 - [ ] v1.1: **M8 ship** ← next. Remaining: tune the 5:00→10:00 ramp and the 10:00 fight length
       against a real run, settle the freeze question, choose a licence, flip the itch page Public.
+      **Two numbers are owed a soak rather than an opinion:** the 10:00 mirror event inherited the
+      Prism doubling and is now 18,400 base (was 11,200, last measured at 212 s for a four-weapon
+      run), and `MIRROR_LEVEL_STEP` was fitted against the old base and never re-fitted.
 
 *The ship gate moved from M7 to M8 because the first clean human run to 10:00 turned into a rework
 spec rather than a punch list. Scope grew by explicit decision, not by drift.*

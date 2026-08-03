@@ -1,6 +1,6 @@
 # BESTAGON (repo folder `01-survivor`)
 
-Micro arena survivor (Vampire-Survivors-lite) in Godot 4.7.1, GDScript. Game 1 of a 3-game learning roadmap; its "pick 1 of 3 upgrades" loop is deliberate rehearsal for a future deckbuilder. Ship target 2026-08-14: web + Windows on itch.io. **TODO.md is the source of truth for milestones and scope** — read it at session start, update it at session end.
+Micro arena survivor (Vampire-Survivors-lite) in Godot 4.7.1, GDScript. Game 1 of a 3-game learning roadmap; its "pick 1 of 3 upgrades" loop is deliberate rehearsal for a future deckbuilder. Ships web + Windows on itch.io. **Scope is controlled by content counts and gates, never by a date** — this file used to state a ship target while `TODO.md` stated the opposite, and the two disagreed for the whole project. **TODO.md is the source of truth for milestones and scope** — read it at session start, update it at session end.
 
 ## Commands (from this folder)
 
@@ -31,7 +31,13 @@ powershell -File tools/verify.ps1 soak     # + an 11-minute run clearing both bo
 # every stream that played past the leak check) and "RID allocations of type ...
 # leaked at exit" (renderer/physics dummies release after it). Anything else is real.
 # screenshot of the running game → Read the PNG (dir .ai\ is gitignored)
+# For a GAMEPLAY frame, name main.tscn (run/main_scene is the title) AND pass the dev flags, or the
+# run stalls on the level-up panel: --dev-autopilot --dev-autopick --dev-godmode.
 <console.exe> --path . -w --resolution 1280x720 -- --screenshot=<abs>/.ai/shot.png --shot-frame=30
+# Pose any modal at its worst case and photograph it, through the layout harness. --check-hold picks
+# which screen stays up (default true_ending); the capture window is only ~40 frames wide, so a
+# --shot-frame past it makes the harness quit first and write nothing.
+<console.exe> --path . -w --resolution 1280x720 res://scenes/dev/pause_layout_check.tscn -- --check-hold=victory --screenshot=<abs>/.ai/victory.png --shot-frame=95
 # contact sheet — several frames in ONE png, for anything that MOVES (--fixed-fps is mandatory)
 <console.exe> --path . -w --resolution 1280x720 --fixed-fps 60 -- --screenshot=<abs>/.ai/sheet.png --shot-frames=1,3,5,7,9,12
 # juice lab — one effect, alone, shipped variant vs alternatives (scenes/dev/, excluded from exports)

@@ -76,6 +76,39 @@ func test_damage_curve_keeps_the_base_enemy_killable_late() -> void:
 	assert_lt(_shots_to_kill(hp, 1), 25, "base weapon still kills a chaser in under 25 shots at 5min")
 
 
+# --- ricochet carry ---------------------------------------------------------
+
+## Playtest 2026-08-03: bounces redirected at FULL damage, which made Ricochet a
+## flat 5x on every shot and hit a boss as hard as a crowd. A bounce now carries
+## only what the last target could not absorb, and `Enemy.absorbed_by` IS that
+## rule — static and pure precisely so it can be pinned here.
+
+
+func test_a_body_absorbs_only_the_hp_it_actually_had() -> void:
+	# 40 damage into a 1 HP Dart spends 1; the other 39 bounce onward.
+	assert_eq(Enemy.absorbed_by(1, 40), 1)
+	assert_eq(Enemy.absorbed_by(6, 40), 6)
+
+
+func test_a_body_that_survives_absorbs_the_whole_hit() -> void:
+	# Nothing left over means nothing to bounce with. This is the BOSS case, and
+	# it is the entire reason Ricochet no longer feeds single-target DPS.
+	assert_eq(Enemy.absorbed_by(2400, 40), 40)
+	assert_eq(Enemy.absorbed_by(41, 40), 40)
+
+
+func test_an_exact_kill_leaves_no_remainder() -> void:
+	assert_eq(Enemy.absorbed_by(40, 40), 40, "spent exactly, so the shot stops")
+
+
+func test_absorption_is_never_negative() -> void:
+	# A corpse absorbs nothing rather than refunding damage to the shot — a
+	# negative here would hand the bounce MORE damage than it started with.
+	assert_eq(Enemy.absorbed_by(0, 40), 0)
+	assert_eq(Enemy.absorbed_by(-3, 40), 0)
+	assert_eq(Enemy.absorbed_by(10, 0), 0)
+
+
 # --- multishot tax ----------------------------------------------------------
 
 func test_volley_tax_is_neutral_at_a_weapons_base_count() -> void:

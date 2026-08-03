@@ -53,6 +53,7 @@ const MAX_GRID_HEIGHT: float = 104.0
 @onready var sfx_slider: HSlider = %SfxSlider
 @onready var mute_button: Button = %MuteButton
 @onready var track_button: Button = %TrackButton
+@onready var shake_button: Button = %ShakeButton
 
 
 func _ready() -> void:
@@ -66,10 +67,12 @@ func _ready() -> void:
 	sfx_slider.value_changed.connect(func(v: float) -> void: Audio.set_sfx_volume(v))
 	mute_button.pressed.connect(toggle_mute)
 	track_button.pressed.connect(_cycle_track)
+	shake_button.pressed.connect(_toggle_shake)
 	_refresh_track()
 	build_tab.pressed.connect(_show_page.bind(false))
 	stats_tab.pressed.connect(_show_page.bind(true))
 	_refresh_mute()
+	_refresh_shake()
 
 
 ## Two pages inside the SAME bounded scroll area, rather than two columns.
@@ -133,6 +136,19 @@ func _cycle_track() -> void:
 	if Music.forced_track >= 0:
 		Music.switch_gameplay_track(Music.forced_track)
 	_refresh_track()
+
+
+## Screenshake opt-out. Applies IMMEDIATELY like the track switch, and for the
+## same reason: the player is toggling it because the camera just bothered them,
+## so "next run" would be the wrong answer to the question they are asking.
+func _toggle_shake() -> void:
+	Sfx.play(&"click")
+	Settings.set_shake_enabled(not Settings.shake_enabled)
+	_refresh_shake()
+
+
+func _refresh_shake() -> void:
+	shake_button.text = "SHAKE: ON" if Settings.shake_enabled else "SHAKE: OFF"
 
 
 func _refresh_track() -> void:

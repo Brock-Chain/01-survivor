@@ -324,6 +324,13 @@ func _unhandled_input(event: InputEvent) -> void:
 func _notification(what: int) -> void:
 	if what != NOTIFICATION_APPLICATION_FOCUS_OUT and what != NOTIFICATION_WM_WINDOW_FOCUS_OUT:
 		return
+	# A screenshot run is not a player. It is launched from a terminal and so
+	# never holds focus, which meant this pause fired instantly and every
+	# gameplay capture came back as a picture of the pause menu — silently, with
+	# no error, from the day focus-pause shipped. The capture rig is how this
+	# project looks at itself; it does not get to be broken by a QoL fix.
+	if AiScreenshot.capturing:
+		return
 	# `is_node_ready` guards the notification arriving before _ready has wired
 	# anything up -- focus events fire during startup on some platforms.
 	if not is_node_ready() or _modal_open() or pause_panel == null or pause_panel.visible:

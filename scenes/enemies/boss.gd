@@ -175,23 +175,27 @@ func _fire() -> void:
 
 
 func take_hit(amount: int, execute_below: float = 0.0,
-		from: Vector2 = Vector2.INF) -> void:
+		from: Vector2 = Vector2.INF) -> int:
 	if invulnerable:
 		_blocked_feedback()
-		return
+		# Absorbed NOTHING. The shield deflected the shot, so a Ricochet keeps
+		# its full damage for the next target instead of spending it on a boss
+		# it was never allowed to hurt.
+		return 0
 	var was_alive: bool = hp > 0
 	# Bosses ignore Executioner — an instant-kill threshold on a boss would
 	# delete the fight the run is built around. They also ignore knockback:
 	# shoving the boss around would undo its telegraphed positioning, which is
 	# the whole basis of the fight being readable.
-	super.take_hit(amount, 0.0, Vector2.INF)
+	var absorbed: int = super.take_hit(amount, 0.0, Vector2.INF)
 	if not was_alive or hp <= 0:
-		return
+		return absorbed
 	# `while`, not `if`: one very large hit can cross two thresholds at once, and
 	# a skipped phase would skip whatever that phase was supposed to set up.
 	while phase - 1 < phase_thresholds.size() \
 			and float(hp) <= float(max_hp) * phase_thresholds[phase - 1]:
 		_advance_phase()
+	return absorbed
 
 
 ## Advance a phase for a reason that is NOT damage. Nogaxeh's phase 1 ends when

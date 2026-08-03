@@ -122,7 +122,18 @@ func apply_to(stats: Stats) -> void:
 		Effect.CRIT_CHANCE:
 			stats.crit_chance = minf(0.85, stats.crit_chance + magnitude)
 		Effect.LIFESTEAL:
-			stats.lifesteal_chance = minf(0.6, stats.lifesteal_chance + magnitude)
+			# Playtest 2026-08-03: "14% lifesteal is a lot". It was — Siphon was
+			# 0.14 across 4 stacks, so 56% of a heal per kill, and kills are the
+			# one resource this game hands out by the thousand. A 1000-kill run
+			# pulled roughly 560 HP through a 6 HP bar: sustain no amount of
+			# incoming damage could outrun, which quietly deleted the attrition
+			# the boss fights are budgeted around.
+			#
+			# Siphon is 0.06 now, so four stacks land at 24% and this cap is
+			# headroom rather than the thing doing the work. It still has to
+			# exist: an axis that stacks needs a ceiling authored next to it, not
+			# discovered — same rule as the crit cap and the cooldown floor.
+			stats.lifesteal_chance = minf(0.25, stats.lifesteal_chance + magnitude)
 		Effect.ORBITAL_COUNT:
 			stats.orbital_bonus_count += int(magnitude)
 		Effect.ORBITAL_RADIUS:

@@ -22,6 +22,7 @@ Sfx="*res://scripts/sfx.gd"
 Music="*res://scripts/music.gd"
 Meta="*res://scripts/meta.gd"
 Audio="*res://scripts/audio_settings.gd"
+Settings="*res://scripts/game_settings.gd"
 Telemetry="*res://scripts/telemetry.gd"
 
 [display]

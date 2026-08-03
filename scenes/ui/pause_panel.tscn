@@ -89,16 +89,27 @@ columns = 4
 
 [node name="AudioRow" type="HBoxContainer" parent="Center/Panel/Margin/VBox"]
 alignment = 1
-theme_override_constants/separation = 10
+; 10 -> 8. This row has seven children now, so a separation costs six times over
+; and it was the cheapest width left to buy — see MusicSlider.
+theme_override_constants/separation = 8
 
 [node name="MusicLabel" type="Label" parent="Center/Panel/Margin/VBox/AudioRow"]
 theme_override_colors/font_color = Color(0.55, 0.7, 0.86, 1)
 theme_override_font_sizes/font_size = 11
 text = "MUSIC"
 
+; 110 -> 78 to buy the width the SHAKE toggle needed. The panel measured 602 of
+; a 640 viewport, so there were 38 free pixels and the button wanted 86; a new
+; ROW was not an option either, since at 12+ upgrades the panel is already 342
+; tall of 360. A 78px slider still spans the full 0..1 in 5% steps.
+;
+; MEASURED, not reasoned — the first attempt at 84 landed the panel at 639 of
+; 640. It passed the harness and was still wrong: one pixel of margin is not a
+; fit, it is a coincidence waiting for a longer track name or a font metric to
+; change. Re-run pause_layout_check after touching anything in this row.
 [node name="MusicSlider" type="HSlider" parent="Center/Panel/Margin/VBox/AudioRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 16)
+custom_minimum_size = Vector2(78, 16)
 max_value = 1.0
 step = 0.05
 value = 0.8
@@ -110,7 +121,7 @@ text = "SFX"
 
 [node name="SfxSlider" type="HSlider" parent="Center/Panel/Margin/VBox/AudioRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 16)
+custom_minimum_size = Vector2(78, 16)
 max_value = 1.0
 step = 0.05
 value = 0.8
@@ -129,6 +140,15 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(128, 24)
 theme_override_font_sizes/font_size = 11
 text = "TRACK: AUTO"
+
+; Screenshake opt-out, in the pause menu because that IS this game's options
+; screen — the title has no settings, and the one moment a player decides the
+; camera is too much is mid-run, not before it.
+[node name="ShakeButton" type="Button" parent="Center/Panel/Margin/VBox/AudioRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(76, 24)
+theme_override_font_sizes/font_size = 11
+text = "SHAKE: ON"
 
 [node name="Buttons" type="HBoxContainer" parent="Center/Panel/Margin/VBox"]
 alignment = 1

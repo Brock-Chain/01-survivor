@@ -26,6 +26,74 @@ const KNOCKBACK_DECAY: float = 9.0
 const KNOCKBACK_REFERENCE_SIZE: float = 13.0
 const BOLT_SCENE: PackedScene = preload("res://scenes/enemies/enemy_projectile.tscn")
 
+## BAKED NEON. Playtest 2026-08-03: "enemies are hard to see". They were flat
+## unlit fills at 16-23px on a dark navy floor with a busy grid drawn over it —
+## nothing separated a body from the background except its own hue.
+##
+## Real bloom is not available to fix this. `gl_compatibility` fixes the root
+## viewport's backbuffer format at boot, so a WorldEnvironment on it is a PROVEN
+## no-op — scenes/dev/juice_lab.gd documents the experiment, down to blowing glow
+## to threshold 0 / strength 8 and getting a byte-identical frame. The only real
+## post-process path is rendering the whole game through a SubViewport, which is
+## a renderer migration, not a readability fix.
+##
+## So the glow is baked: one soft additive dot behind the body, in the body's own
+## colour. Same trick `_apply_elite_rim` already uses, and it puts LIGHT around
+## the shape rather than asking the shape to be brighter — which would have meant
+## re-picking every tint in the colour law to solve a contrast problem.
+## MEASURED, twice. The first pass at 2.3 / 0.50 with a wide falloff looked right
+## on a lone enemy and turned a twenty-body pack into ONE pink smear with the
+## silhouettes dissolved inside it — additive light stacks, so the denser the
+## crowd the worse the readability, which is precisely backwards. A halo has to
+## be tight enough that N of them overlapping still reads as N things.
+const HALO_SCALE: float = 1.75
+const HALO_ALPHA: float = 0.38
+const HALO_TEXTURE_SIZE: int = 64
+
+## ONE texture and ONE material for every halo in the game. Static because
+## MAX_ALIVE is 110 and a per-instance gradient would be 110 allocations of the
+## same 64x64 image, rebuilt on every spawn, for the whole run.
+static var _halo_texture: GradientTexture2D = null
+static var _halo_material: CanvasItemMaterial = null
+
+
+static func halo_texture() -> GradientTexture2D:
+	if _halo_texture != null:
+		return _halo_texture
+	var grad := Gradient.new()
+	# Hot centre, fast falloff, fully transparent at the rim. The middle stop is
+	# what stops it reading as a flat disc: a linear ramp looks like a bubble,
+	# this looks like light.
+	# Tight falloff: nearly all the light is inside the body's own footprint and
+	# it is gone by 70% of the radius. A wider ramp is what let neighbouring
+	# halos pool into a single glowing mass in a crowd.
+	grad.offsets = PackedFloat32Array([0.0, 0.30, 0.72])
+	grad.colors = PackedColorArray([
+			Color(1.0, 1.0, 1.0, 0.95),
+			Color(1.0, 1.0, 1.0, 0.22),
+			Color(1.0, 1.0, 1.0, 0.0)])
+	var tex := GradientTexture2D.new()
+	tex.gradient = grad
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(1.0, 0.5)
+	tex.width = HALO_TEXTURE_SIZE
+	tex.height = HALO_TEXTURE_SIZE
+	_halo_texture = tex
+	return _halo_texture
+
+
+## ADDITIVE, because a glow adds light to what is behind it. Mix-blended, the
+## same sprite is a translucent grey disc that DARKENS the floor grid — which is
+## the opposite of the problem being solved.
+static func halo_material() -> CanvasItemMaterial:
+	if _halo_material != null:
+		return _halo_material
+	var mat := CanvasItemMaterial.new()
+	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	_halo_material = mat
+	return _halo_material
+
 var stats: EnemyStats
 var hp: int
 ## Kept so subclasses can reason about proportional health (the boss's phase
@@ -50,6 +118,8 @@ var _charge_t: float = 0.0
 var _charge_dir: Vector2 = Vector2.ZERO
 var _knockback: Vector2 = Vector2.ZERO
 
+var _halo: Sprite2D
+
 @onready var visual: Sprite2D = $Visual
 @onready var shape: CollisionShape2D = $CollisionShape2D
 
@@ -71,7 +141,6 @@ func _ready() -> void:
 	# Silhouette and colour are both content (EnemyStats), never code.
 	if stats.sprite != null:
 		visual.texture = stats.sprite
-	visual.modulate = stats.tint
 	_shoot_cd = stats.attack_interval * randf_range(0.4, 1.0)
 	var size: float = stats.size * (Difficulty.ELITE_SCALE if is_elite else 1.0)
 	# Divisor comes from the TEXTURE, not a hardcoded 16. Sprite canvases differ
@@ -81,8 +150,35 @@ func _ready() -> void:
 	visual.scale = Vector2.ONE * (size / maxf(1.0, native))
 	var rect: RectangleShape2D = shape.shape
 	rect.size = Vector2(size - 2.0, size - 2.0)
+	_add_halo(size)
+	# Set through the helper so the halo starts on the same colour as the body,
+	# and keeps matching it through slows and telegraphs.
+	_set_tint(stats.tint)
 	if is_elite:
 		_apply_elite_rim()
+
+
+## The neon. Sized off the BODY, not the texture, so a Dart glows like a Dart and
+## a boss glows like a boss without a second number to keep in sync.
+func _add_halo(body_size: float) -> void:
+	_halo = Sprite2D.new()
+	_halo.texture = halo_texture()
+	_halo.material = halo_material()
+	_halo.scale = Vector2.ONE * (body_size * HALO_SCALE / float(HALO_TEXTURE_SIZE))
+	# Behind the elite rim (-1), which is itself behind the body. The stacking
+	# order IS the read: light, then threat marker, then silhouette.
+	_halo.z_index = -2
+	add_child(_halo)
+
+
+## One place that owns "what colour is this enemy right now". Before the halo
+## existed, three call sites wrote `visual.modulate` directly; with a second node
+## to keep in step, that is three chances for the glow to disagree with the body
+## — including during a charge telegraph, where disagreeing would actively lie.
+func _set_tint(colour: Color) -> void:
+	visual.modulate = colour
+	if _halo != null:
+		_halo.modulate = Color(colour.r, colour.g, colour.b, HALO_ALPHA)
 
 
 ## Elites keep their archetype's hue and gain a pulsing bright rim: same
@@ -103,7 +199,7 @@ func _apply_elite_rim() -> void:
 func apply_slow(fraction: float, duration: float) -> void:
 	_slow_factor = minf(_slow_factor, maxf(0.25, 1.0 - fraction))
 	_slow_left = maxf(_slow_left, duration)
-	visual.modulate = stats.tint.lerp(Color(0.55, 0.85, 1.0), 0.55)
+	_set_tint(stats.tint.lerp(Color(0.55, 0.85, 1.0), 0.55))
 
 
 func _tick_slow(delta: float) -> void:
@@ -112,7 +208,7 @@ func _tick_slow(delta: float) -> void:
 	_slow_left -= delta
 	if _slow_left <= 0.0:
 		_slow_factor = 1.0
-		visual.modulate = stats.tint
+		_set_tint(stats.tint)
 
 
 func speed_now() -> float:
@@ -178,8 +274,10 @@ func _act_charge(delta: float) -> void:
 			if to_target.length() <= stats.charge_range:
 				_charge_phase = 1
 				_charge_t = stats.charge_telegraph
-				# Flare: the tell has to be visible before it can be fair.
-				visual.modulate = TELEGRAPH
+				# Flare: the tell has to be visible before it can be fair — and
+				# the GLOW flares with it now, which is most of what makes a
+				# wind-up readable across a crowded screen.
+				_set_tint(TELEGRAPH)
 		1:
 			velocity = Vector2.ZERO  # planting is part of the tell
 			# Keep the point aimed while it winds up: the wedge doubles as a
@@ -189,7 +287,7 @@ func _act_charge(delta: float) -> void:
 				_charge_phase = 2
 				_charge_t = stats.charge_time
 				_charge_dir = to_target.normalized()
-				visual.modulate = stats.tint
+				_set_tint(stats.tint)
 		2:
 			velocity = _charge_dir * stats.charge_speed
 			if _charge_t <= 0.0:
@@ -243,13 +341,29 @@ func shove(from: Vector2, pixels: float) -> void:
 	_knockback = away.normalized() * pixels * KNOCKBACK_DECAY 			* (KNOCKBACK_REFERENCE_SIZE / maxf(8.0, stats.size))
 
 
+## How much of `amount` this body can actually take. Overkill is NOT absorbed:
+## 40 damage into a 1 HP Dart spends 1, and the other 39 are what a Ricochet
+## carries onward.
+##
+## Static and pure so the rule is testable without instancing a scene — the same
+## reason `GameCamera.shake_pixels` is static. Executioner deliberately gets no
+## say here: a shot that triggers it still only paid for the HP that was in
+## front of it, so an execute is a free KILL and never a bigger bounce.
+static func absorbed_by(hp_before: int, amount: int) -> int:
+	return clampi(amount, 0, maxi(0, hp_before))
+
+
 ## `from` is where the hit came from, used only for knockback. Optional and
 ## defaulted to INF so the many call sites that have no meaningful origin
 ## (Event Horizon's implosion, Second Wind's screen clear) simply do not push.
+##
+## RETURNS the damage this body absorbed, which is what Ricochet spends. Most
+## callers ignore it; the projectile is the one that cannot.
 func take_hit(amount: int, execute_below: float = 0.0,
-		from: Vector2 = Vector2.INF) -> void:
+		from: Vector2 = Vector2.INF) -> int:
 	if hp <= 0:
-		return
+		return 0
+	var absorbed: int = absorbed_by(hp, amount)
 	hp -= amount
 	if from.is_finite():
 		var away: Vector2 = global_position - from
@@ -263,8 +377,9 @@ func take_hit(amount: int, execute_below: float = 0.0,
 		_split()
 		died.emit(xp_value, global_position, stats.tint)
 		queue_free()
-		return
+		return absorbed
 	_flash()
+	return absorbed
 
 
 ## The Splitter's death payload. Deferred because this runs inside a physics

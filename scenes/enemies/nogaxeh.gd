@@ -19,7 +19,7 @@ extends Boss
 ## rebuilds one stem per phase.
 ##
 ## FOUR PHASES since M7.2/7.3, and NOTHING ELSE SPAWNS for the whole fight:
-##   1  Two FULL 1200 HP Prisms arrive with it and it is invulnerable until both
+##   1  Two FULL 2400 HP Prisms arrive with it and it is invulnerable until both
 ##      are dead. Not the old half-health escorts: the thing you beat at 5:00
 ##      comes back as a minion at full strength, and that lands harder unweakened.
 ##   2  Vulnerable. Dread gives way — it starts mirroring you, dashing and
@@ -35,10 +35,13 @@ extends Boss
 ## attrition of phases 2 and 3 is what makes the finale lethal, which is the
 ## whole reason the fight is long.
 ##
-## Event budget: 4000 here plus six 1200 HP Prisms = 11,200, 3.5x the old mirror
-## event. Budgeted in SECONDS at measured DPS, never as a ratio to the 5:00
-## fight — the old ESCORT_HP reasoned from such a ratio and produced a 22-second
-## "climax", because the player's DPS quadrupled between 5:00 and 10:00.
+## Event budget: 4000 here plus six 2400 HP Prisms = 18,400. Budgeted in SECONDS
+## at measured DPS, never as a ratio to the 5:00 fight — the old ESCORT_HP
+## reasoned from such a ratio and produced a 22-second "climax", because the
+## player's DPS quadrupled between 5:00 and 10:00.
+##
+## 2026-08-03: 11,200 until the 5:00 Prism doubled to 2400. The escorts are
+## Prisms, so this fight grew 64% as a side effect and has NOT been re-soaked.
 ##
 ## Phase 1 -> 2 is NOT an HP threshold; it cannot be, since the boss is
 ## invulnerable until the escorts die. The director drives it. Phase spawns and

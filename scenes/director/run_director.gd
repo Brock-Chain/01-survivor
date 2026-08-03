@@ -187,9 +187,15 @@ const MIRROR_EVENT: int = 1
 ## roughly quadrupled in between. A fight is budgeted in SECONDS at measured
 ## DPS or it is not budgeted at all.
 ##
-## Two at the start, four more at the final phase: 6 x 1200 plus Nogaxeh's 4000
-## is 11,200 base for the event, 3.5x the old one. Full strength because the
-## thing the player beat at 5:00 returning as a MINION only lands unweakened.
+## Two at the start, four more at the final phase: 6 x 2400 plus Nogaxeh's 4000
+## is 18,400 base for the event. Full strength because the thing the player beat
+## at 5:00 returning as a MINION only lands unweakened.
+##
+## 2026-08-03: that base was 11,200 until `prism.tres:max_hp` doubled to 2400 for
+## the 5:00 fight. The escorts ARE Prisms, so the climax inherited the change and
+## grew 64% — accepted deliberately, not overlooked, but it is UNMEASURED. The
+## last soak put a four-weapon run at 212s against a ~120s target; that number
+## now describes a fight that no longer exists. Re-soak before trusting it.
 const MIRROR_ESCORTS_OPENING: int = 2
 const MIRROR_ESCORTS_FINAL: int = 4
 ## Phase 1 is the opening escort pair; phase 4 is the last stand.
@@ -212,7 +218,7 @@ func _check_boss_event() -> void:
 	_next_boss_event += 1
 	var hp_scale: float = (1.0 + float(event) * 0.4) * _power_mult()
 	if event == MIRROR_EVENT and mirror_scene != null:
-		# The mirror event's HP is AUTHORED (4000 + 6 x 1200), so it skips the
+		# The mirror event's HP is AUTHORED (4000 + 6 x 2400), so it skips the
 		# per-event step that scales repeat Prism events in endless — and it
 		# scales by LEVEL rather than by weapon count. See _mirror_mult.
 		var scale: float = _mirror_mult()
@@ -346,7 +352,9 @@ func _power_mult() -> float:
 ## Weapon count was a fair proxy for DPS while weapons came from the PROFILE: a
 ## player either owned three or owned one, all run, and the number was known the
 ## instant a boss spawned. M7.3 made weapons drafted, and the proxy came apart in
-## both directions at once. Soaked on the shipped build:
+## both directions at once. Soaked 2026-08-02, when the event's base was 11,200
+## (six 1200 HP escorts) — the ratio between the two rows is the finding, and it
+## survives the rebase; the absolute seconds do not:
 ##
 ##   blaster only, level 91 -> 11,200 HP died in **32 seconds** (target ~120)
 ##   four weapons, level 77 -> 36,400 HP took **212 seconds**
@@ -357,9 +365,11 @@ func _power_mult() -> float:
 ## it counts the drip, the picks, and how well the run has actually gone — and it
 ## is still discrete, known at spawn time, and unable to drift mid-fight.
 ##
-## Below MIRROR_LEVEL_BASE the fight is exactly the authored 11,200. Every level
-## above it adds 4.5%, which against the measured ~350 DPS of a level-90 run puts
-## the climax back near the two minutes the spec asked for.
+## Below MIRROR_LEVEL_BASE the fight is exactly the authored base — 18,400 since
+## the 2026-08-03 Prism doubling, 11,200 when the 4.5% step was fitted. Every
+## level above it adds 4.5%, which against the measured ~350 DPS of a level-90
+## run put the climax near the two minutes the spec asked for AT THE OLD BASE.
+## The step was never re-fitted, so it is now aimed at a fight 64% larger.
 const MIRROR_LEVEL_BASE: int = 40
 const MIRROR_LEVEL_STEP: float = 0.045
 

@@ -90,12 +90,45 @@ happen.
 - **2026-08-02 — `--dev-autocontinue` added.** The victory screen waits on a button, which stalls a
   headless soak at exactly the moment endless begins — the part most needing soak coverage.
 
-- **2026-08-02 — Saves use ConfigFile, not a `.tres`.** The project convention is "game data is
-  Resources, never dictionaries", which governs CONTENT we author. A save file is *user-writable*,
-  and `load()`ing a Resource from a user-writable path instantiates whatever script the file names.
-  ConfigFile is typed, human-readable, and cannot execute anything. `MetaState.from_config` is also
-  deliberately tolerant: any missing or wrong-typed key falls back to its default, because a corrupt
-  save costs progress but a crash on boot costs the whole game.
+- **2026-08-02 — Saves are not a `.tres`.** ~~Saves use ConfigFile.~~ The project convention is
+  "game data is Resources, never dictionaries", which governs CONTENT we author. A save file is
+  *user-writable*, and `load()`ing a Resource from a user-writable path instantiates whatever
+  script the file names. `MetaState` is also deliberately tolerant: any missing or wrong-typed key
+  falls back to its default, because a corrupt save costs progress but a crash on boot costs the
+  whole game.
+  > **⚠ CORRECTED 2026-08-03 — the reason recorded here was false.** This entry originally
+  > justified ConfigFile with "*ConfigFile is typed, human-readable, and cannot execute anything*."
+  > That last clause is **wrong**, and wrong in exactly the way the decision was trying to avoid:
+  > `ConfigFile` has the same code-execution surface as the `.tres` it was chosen over. Measured on
+  > Godot 4.7.1 headless — `x=Object(Node,"name":"pwned")` returns a **live Node**, and
+  > `x=Resource("user://evil.tres")` builds a Resource with an attacker's script attached **and
+  > runs its `_init()`**, inside `load()`, before the first `get_value()` and therefore before the
+  > tolerant defaulting above can intervene. The rule: **validation cannot save a parser that
+  > constructs objects, because construction happens during parsing.** Superseded by the entry
+  > below. Left visible rather than rewritten, because "we recorded a false reason and shipped it
+  > publicly" is the part worth remembering.
+
+- **2026-08-03 — Saves and settings are JSON, via one `UserStore`.** `user://save.cfg` →
+  `save.json`, `user://settings.cfg` → `settings.json`, and every read of `user://` now goes through
+  `scripts/user_store.gd`. `JSON.parse_string()` returns only Dictionary/Array/String/float/bool/
+  null: its grammar has six value types and none of them is a class name, so a hostile save is not a
+  dangerous value, it is a parse failure — and a parse failure is a fresh profile. The property is
+  **structural**, not defensive, which is the whole reason for the swap.
+
+  **The extension change is the migration.** An old `.cfg` is simply never read again; nothing
+  converts it, because a converter would have to parse it with the very parser being retired. The
+  old files are left on disk rather than deleted, so nothing is destroyed — but an existing profile's
+  records, unlocks and shards do start from zero. Acceptable here: the page is restricted, and the
+  one known profile already had bot-contaminated records flagged for repair.
+
+  **Honest severity, stated so it is not overclaimed:** the attack needs bytes in the player's
+  `user://`, and locally an attacker who can write there mostly owns the machine already. The
+  realistic vector is a *shared save file* — "here's my save with everything unlocked" — which is
+  plausible exactly because this game has unlocks worth sharing. The stronger reason to fix it was
+  that the false rationale was public and would have been copied into the next project, where a run
+  save (deck, position, relics) is far more likely to be passed around. Two regression tests now
+  pin it: JSON ints survive narrowing, and a ConfigFile-style payload does not parse as a save.
+  Full write-up: `hub/knowledge/save-files-and-trust.md`.
 
 - **2026-08-02 — Values cross the run/meta boundary, never objects.** `RunState.to_result()` returns
   a flat Dictionary and `MetaState.absorb()` takes one. The invariant "run state and meta state never
@@ -922,3 +955,54 @@ answering Yes at all. Code and the 45 upgrade names and descriptions are
 unarguable; the sprites and music are the genuinely arguable case (deterministic
 scripts, no model at render time — squarely itch's carve-out — but the scripts are
 LLM-written). Full reasoning in `tools/share/ITCH-PAGE.md`.
+
+## Playtest 4 response — 2026-08-03 (second run by the external tester)
+
+- **2026-08-03 — Doubled `prism.tres:max_hp` (1200 → 2400) knowing it also inflates the 10:00
+  climax, instead of scaling only the standalone Prism events.** The mirror event's escorts ARE
+  full-strength Prisms, so its authored budget went 11,200 → 18,400 (+64%) as a side effect; the
+  last soak of that fight measured 212 s for a four-weapon run against a ~120 s target, and
+  `MIRROR_LEVEL_STEP` (4.5%/level) was fitted against the old base. Chosen deliberately by the
+  human after the coupling was put in front of them, over a code change that would have scaled the
+  two events independently. **Consequence accepted, not overlooked** — but it is UNMEASURED, and
+  every comment that quoted 11,200 (`run_director.gd`, `nogaxeh.gd`) now says so.
+
+- **2026-08-03 — Fixed the Dart/bolt confusion by removing rotation, not by recolouring.** The
+  tester read the orange Dart as a projectile. The obvious fix — move it out of the warm hue band —
+  was declined in favour of keeping the colour law intact. The real cause was that a small pointed
+  shape rotated along its velocity IS the grammar of a bullet, so `faces_travel` went false on the
+  Dart and the rule is now written on the field itself: bolts point where they travel, bodies do
+  not. Worth recording because the intermediate step FAILED: adding the neon glow first did not fix
+  it, and a 1:1 crop is what proved that rather than a full-frame screenshot.
+
+- **2026-08-03 — Baked the neon rather than migrating the renderer.** The human asked for a glow on
+  enemies. Real 2D bloom is unavailable here: `gl_compatibility` fixes the root viewport's
+  backbuffer format at boot, which `juice_lab.gd` had already proven with a threshold-0/strength-8
+  no-op test. The only real-bloom path is rendering the whole game through a `SubViewport` — a
+  renderer migration, with the camera, UI layering, the layout harness and web perf all downstream
+  of it. Shipped one shared additive radial sprite per entity instead. Tuned TWICE: the first
+  values looked right on a lone enemy and turned a twenty-body pack into one pink smear, because
+  additive light stacks and the tuning inverts with density.
+
+- **2026-08-03 — Cut screenshake at the ceiling (`MAX_OFFSET` 9 → 6) instead of at the nine call
+  sites.** Every per-event trauma value is a deliberate relative weight with its own history (the
+  kill beat is 0.22 *because* 0.12 once produced 0.086 px of shake). Scaling the ceiling moves all
+  nine without re-arguing any. The per-frame kill cap tightened separately (0.30 → 0.20) because
+  mass-kill is the specific case the tester hit twice. Shipped an off toggle regardless of tuning:
+  motion sickness is not a tuning problem.
+
+- **2026-08-03 — Ricochet carries only overkill, and `Enemy.take_hit` returns absorbed damage to
+  make that expressible.** Bounces redirected at FULL damage, so Ricochet was a flat 5x on every
+  shot and hit a boss as hard as a crowd of 1 HP Darts. The absorption rule is a static pure
+  function (`Enemy.absorbed_by`) precisely so it could be unit-tested under the repo's
+  logic-only-no-scenes convention — the same shape as `GameCamera.shake_pixels`. Executioner
+  deliberately grants no extra carry: an execute is a free kill, never a bigger bounce.
+
+- **2026-08-03 — Two defects found that nobody reported, both in the safety net rather than the
+  game.** (1) The gameplay screenshot rig had been capturing the PAUSE MENU since focus-pause
+  shipped the day before: a capture run is launched from a terminal and never holds focus, so
+  `main.gd`'s `_notification` paused it instantly. Exit 0, valid PNG, correct frame, wrong subject.
+  (2) `pause_layout_check` guarded five screens and not the victory screen — the one screen every
+  winning player sees. Both are the same failure: a guard that reports green over a gap it does not
+  cover. Fixes: `AiScreenshot.capturing` as the single predicate any pause path checks, and a
+  victory case at 0–4 unlocks.
