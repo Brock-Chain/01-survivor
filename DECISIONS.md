@@ -765,3 +765,37 @@ do that, because it is the only one whose height grows with how well the run wen
 at its tallest in exactly the run it was written for. The level-up panel is guarded too now: it has
 shipped broken once (level 57, third card off the right edge), and M7.6 both widened the cards and
 put longer text on them.
+
+## Glow: the lab variant exists, the comparison does not yet — 2026-08-03
+
+**Shipped look unchanged. Baked glow stays, and that is the fallback the brief already chose**, so
+nothing is at risk — but the reason recorded here is NOT "bloom looked worse", because the sheet
+does not support that claim.
+
+**The engineering finding is solid and is the useful half.** Adding a `WorldEnvironment` with
+`glow_enabled` to the root viewport is a **no-op** in this project. Under `gl_compatibility` the
+root Window viewport allocates its backbuffer at boot from `rendering/viewport/hdr_2d` (default
+`false`), and setting `Viewport.use_hdr_2d` at runtime does not reallocate it — verified by pushing
+threshold 0 / strength 8 / intensity 5 / mix 1, which should blow the screen to white, and getting a
+frame identical to baseline. Real glow therefore needs either a `project.godot` change or a fresh
+`SubViewport` with `use_hdr_2d` set **before** it enters the tree. Related trap: `Environment.
+glow_mix` defaults to 0.05 whatever the blend mode, silently capping the whole effect at 5%.
+
+**Why the visual comparison is not conclusive.** The lab renders the bloom variants through that
+SubViewport and the baked variant through the main viewport, so the sheet compares two RENDER PATHS
+and not two looks. Two things in the images say so:
+
+- variant 1 (threshold .55, strength 1.3) and variant 2 (threshold .75, strength 0.6) are visually
+  **identical to each other**. Strengths that far apart cannot produce the same frame if bloom is
+  the variable;
+- both bloom frames **lose the baked halo** that the shipped sprite carries in its own texture — the
+  big pentagon goes from a soft pink corona to a hard edge. Bloom adds light; it cannot subtract a
+  halo that is painted into the art.
+
+So what the sheet actually shows is that the SubViewport rig is not reproducing the shipped
+pipeline. The honest state: the case, the variants and the capture commands exist and are
+reproducible; the decision the brief asked for — human picks from pixels — still needs a rig where
+the only difference between variants is the post-process.
+
+Deliberately not chased further this session. Baked is shipped, baked is the fallback, and the
+question is cosmetic while 7.9 (a human tuning run) is the thing actually blocking the milestone.
