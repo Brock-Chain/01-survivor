@@ -400,6 +400,15 @@ def main() -> None:
     neon_sprite("player_body.png", 18, "hexagon", "player", radius=6.5, core_ratio=0.0)
     neon_sprite("player_core.png", 10, "hexagon", "player_core", radius=3.3,
                 core_ratio=0.8, glow=1.5, glow_alpha=0.85)
+    # The AEGIS bubble. A RING at ~2.4x the player body, because the shield used
+    # to be nothing but a cyan tint on an already-cyan player -- a playtester's
+    # words were "practically invisible, cant tell when its on or off". Tint is
+    # the wrong channel entirely here: the colour law already spends hue on
+    # allegiance, so the player's own colour cannot also encode a timed buff.
+    # Pattern is the free channel (see neon_sprite's `hollow` docstring), and a
+    # ring around the body is legible at a glance without hiding the body.
+    neon_sprite("player_shield.png", 44, "hexagon", "player_core", radius=15.5,
+                core_ratio=0.0, glow=2.6, glow_alpha=0.5, hollow=0.88)
     neon_sprite("bullet.png", 8, "diamond", "bullet", radius=2.5, core_ratio=0.5,
                 glow=1.1, glow_alpha=0.7)
     neon_sprite("orbital.png", 8, "square", "orbital", radius=2.5, core_ratio=0.5,

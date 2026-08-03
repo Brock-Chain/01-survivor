@@ -14,6 +14,7 @@ extends CanvasLayer
 @onready var boss_name: Label = %BossName
 @onready var boss_bar: ProgressBar = %BossBar
 @onready var banner: Label = %Banner
+@onready var toast: Label = %LevelToast
 @onready var dash_label: Label = %DashLabel
 @onready var dash_pip: ProgressBar = %DashPip
 
@@ -125,6 +126,20 @@ func announce(text: String) -> void:
 	tween.tween_property(banner, "modulate:a", 1.0, 0.22)
 	tween.tween_interval(2.1)
 	tween.tween_property(banner, "modulate:a", 0.0, 0.5)
+
+
+## The quiet counterpart to `announce`. Two levels in three hand out no card, and
+## before this the only evidence a level had happened at all was the level number
+## changing — so the drip, which is most of the run's power, read as nothing.
+## Deliberately small, deliberately beside the XP bar, deliberately short-lived:
+## it must be readable without being an interruption, because it fires constantly.
+func show_level_toast(level_reached: int, gains: Array[String]) -> void:
+	toast.text = "LV %d   %s" % [level_reached, "  ".join(gains)]
+	toast.modulate.a = 0.0
+	var tween: Tween = create_tween()
+	tween.tween_property(toast, "modulate:a", 1.0, 0.12)
+	tween.tween_interval(1.1)
+	tween.tween_property(toast, "modulate:a", 0.0, 0.45)
 
 
 ## -1 means "not unlocked", which hides the readout entirely rather than showing

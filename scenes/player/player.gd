@@ -63,6 +63,7 @@ var _time: float = 0.0
 @onready var magnet_shape: CollisionShape2D = $Magnet/CollisionShape2D
 @onready var visual: Sprite2D = $Visual
 @onready var core: Sprite2D = %Core
+@onready var shield: Sprite2D = %Shield
 @onready var trail: Line2D = %Trail
 @onready var jet_a: Line2D = %JetA
 @onready var jet_b: Line2D = %JetB
@@ -422,10 +423,21 @@ func _play_after(seconds: float, cue: StringName, volume_db: float) -> void:
 
 
 func _update_invuln_visual() -> void:
+	# The RING carries the shield, not the tint. Playtest, 2026-08-03: "Aegis is
+	# practically invisible. cant tell when it's on or off." The old cue was a
+	# cyan tint on a player who is already cyan -- it was asking hue to encode a
+	# timed buff when hue is already spent on allegiance. A ring is a channel
+	# nothing else uses, and it is visible on a 12px sprite in a crowded arena.
+	shield.visible = health.shielded
 	if health.shielded:
-		# A shield must look different from i-frames, or the player cannot tell
-		# "briefly safe" from "protected".
-		visual.modulate = Color(0.6, 1.0, 1.0, 0.85 + 0.15 * sin(_time * 8.0))
+		# Breathes, so "on" is unmistakably an active state rather than a decal,
+		# and spins the opposite way to the orbitals so the two never read as one
+		# mechanic.
+		shield.rotation = -_time * 1.1
+		var pulse: float = 0.78 + 0.22 * sin(_time * 7.0)
+		shield.modulate = Color(0.72, 1.0, 1.0, pulse)
+		shield.scale = Vector2.ONE * (1.0 + 0.05 * sin(_time * 7.0))
+		visual.modulate = Color(0.6, 1.0, 1.0, 1.0)
 		core.modulate.a = 1.0
 		return
 	visual.modulate.r = 1.0

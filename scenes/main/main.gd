@@ -181,6 +181,13 @@ func _ready() -> void:
 	Music.play_gameplay()
 	_apply_dev_flags()
 	_warm_up_shaders()
+	# P, not ESC, and said out loud at the top of every run. In a FULLSCREEN
+	# browser tab the browser owns the Escape key -- it exits fullscreen and the
+	# page never receives it -- so the documented pause key silently does not
+	# work in the one mode a player is most likely to be in. A page cannot
+	# override that, and should not be able to. The fix is to make sure the
+	# player knows the other key exists before they need it.
+	hud.announce("P TO PAUSE")
 	print("BESTAGON boot OK — Godot %s" % Engine.get_version_info()["string"])
 
 
@@ -731,12 +738,17 @@ func _check_level_up() -> void:
 	while xp_into_level >= Progression.xp_required(level):
 		xp_into_level -= Progression.xp_required(level)
 		level += 1
+		var before: Dictionary = _drip_snapshot()
 		_apply_level_drip()
 		if not Progression.offers_card(level):
-			# Two levels in three now pass in silence. Still a beat — the drip is
-			# real and the HUD's level number moves — but not an interruption. A
-			# decision every 7.9 seconds is what stopped them being decisions.
+			# Two levels in three pass without a card. Still a beat — but until
+			# now the ONLY signal was the level number ticking, and a playtester
+			# reported "0 indication we are getting stat boosts when leveling
+			# up". The drip is the majority of the run's power and it was
+			# invisible, which makes a silent level read as nothing happening
+			# rather than as a reward.
 			Sfx.play(&"levelup", -15.0)
+			hud.show_level_toast(level, _drip_gains(before, _drip_snapshot()))
 			continue
 		var offers: Array[UpgradeResource] = pool.draw_tiered(
 				3, stacks, _offer_gates(),
@@ -807,6 +819,36 @@ func _apply_purchases() -> void:
 ## a chained level-up that resolves three levels in one frame applies it once and
 ## the result is a pure function of `level` — see Progression for the numbers and
 ## for why move speed is the only one with a ceiling.
+## The drip values that a player could plausibly notice, sampled before and after
+## a level so the toast can report the DELTA rather than the running total.
+## Move speed is deliberately absent: it changes by 0.3% per level, which is not
+## a thing anyone can feel on one level-up, and listing it would bury the lines
+## that matter under noise.
+func _drip_snapshot() -> Dictionary:
+	return {
+		"dmg": Progression.drip_damage_bonus(level),
+		"shots": Progression.drip_projectiles(level),
+		"rate": Progression.drip_cooldown_mult(level),
+	}
+
+
+func _drip_gains(before: Dictionary, after: Dictionary) -> Array[String]:
+	var gains: Array[String] = []
+	var d: int = int(after["dmg"]) - int(before["dmg"])
+	if d > 0:
+		gains.append("+%d DAMAGE" % d)
+	var shots: int = int(after["shots"]) - int(before["shots"])
+	if shots > 0:
+		gains.append("+%d PROJECTILE" % shots)
+	# Fire rate moves every single level, so it is the fallback rather than a
+	# headline: it only gets said when nothing louder happened, which keeps the
+	# toast honest without making every level look identical.
+	if gains.is_empty():
+		var pct: float = (float(before["rate"]) / float(after["rate"]) - 1.0) * 100.0
+		gains.append("+%.1f%% FIRE RATE" % pct)
+	return gains
+
+
 func _apply_level_drip() -> void:
 	player.stats.drip_damage_bonus = Progression.drip_damage_bonus(level)
 	player.stats.drip_projectile_bonus = Progression.drip_projectiles(level)

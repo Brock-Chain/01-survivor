@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scenes/weapons/orbital_weapon.gd" id="6_orb"]
 [ext_resource type="Script" path="res://scenes/weapons/lance_weapon.gd" id="7_ln"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player_core.png" id="8_core"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player_shield.png" id="9_shield"]
 
 [sub_resource type="Resource" id="Resource_stats"]
 resource_local_to_scene = true
@@ -93,6 +94,16 @@ texture = ExtResource("4_tex")
 unique_name_in_owner = true
 z_index = 1
 texture = ExtResource("8_core")
+
+; The AEGIS bubble. Hidden by default and driven purely by health.shielded, so
+; it cannot drift out of sync with the buff that owns it. z_index 2 puts it over
+; the core: it is a shell AROUND the player, and a shell drawn underneath reads
+; as a floor decal.
+[node name="Shield" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+z_index = 2
+visible = false
+texture = ExtResource("9_shield")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_body")

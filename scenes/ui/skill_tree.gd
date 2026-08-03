@@ -84,7 +84,7 @@ func _build_row(node: SkillNode) -> Control:
 		button.text = "OWNED"
 		button.disabled = true
 	else:
-		button.text = "%d ◆" % node.cost
+		button.text = "%d SHARDS" % node.cost
 		button.disabled = not affordable
 		button.pressed.connect(_on_buy.bind(node))
 	row.add_child(button)

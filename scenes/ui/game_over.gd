@@ -70,7 +70,7 @@ func show_results(time_survived: float, kills: int, level: int,
 	# saying the number here is what makes the next one feel like it continues
 	# this one rather than replacing it.
 	if shards_earned > 0:
-		lines.append("+%d ◆  ·  %d banked in the Grid" % [shards_earned, Meta.state.shards])
+		lines.append("+%d SHARDS  ·  %d banked in the Grid" % [shards_earned, Meta.state.shards])
 
 	for id: StringName in unlocks:
 		lines.append("")

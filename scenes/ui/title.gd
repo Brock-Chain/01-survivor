@@ -30,7 +30,7 @@ func _ready() -> void:
 	# The shard balance is on the button itself. A menu entry that says only
 	# "GRID" alone gives a first-time player no reason to look inside it, and
 	# the whole currency is invisible until they do.
-	grid_button.text = "GRID · %d ◆" % Meta.state.shards
+	grid_button.text = "GRID · %d SHARDS" % Meta.state.shards
 	_refresh_track_button()
 	mark.pivot_offset = mark.size * 0.5
 	_show_record()
