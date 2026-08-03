@@ -35,16 +35,27 @@ const GLOWS: Array[float] = [0.0, 0.25, 0.5, 0.8, 1.0]
 const EARLY: Array[float] = [62.0, 26.0, 10.0, 2.0, 0.3]
 const LATE: Array[float] = [30.0, 30.0, 24.0, 12.0, 4.0]
 
-## Level-ups without a Rare-or-better before one is guaranteed. A cold streak
+## CARD SCREENS without a Rare-or-better before one is guaranteed. A cold streak
 ## that lasts a whole run is the single worst thing a random reward can do, and
 ## it is invisible in aggregate stats — so it gets a hard floor rather than a
 ## hope.
-const PITY_LIMIT: int = 6
+##
+## Was 6, when a screen came with every level and a run had ~79 of them. Cards
+## gate to every 3rd level now (M7.2), so a run has ~25 screens and 6 of them
+## cold is a quarter of every decision the player makes. 4 keeps the floor at
+## roughly its old wall-clock distance and still fires on only ~21% of chances,
+## so it stays a safety net rather than the normal way Rares arrive.
+const PITY_LIMIT: int = 4
 const PITY_TIER: Tier = Tier.RARE
 
 ## Progress saturates here: past this level the odds stop improving, so a long
 ## endless run cannot drift into handing out Legendaries every screen.
-const PROGRESS_FULL_LEVEL: float = 30.0
+##
+## Was 30, against a run that reached ~54. The M7.2 curve reaches ~75, and
+## leaving this at 30 would have saturated the whole rarity ladder 40% into the
+## run — the exact failure that moved it off 8 waves in the first place. 42 holds
+## the old fraction (~56% of a run's levels).
+const PROGRESS_FULL_LEVEL: float = 42.0
 
 
 static func name_of(tier: Tier) -> String:

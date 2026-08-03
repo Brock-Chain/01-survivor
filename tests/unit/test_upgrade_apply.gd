@@ -55,3 +55,20 @@ func test_stacking_compounds() -> void:
 	boots.apply_to(s)
 	boots.apply_to(s)
 	assert_almost_eq(s.move_speed, 130.0 * 1.12 * 1.12, 0.001)
+
+
+func test_xp_effects_are_additive_and_capped() -> void:
+	# M7.2. These two used to stack MULTIPLICATIVELY: greed (Epic, +50%, two
+	# stacks) with scholar at 3 held xp_mult at 3.0x from 2:30 onward, so income
+	# worth level 54 bought level 79 and greed alone was worth 25 levels.
+	var s := Stats.new()
+	_mk(UpgradeResource.Effect.GREED, 0.5).apply_to(s)
+	assert_almost_eq(s.xp_mult, 1.5, 0.001)
+	_mk(UpgradeResource.Effect.XP_GAIN, 0.15).apply_to(s)
+	assert_almost_eq(s.xp_mult, 1.6, 0.001,
+			"1.5 + 0.15 additive, then clipped to the cap — not 1.5 x 1.15")
+	assert_true(s.greed, "greed still grants the gem magnet")
+	# Everything the pool can offer, twice over, must not exceed the ceiling.
+	for i: int in 8:
+		_mk(UpgradeResource.Effect.GREED, 0.5).apply_to(s)
+	assert_almost_eq(s.xp_mult, Stats.XP_MULT_CAP, 0.001, "the cap is hard")

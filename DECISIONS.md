@@ -609,3 +609,51 @@ report omits precisely the runs worth reading. `_run_t` is also never reset, so 
 pre-rename `PRISM` directory. Fixed first in M7, before any gameplay change, because nothing in the
 rework is measurable until it is. Related symptom to verify: `run_076` reached 2780 kills but
 `save.cfg` banked `best_kills=1125`.
+
+## M7.1 + M7.2 built — 2026-08-03
+
+**The run had no single end, and that was the actual bug.** The instrument fixes were the cheap
+half. The expensive half was that `Main` only banked a run when the player DIED: a restart, a quit
+to title or a closed window dropped both the telemetry ending row and the run's records. That is why
+`run_076` peaked at **2757 kills / 660.1s** while `save.cfg` still reads `best_kills=1125` —
+verified this session, and worse than the ledger suggests, because that run also cleared the
+victory and survived past 600s, which is exactly the `endless_proven` condition. **The human earned
+the PRISM LANCE and the game never gave it to them.** `Main._finish_run()` is now the one place a
+run ends, guarded so death and teardown cannot both bank it. The existing `save.cfg` is left
+untouched: it is the human's profile, and a retro-repair is their call, not a side effect of a fix.
+
+**Telemetry's own close handler was racing Main and winning.** It fired on
+`NOTIFICATION_WM_CLOSE_REQUEST`, which an autoload receives *before* the main scene does, so every
+window-close wrote a bare `quit` row with no kills, level or outcome and then closed the file,
+leaving Main's finish nothing to write to. It now fires only on `PREDELETE`, as a net — and its
+reason is `lost`, so if that string ever shows up in a run file it is a bug report rather than a
+normal ending.
+
+**`RATE = 1.45` is superseded by `RATE = 0.61`; `CURVE_QUADRATIC = 0.17` is untouched.** 1.45 was a
+proxy fix for card-screen spam, and `CARD_EVERY = 3` fixes that directly and three times harder, so
+keeping both was over-correcting. Solved rather than guessed: run_076's ~20,500 raw gem XP reaches
+level 54 at 1.45 and **level 74–75 at 0.61**, which is the spec's baseline. Measured in a soak on
+the shipped build: **level 71 at 10:00, 74 at 11:00, exactly 25 card screens.** The shape stays
+superlinear — cheap levels are not flat levels, or the drip would be the same size at both ends of
+the run.
+
+**The drip is SET from the level, never accumulated.** `Progression.drip_*_mult(level)` are pure
+functions and `Main._apply_level_drip()` assigns them. This is not style: a chained level-up
+resolves several levels inside one frame, and an accumulating drip would apply two or three times
+and be untestable afterwards. It is also additive in the level count rather than compounding, which
+over 75 levels is the difference between 2.1x damage and 3.0x. Deliberately no max HP and no
+defense in the drip — see the previous session's corollary.
+
+**Two constants moved that the spec did not name, because the spec changed the axis they measure.**
+`Rarity.PROGRESS_FULL_LEVEL` 30 -> 42: it saturates rarity odds at a LEVEL, and a run that used to
+reach 54 now reaches 75, so 30 would have topped out the whole ladder 40% into the run — the exact
+failure that moved it last time. 42 holds the old fraction. `Rarity.PITY_LIMIT` 6 -> 4: it counts
+screens without a Rare-or-better, and screens went from ~79 a run to ~25, so 6 was a quarter of
+every decision in the run. 4 fires on ~21% of chances, which keeps it a floor rather than the normal
+way Rares arrive.
+
+**Consequence to measure, not to pre-empt: the 5:00 Prism will probably get slower.** It was
+accepted at 49s. The player now arrives at 5:00 with ~13 card picks instead of ~40, offset by a drip
+worth roughly +60% damage and +30% fire rate at level 41. Which way that nets out is a measurement,
+and it is deliberately left alone until the human run in step 9 — the spec's own instruction is to
+budget fights in seconds at measured DPS rather than argue them from ratios.

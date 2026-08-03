@@ -39,7 +39,7 @@ func _physics_process(delta: float) -> void:
 	if target == null:
 		return
 	_fire_at(target)
-	_cooldown = resource.interval * stats.fire_rate_mult * _haste_mult()
+	_cooldown = resource.interval * stats.cooldown_scale() * _haste_mult()
 
 
 ## Haste halves the interval; Overcharge doubles damage. Both are temporary
@@ -81,7 +81,7 @@ func _fire_at(target: Enemy) -> void:
 	# 5:00 boss dies in seven seconds.
 	var spread_tax: float = Stats.volley_damage_mult(resource.count, count)
 	var base_damage: int = maxi(1, roundi(
-			(resource.damage + stats.damage_bonus) * _power_mult() * spread_tax))
+			stats.damage_from(resource.damage) * _power_mult() * spread_tax))
 	var damage: int = roundi(base_damage * stats.crit_mult) if crit else base_damage
 	for i: int in count:
 		var offset_deg: float = (i - (count - 1) / 2.0) * resource.spread_deg

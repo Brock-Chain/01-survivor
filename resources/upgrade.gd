@@ -89,7 +89,7 @@ func apply_to(stats: Stats) -> void:
 		Effect.MAGNET:
 			stats.magnet_radius += magnitude
 		Effect.XP_GAIN:
-			stats.xp_mult *= 1.0 + magnitude
+			stats.add_xp_bonus(magnitude)
 		Effect.HEAL:
 			pass  # legacy; healing is a world drop now
 		Effect.PIERCE:
@@ -111,7 +111,7 @@ func apply_to(stats: Stats) -> void:
 		Effect.EXECUTE:
 			stats.execute_below = minf(0.4, stats.execute_below + magnitude)
 		Effect.GREED:
-			stats.xp_mult *= 1.0 + magnitude
+			stats.add_xp_bonus(magnitude)
 			stats.greed = true
 		Effect.AEGIS:
 			# Stacking shortens the interval rather than adding a second timer.

@@ -50,7 +50,7 @@ func _physics_process(delta: float) -> void:
 	if target == null:
 		return
 	_fire((target.global_position - global_position).normalized())
-	_cooldown = resource.interval * stats.fire_rate_mult * _haste_mult()
+	_cooldown = resource.interval * stats.cooldown_scale() * _haste_mult()
 
 
 func _haste_mult() -> float:
@@ -77,7 +77,7 @@ func _nearest_enemy() -> Enemy:
 
 func _fire(dir: Vector2) -> void:
 	var crit: bool = stats.crit_chance > 0.0 and rng.randf() < stats.crit_chance
-	var base: int = maxi(1, roundi((resource.damage + stats.damage_bonus) * _power_mult()))
+	var base: int = maxi(1, roundi(stats.damage_from(resource.damage) * _power_mult()))
 	var damage: int = roundi(base * stats.crit_mult) if crit else base
 	Sfx.play(&"crit" if crit else resource.fire_sound, -8.0 if crit else -14.0)
 	var length: float = resource.range

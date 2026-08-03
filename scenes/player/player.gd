@@ -106,9 +106,9 @@ func _physics_process(delta: float) -> void:
 		dir = Vector2.RIGHT.rotated(_time * 1.3)
 	_tick_dash(delta, dir)
 	if _dash_left > 0.0:
-		velocity = _dash_dir * stats.move_speed * DASH_SPEED_MULT
+		velocity = _dash_dir * stats.speed() * DASH_SPEED_MULT
 	else:
-		velocity = dir * stats.move_speed
+		velocity = dir * stats.speed()
 	move_and_slide()
 	_update_motion_visual(delta)
 	_check_contact_damage()
@@ -315,7 +315,7 @@ var _trail_points: PackedVector2Array = PackedVector2Array()
 
 
 func _update_motion_visual(delta: float) -> void:
-	var frac: float = clampf(velocity.length() / maxf(1.0, stats.move_speed), 0.0, 1.0)
+	var frac: float = clampf(velocity.length() / maxf(1.0, stats.speed()), 0.0, 1.0)
 	var dashing: bool = _dash_left > 0.0
 	_update_core(delta, frac, dashing)
 	_update_trail(frac, dashing)

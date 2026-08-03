@@ -124,12 +124,12 @@ func test_xp_gain_never_returns_zero() -> void:
 
 
 func test_xp_from_a_kill_feeds_the_level_curve() -> void:
-	# Level 1 needs 7 XP; a chaser gives 3, so THREE kills level you up with 2
-	# banked. It was two kills before the 2026-08-02 RATE retune — the first
-	# level-up going from 2 kills to 3 is that change felt at its smallest scale,
-	# and this test is where it shows up first.
+	# Level 1 needs 3 XP and a chaser gives 3, so the FIRST KILL levels you up —
+	# and Progression.FIRST_CARD_LEVEL makes that first level-up a card screen.
+	# Deliberate: the audience is a stranger's first ten minutes, and one kill
+	# into the run they have been shown the entire loop. It cost three kills
+	# before M7.2, when levels were 2.4x more expensive.
 	var per_kill: int = Progression.xp_gain(_stats(3, 3).xp_value, 1.0)
 	assert_eq(per_kill, 3)
-	assert_lt(per_kill * 2, Progression.xp_required(1), "two kills no longer level you")
-	assert_gt(per_kill * 3, Progression.xp_required(1))
-	assert_eq(per_kill * 3 - Progression.xp_required(1), 2, "2 XP carries into level 2")
+	assert_eq(per_kill, Progression.xp_required(1), "one kill, one level, one card")
+	assert_true(Progression.offers_card(2), "and that level-up must offer a card")

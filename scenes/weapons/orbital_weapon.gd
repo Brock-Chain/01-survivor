@@ -66,7 +66,7 @@ func refresh() -> void:
 	# the runaway simply relocates to the axis that was left untaxed.
 	var ring_tax: float = Stats.volley_damage_mult(resource.count, want)
 	for orb: Orbital in _orbs:
-		orb.damage = maxi(1, roundi((resource.damage + stats.damage_bonus) * ring_tax))
+		orb.damage = maxi(1, roundi(stats.damage_from(resource.damage) * ring_tax))
 		# Divided by spin: a faster orbit passes through an enemy more often, so
 		# it must be ALLOWED to hit more often. Without this, Spin Up was a
 		# cosmetic upgrade that measured 1 pick in 10 offers.

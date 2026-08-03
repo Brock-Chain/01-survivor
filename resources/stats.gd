@@ -12,6 +12,11 @@ extends Resource
 @export var projectile_bonus: int = 0
 @export var projectile_speed_mult: float = 1.0
 @export var magnet_radius: float = 48.0
+## Hard ceiling on XP gain. `greed` is Epic, +50%, two stacks, and both XP
+## effects used to stack MULTIPLICATIVELY: with `scholar` at 3 the run held 3.0x
+## from 2:30 onward and reached level 79 on income worth level 54. Greed alone
+## was 25 levels. Additive with a cap, same shape as the multishot tax.
+const XP_MULT_CAP: float = 1.6
 @export var xp_mult: float = 1.0
 ## Extra enemies a shot punches through before dying.
 @export var pierce: int = 0
@@ -42,6 +47,37 @@ extends Resource
 @export var overclock_every: int = 0
 @export var second_wind: bool = false
 @export var chain_targets: int = 0
+
+## The silent per-level drip (M7.2). Written by Main from `Progression`, which
+## computes each as a pure function of the level — these are SET, never
+## accumulated, so they cannot double-apply on a chained level-up.
+@export var drip_damage_mult: float = 1.0
+@export var drip_cooldown_mult: float = 1.0
+@export var drip_move_speed_mult: float = 1.0
+
+
+## Damage for a weapon whose authored damage is `base`, before that weapon's own
+## taxes. Float on purpose: the multishot and ring taxes still have to multiply
+## it, and rounding here would round three times per shot instead of once.
+func damage_from(base: int) -> float:
+	return (float(base) + float(damage_bonus)) * drip_damage_mult
+
+
+## Cooldown scale for any weapon: the cards on top of the level drip. Lower is
+## faster — `fire_rate_mult` has always been a cooldown multiplier, not a rate.
+func cooldown_scale() -> float:
+	return fire_rate_mult * drip_cooldown_mult
+
+
+## Final move speed. The drip is capped inside Progression, not here.
+func speed() -> float:
+	return move_speed * drip_move_speed_mult
+
+
+## XP effects fold into ONE additive bonus under a hard cap, rather than each
+## multiplying the last. See XP_MULT_CAP.
+func add_xp_bonus(bonus: float) -> void:
+	xp_mult = minf(XP_MULT_CAP, xp_mult + bonus)
 
 
 ## Damage multiplier applied to EACH projectile once multishot has widened the

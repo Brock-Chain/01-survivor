@@ -194,17 +194,19 @@ items 2 and 3, and item 4 is tuned against it.
       lost**, because the player restarted instead of dying. Fixed forward; the existing save is
       left alone (a retro-repair is the human's call)
 
-**7.2 — Progression.** Baseline **~75 levels** with no XP upgrades; boosts move it ±.
-- [ ] Cards gate to **every 3rd level** — ~25 screens per run instead of 78
-- [ ] Silent per-level stat drip, no interruption: damage, fire rate, a little move speed.
-      **No passive max HP or defense** — defense stays card-only so it remains a real choice.
-      Starting points to verify by measurement: +1.5% dmg, +0.75% fire rate, +0.3% move speed
-      per level, move-speed contribution **capped at +20%**
-- [ ] Rebalance the XP curve — 1.0x currently yields ~54 levels, so levels get **~2.4x cheaper**.
-      **Supersedes** `CURVE_QUADRATIC = 0.17` and `RATE = 1.45`, which were a proxy fix for
-      card-screen spam that gate-3 now fixes directly. Record the supersede in `DECISIONS.md`
-- [ ] XP effects become **additive** into one `xp_mult` with a cap (~1.5–1.6) — `greed` is Epic,
-      +50%, 2 stacks, and stacks *multiplicatively*; with `scholar` it reached **3.0x**
+**7.2 — Progression.** ✅ done 2026-08-03. Measured in a soak: **level 71 at 10:00, 74 at 11:00,
+exactly 25 card screens.**
+- [x] Cards gate to every 3rd level (`Progression.CARD_EVERY`), first card always on the first
+      level-up so the loop teaches itself — levels 2, 5, 8, ... = 25 screens
+- [x] Silent per-level drip: +1.5% dmg, +0.75% fire rate, +0.3% move speed, move speed capped at
+      +20% (level 68). No max HP, no defense. **Set from the level, never accumulated** — a chained
+      level-up resolves several levels in one frame and would otherwise apply it two or three times
+- [x] `RATE` 1.45 → **0.61** (`CURVE_QUADRATIC` untouched). Solved against run_076's ~20,500 XP:
+      level 54 before, 74 after. Supersede recorded in `DECISIONS.md`
+- [x] XP effects additive into `Stats.add_xp_bonus()` under `XP_MULT_CAP = 1.6`
+- [x] Not in the spec but forced by it: `Rarity.PROGRESS_FULL_LEVEL` 30 → 42 (a 75-level run would
+      have saturated the ladder 40% in) and `PITY_LIMIT` 6 → 4 (it counts screens, and screens went
+      from ~79 a run to ~25)
 
 **7.3 — Weapons become drafts, not possessions.**
 - [ ] Weapons are drafted mid-run as cards; you no longer start a run owning any of them

@@ -497,7 +497,7 @@ func _implode(at: Vector2) -> void:
 		if dist > radius or dist < 0.01:
 			continue
 		enemy.global_position += offset.normalized() * minf(dist * 0.45, 26.0)
-		enemy.take_hit(maxi(1, player.stats.damage_bonus + 1))
+		enemy.take_hit(maxi(1, roundi(player.stats.damage_from(1))))
 	_imploding = false
 
 
@@ -640,6 +640,13 @@ func _check_level_up() -> void:
 	while xp_into_level >= Progression.xp_required(level):
 		xp_into_level -= Progression.xp_required(level)
 		level += 1
+		_apply_level_drip()
+		if not Progression.offers_card(level):
+			# Two levels in three now pass in silence. Still a beat — the drip is
+			# real and the HUD's level number moves — but not an interruption. A
+			# decision every 7.9 seconds is what stopped them being decisions.
+			Sfx.play(&"levelup", -15.0)
+			continue
 		var offers: Array[UpgradeResource] = pool.draw_tiered(
 				3, stacks, Meta.state.unlocks,
 				Rarity.progress_for_level(level), _pity)
@@ -662,6 +669,16 @@ func _check_level_up() -> void:
 		level_up_panel.show_offers(offers, level)
 		break
 	hud.set_xp(xp_into_level, Progression.xp_required(level), level)
+
+
+## The silent half of a level-up. SET from the level rather than accumulated, so
+## a chained level-up that resolves three levels in one frame applies it once and
+## the result is a pure function of `level` — see Progression for the numbers and
+## for why move speed is the only one with a ceiling.
+func _apply_level_drip() -> void:
+	player.stats.drip_damage_mult = Progression.drip_damage_mult(level)
+	player.stats.drip_cooldown_mult = Progression.drip_cooldown_mult(level)
+	player.stats.drip_move_speed_mult = Progression.drip_move_speed_mult(level)
 
 
 func _on_upgrade_chosen(upgrade: UpgradeResource) -> void:
