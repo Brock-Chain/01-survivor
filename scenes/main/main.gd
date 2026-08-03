@@ -469,9 +469,16 @@ func _on_boss_spawned(boss: Node2D) -> void:
 	player.camera.add_trauma(0.6)
 	# One bar for the whole EVENT: accumulate the total the player must chew
 	# through, because at 10:00 there are three bodies and three bars is noise.
-	# Escorts arriving mid-fight ADD to the event total, so the bar's denominator
-	# grows when they spawn rather than the bar lying about how much is left.
-	_boss_event_max_hp += boss.max_hp
+	#
+	# ESCORTS ARE EXCLUDED (2026-08-03). They used to add to the denominator, which
+	# meant the bar titled NOGAXEH tracked 18,400 HP of which the mirror was only
+	# 4,000 — so killing the two opening Prisms visibly drained "his" bar while he
+	# stood shielded and untouched, and the playtest read that as the shield being
+	# broken. The bar now shows the thing it is named after and nothing else; the
+	# escorts announce themselves by being on screen.
+	var big: Boss = boss as Boss
+	if big == null or not big.is_escort:
+		_boss_event_max_hp += boss.max_hp
 	_announce_boss()
 	Telemetry.event(&"boss_spawn", {"alive": director.bosses_alive})
 	if _dev_stats:
@@ -508,10 +515,15 @@ func _update_boss_bar() -> void:
 	var hp: int = 0
 	var shielded: bool = false
 	for child: Node in bosses.get_children():
+		var boss: Boss = child as Boss
+		# Escorts are excluded from the NUMERATOR for the same reason they are
+		# excluded from the denominator — see _on_boss_spawned. Both halves have to
+		# agree or the bar reads as full for the whole fight.
+		if boss != null and boss.is_escort:
+			continue
 		var body: Enemy = child as Enemy
 		if body != null:
 			hp += maxi(0, body.hp)
-		var boss: Boss = child as Boss
 		if boss != null and boss.invulnerable:
 			shielded = true
 	hud.boss_bar.max_value = _boss_event_max_hp

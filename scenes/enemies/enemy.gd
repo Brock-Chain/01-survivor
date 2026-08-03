@@ -178,7 +178,8 @@ func _add_halo(body_size: float) -> void:
 func _set_tint(colour: Color) -> void:
 	visual.modulate = colour
 	if _halo != null:
-		_halo.modulate = Color(colour.r, colour.g, colour.b, HALO_ALPHA)
+		_halo.modulate = Color(colour.r, colour.g, colour.b,
+				HALO_ALPHA * stats.glow_scale)
 
 
 ## Elites keep their archetype's hue and gain a pulsing bright rim: same

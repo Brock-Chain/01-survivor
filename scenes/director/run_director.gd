@@ -271,7 +271,7 @@ func _spawn_final_wave(event: int) -> void:
 func _spawn_escorts(event: int, count: int) -> void:
 	for i: int in count:
 		var minion: Boss = _spawn_boss(boss_scene, i, count, event,
-				_mirror_hp_scale, false)
+				_mirror_hp_scale, false, true)
 		if minion != null:
 			_escorts_alive += 1
 			minion.died.connect(_on_escort_died)
@@ -303,7 +303,7 @@ func mirror_active() -> bool:
 ## Returns the boss so callers can keep a handle on it — the mirror fight needs
 ## one to hang its phase logic, escorts and shield off.
 func _spawn_boss(scene: PackedScene, index: int, count: int, event: int,
-		hp_mult: float, elite: bool) -> Boss:
+		hp_mult: float, elite: bool, escort: bool = false) -> Boss:
 	var boss: Boss = scene.instantiate()
 	# Spread multiple bosses evenly around the arena so a double-boss event is a
 	# positioning problem rather than one overlapping blob of hitboxes.
@@ -313,6 +313,9 @@ func _spawn_boss(scene: PackedScene, index: int, count: int, event: int,
 	# Never let an event's bosses fire as one — see Boss.stagger.
 	boss.stagger(float(index) * 0.45)
 	boss.bolt_container = bolt_container
+	# BEFORE the signal: Main's `boss_spawned` handler accumulates the boss bar's
+	# denominator, so a flag set after the emit would arrive one boss too late.
+	boss.is_escort = escort
 	bosses_alive += 1
 	boss.died.connect(_on_boss_died.bind(event))
 	boss_container.add_child(boss)

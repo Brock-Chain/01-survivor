@@ -86,6 +86,38 @@ func test_locked_upgrades_appear_once_unlocked() -> void:
 	assert_eq(_pool(ups).draw(3, {}, unlocks).size(), 3)
 
 
+# --- twin cards -------------------------------------------------------------
+
+func _described(id: String, text: String) -> UpgradeResource:
+	var u := _mk(id)
+	u.description = text
+	return u
+
+
+func test_cards_that_read_the_same_never_share_a_hand() -> void:
+	# Split Shot (Rare) and Scatter (Uncommon) are both PROJECTILE_COUNT at
+	# magnitude 1.0 with byte-identical text, and a level-29 hand offered both
+	# (playtest 2026-08-03: "split shot and scatter same shit"). Two cards a player
+	# cannot tell apart must not appear together, whatever their rarities say.
+	var ups: Array[UpgradeResource] = [
+		_described("split_shot", "+1 projectile · wider volleys hit softer"),
+		_described("scatter", "+1 projectile · wider volleys hit softer"),
+		_described("boots", "+14% move speed"),
+	]
+	var offers := _pool(ups).draw(3, {})
+	assert_eq(offers.size(), 2, "the twin is dropped, not the whole pool")
+	var texts := offers.map(func(u: UpgradeResource) -> String: return u.description)
+	assert_true(texts[0] != texts[1], "no two offers read the same")
+
+
+func test_blank_descriptions_do_not_collapse_the_pool() -> void:
+	# A blank description is not evidence that two cards read alike. The first
+	# version of the twin guard treated it as one, which cut every hand to a single
+	# offer and took four of the tests above red with it.
+	var ups: Array[UpgradeResource] = [_mk("a"), _mk("b"), _mk("c")]
+	assert_eq(_pool(ups).draw(3, {}).size(), 3)
+
+
 func test_unlimited_stacks_are_always_eligible() -> void:
 	# The level-37 bug: with every upgrade capped, the pool ran dry and offered
 	# nothing but a heal. max_stacks <= 0 must never exhaust.

@@ -28,18 +28,32 @@ enum Behavior { CHASE, RANGED, CHARGE }
 ## Radially symmetric types (square, octagon, diamond) leave this false: spinning
 ## them would read as a bug.
 ##
-## THE DART TURNED THIS OFF on 2026-08-03, and the reason generalises. Playtest:
-## "orange dart looks more like a projectile". It did, and the neon pass did not
-## fix it — a 1:1 crop showed the Dart still reading as a tracer round with the
-## glow on. The cause was never colour. A small pointed shape ROTATED ALONG ITS
-## VELOCITY is the visual grammar of a bullet, and the Dart had every part of it:
-## needle silhouette, warm hue, 16px, aimed where it was going.
+## THE DART TURNED THIS OFF on 2026-08-03 and TURNED IT BACK ON the same day.
+## Both halves are worth keeping, because the second overrules the first.
 ##
-## So the rule this flag now follows: **bolts point where they travel, bodies do
-## not.** Facing is reserved for a shape whose ROTATION IS A TELEGRAPH the player
-## must read (the Ram's wind-up). Spending it on a plain chaser buys a little
-## "flying at you" and pays for it by making that chaser look like ammunition.
+## OFF: playtest said "orange dart looks more like a projectile", and a 1:1 crop
+## confirmed it read as a tracer round even with the glow on. The diagnosis was
+## that a small pointed shape ROTATED ALONG ITS VELOCITY is the visual grammar of
+## a bullet, so the fix was to stop rotating it — reserving facing for shapes
+## whose rotation is a TELEGRAPH (the Ram's wind-up).
+##
+## ON: the next playtest reported the opposite — "darts no longer fly pointing
+## towards you" — because a needle silhouette frozen at a fixed angle reads as
+## BROKEN, which is worse than reading as ammunition. The diagnosis above had the
+## wrong culprit: the problem was the SHAPE, not the rotation. Rotation is the
+## only thing making a needle look deliberate.
+##
+## So the Dart faces travel again and is separated from bolts by MASS instead:
+## +20% body size and +20% glow (`glow_scale`), on the reasoning that a bullet is
+## small and a body is not. Radially symmetric types (square, octagon, diamond)
+## still leave this false — spinning them would read as a bug.
 @export var faces_travel: bool = false
+
+## Multiplies the halo's alpha. The halo's SIZE already follows body size, so this
+## is the separate axis: how brightly a type burns for its size, not how big the
+## glow is. Exists for the Dart, which needs to out-read a screen full of bolts
+## that share its hue — see faces_travel.
+@export var glow_scale: float = 1.0
 
 ## Per-type scene, as a PATH rather than a PackedScene. Empty uses the spawner's
 ## default. Set this when a type needs BEHAVIOUR the shared Enemy script lacks —

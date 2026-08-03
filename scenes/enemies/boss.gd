@@ -46,10 +46,16 @@ const DASH_TIME: float = 0.55
 @export var phase_thresholds: PackedFloat32Array = PackedFloat32Array([0.5])
 
 var phase: int = 1
-## While true the boss cannot be damaged at all. Nogaxeh raises this in phase 3
-## until its escorts are dead; nothing else uses it. The indicator is not
+## While true the boss cannot be damaged at all. Nogaxeh raises this in phases 1
+## and 4 until its escorts are dead; nothing else uses it. The indicator is not
 ## optional — see _blocked_feedback and Hud.set_boss_shielded.
 var invulnerable: bool = false
+## Set by the director for a Prism spawned as one of Nogaxeh's minions. It exists
+## for the HUD: the boss bar is titled NOGAXEH, so counting escort HP into it made
+## the bar drain while the mirror sat untouched behind its shield, and a playtester
+## read that as "he was not invulnerable" (2026-08-03). An escort is still a boss
+## in every other respect — it counts for `bosses_alive`, kills, XP and drops.
+var is_escort: bool = false
 
 var _block_cd: float = 0.0
 var _shards: Array[Sprite2D] = []

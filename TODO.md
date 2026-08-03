@@ -319,10 +319,25 @@ what a bot cannot verify is tuning.
 before the finale, and the telemetry that says so was recorded by a fixed instrument.
 
 ### M8 — Ship
-- [ ] Full human playtest pass — **Windows build under test 2026-08-03.** The freeze recurred on
-      web for the tester, so this run is the discriminator: if Windows also freezes, the browser/rAF
-      hypothesis in `DECISIONS.md` is wrong and the next step is instrumenting frame times inside
-      the build rather than reasoning further
+- [ ] Full human playtest pass — **Windows build under test 2026-08-03.** Second pass applied:
+      boss bar, boss weld, twin cards, Dart facing (see `DECISIONS.md`, playtest 5). Not yet
+      re-played
+- [x] **The rAF hypothesis is DEAD (2026-08-03).** Windows froze too, so the freeze is not a
+      browser throttling artefact. A full dump of the hung process (37 min, PID 53468) says the main
+      thread is blocked on a kernel wait *inside a Win32 window procedure* — never returning to
+      Godot's frame loop — while burning ~0.42 core, twice what healthy gameplay costs (measured
+      baseline: ~0.20). Not GDScript: every `while` in game code provably terminates, and no thread
+      was executing game code. Stack is `ntdll wait ← uxtheme ← KERNELBASE ← [engine] ← user32
+      dispatch`, on `gl_compatibility` + NVIDIA 591.86 with `nvspcap64.dll` (ShadowPlay) injected
+- [ ] **Freeze: still unreproduced, still open.** Ranked suspects: (1) NVIDIA GL/ShadowPlay driver
+      stall, (2) `main.gd:_notification` doing scene work synchronously inside the window message,
+      (3) an accessibility `WM_GETOBJECT` provider call, (4) the Windows modal move-size loop. Next
+      probe when it recurs: the focus-stress test. **A 10:45 natural run did not reproduce it**
+- [ ] **Review Split Shot vs Scatter as CONTENT.** They are the same card: both `PROJECTILE_COUNT`
+      at magnitude 1.0 with byte-identical description text, differing only in rarity (Rare vs
+      Uncommon), `max_stacks` (3 vs 2) and weight. `UpgradePool` now refuses to put two
+      same-reading cards in one hand, but that is a guard over the symptom — one of these two should
+      be re-specced or cut
 - [x] README with a GIF (2026-08-03) — `tools/share/bestagon.gif`, sliced out of a contact sheet
       captured from a real run at 4:16 / level 43
 - [x] Web + Windows exports (2026-08-03) — 13.6 MB / 40.1 MB, both verified to contain no

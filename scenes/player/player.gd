@@ -60,6 +60,8 @@ var last_hit_source: StringName = &""
 var last_hit_by: StringName = &""
 ## Pause-safe clock: accumulates physics time, used for i-frame windows.
 var _time: float = 0.0
+## Decaying impulse that rides on top of input — see _throw_clear_of.
+var _knockback: Vector2 = Vector2.ZERO
 
 @onready var hurtbox: Area2D = $Hurtbox
 @onready var magnet: Area2D = $Magnet
@@ -113,6 +115,13 @@ func _physics_process(delta: float) -> void:
 		velocity = _dash_dir * stats.speed() * DASH_SPEED_MULT
 	else:
 		velocity = dir * stats.speed()
+	# Applied last, so input owns velocity and the throw-clear rides on top of it —
+	# the same shape Enemy uses for its knockback.
+	if _knockback.length_squared() > 1.0:
+		velocity += _knockback
+		_knockback = _knockback.lerp(Vector2.ZERO, minf(1.0, KNOCKBACK_DECAY * delta))
+	else:
+		_knockback = Vector2.ZERO
 	move_and_slide()
 	_update_motion_visual(delta)
 	_check_contact_damage()
@@ -206,7 +215,44 @@ func _check_contact_damage() -> void:
 			if enemy.stats != null:
 				last_hit_by = enemy.stats.id
 			if apply_damage(enemy.damage, &"contact"):
+				if enemy is Boss:
+					_throw_clear_of(enemy.global_position)
 				break
+
+
+## Separation from a BOSS, applied to the player instead of to the boss.
+##
+## Main's hurt-shove throws the crowd off you when you take a hit, which is what
+## gives the i-frames a visible meaning. It cannot do that here: Enemy.shove
+## scales by body size (KNOCKBACK_REFERENCE_SIZE / stats.size), so Nogaxeh at size
+## 88 receives 13/88 of it — 11 px against a 146 px mirror dash — and Boss.take_hit
+## deliberately ignores knockback anyway, because shoving a boss around would undo
+## the telegraphed positioning the whole fight is read from.
+##
+## So the push has to come from the other side. Playtest 2026-08-03: Nogaxeh
+## touched the player and "it's like he was stuck with me, couldn't get away from
+## him anymore and he just killed me" — i-frames lapsing while still inside his
+## body, over and over, until the run ended. That is the same "enemies just latch
+## on weirdly" defect the hurt-shove was added to fix; it simply never reached
+## anything boss-sized.
+##
+## FIRST ESTIMATE, expected to move after the next playtest: 180 px is enough to
+## leave his body but deliberately NOT enough to beat a committed dash. Escaping a
+## boss should still cost you the dash you earned at 5:00.
+const BOSS_CONTACT_KNOCKBACK: float = 180.0
+const KNOCKBACK_DECAY: float = 9.0
+
+
+func _throw_clear_of(from: Vector2) -> void:
+	var away: Vector2 = global_position - from
+	# Dead centre inside the body: any direction beats staying welded, and picking
+	# one at random keeps it from always resolving the same way.
+	if away.length_squared() <= 0.01:
+		away = Vector2.RIGHT.rotated(randf() * TAU)
+	# `pixels * DECAY` is the initial speed whose exponential decay integrates to
+	# `pixels` of travel — same formulation as Enemy.shove, so the number in the
+	# constant is the distance it actually moves you.
+	_knockback = away.normalized() * BOSS_CONTACT_KNOCKBACK * KNOCKBACK_DECAY
 
 
 ## Aegis: a free shield on a timer. Runs only once the upgrade sets an interval.

@@ -1006,3 +1006,54 @@ LLM-written). Full reasoning in `tools/share/ITCH-PAGE.md`.
   winning player sees. Both are the same failure: a guard that reports green over a gap it does not
   cover. Fixes: `AiScreenshot.capturing` as the single predicate any pause path checks, and a
   victory case at 0–4 unlocks.
+
+## Playtest 5 response — 2026-08-03 (developer's own run, Windows build, SPEED x3)
+
+- **2026-08-03 — The boss bar shows NOGAXEH and nothing else; escorts are excluded from BOTH
+  halves of the fraction.** The bar accumulated every boss in the event — 4000 for the mirror plus
+  6 × 2400 of Prisms — so killing the two opening escorts visibly drained a bar labelled NOGAXEH
+  while he stood untouched behind his shield. The report was "he was not invulnerable", and he was:
+  the shield worked perfectly, the bar lied about who it was measuring. Fixed with an `is_escort`
+  flag set by the director BEFORE `boss_spawned` fires, because Main accumulates the denominator in
+  that handler and a flag set afterwards arrives one boss too late. Numerator and denominator must
+  agree or the bar reads full for the whole fight.
+
+- **2026-08-03 — A boss that touches you throws the PLAYER clear, because it refuses to be
+  shoved itself.** The hurt-shove gives i-frames a visible meaning by throwing the crowd off you,
+  and it never reached anything boss-sized: `Enemy.shove` scales by body size, so Nogaxeh at size 88
+  receives 13/88 of it — 11 px against his own 146 px dash — and `Boss.take_hit` ignores knockback
+  by design, since shoving a boss would undo the telegraphed positioning the fight is read from. The
+  result was a death loop: contact, i-frames, i-frames lapse while still inside his body, contact
+  again. "It's like he was stuck with me, couldn't get away from him anymore and he just killed me."
+  Since the boss cannot move, the player does. 180 px is a FIRST ESTIMATE and deliberately less than
+  a committed dash: escaping a boss should still cost the dash earned at 5:00. Note this was the
+  same defect as the 2026-08-03 "enemies just latch on weirdly" fix — the fix simply had a size
+  scaling that excluded the only enemies big enough to trap you.
+
+- **2026-08-03 — Two cards that READ the same never share a hand, keyed on description text.**
+  Level 29 offered Split Shot (Rare) and Scatter (Uncommon) side by side: same effect, same
+  magnitude, byte-identical text, different only in a rarity ribbon. Keyed on `description` rather
+  than on `effect` deliberately — effect is far too coarse, since four upgrades share DAMAGE and
+  four share FIRE_RATE as a deliberate tiered ladder, and three weapon drafts share effect 26 while
+  offering genuinely different weapons. Description is what a player actually tells two cards apart
+  by. An EMPTY description is never a match: the first version treated it as one and cut every hand
+  to a single offer, taking four green tests red — every upgrade built by `test_upgrade_pool`'s
+  `_mk` helper omits description. This is a guard over a symptom; the duplicate content is still
+  open in `TODO.md`.
+
+- **2026-08-03 — The Dart faces its travel again, REVERSING the same day's decision, and is
+  separated from bolts by mass instead.** Yesterday's rule was "bolts point where they travel,
+  bodies do not", adopted because the Dart read as a tracer round. The next playtest reported the
+  opposite — "darts no longer fly pointing towards you" — because a needle silhouette frozen at a
+  fixed angle reads as BROKEN, which is worse than reading as ammunition. The original diagnosis
+  named the wrong culprit: the problem was the SHAPE, and rotation was the only thing making that
+  shape look deliberate. Compensating: +20% body size (18.5 → 22.2) and +20% glow via a new
+  per-type `glow_scale`, on the reasoning that a bullet is small and a body is not. Note the size
+  change also grows the Dart's collision rect and reduces the knockback it takes (both scale off
+  `size`) — intended, but it is a balance change, not only a visual one.
+
+- **2026-08-03 — A release build loses its entire log on a freeze, so `flush_stdout_on_print` is
+  now on.** The hung process ran 37 minutes, printed the boot line and at least one `[boss]` line,
+  and left a 0-byte `godot.log`, because a release build buffers the log file and only flushes on a
+  clean exit. Measured against the shipped exe, hard-killed after 8 s: 0 bytes off, 73 bytes on.
+  Every freeze before this one was unreadable by construction and nobody knew.

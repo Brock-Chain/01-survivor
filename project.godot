@@ -10,6 +10,14 @@ config/name="BESTAGON"
 run/main_scene="res://scenes/ui/title.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
+; A RELEASE build buffers user://logs/godot.log and only flushes on a clean
+; exit, so a freeze that has to be killed loses the ENTIRE log. Measured
+; 2026-08-03 against the shipped exe: hard-killed after 8s it left 0 bytes with
+; this off and 73 bytes with it on. The 2026-08-03 hang is exactly that case --
+; it ran 37 minutes, printed the boot line and at least one [boss] line, and
+; left an empty log, which is why there was nothing to read afterwards.
+; Costs one flush per print; nothing in this game prints per frame.
+run/flush_stdout_on_print=true
 
 [audio]
 

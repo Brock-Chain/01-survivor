@@ -54,6 +54,30 @@ func draw_tiered(count: int, stacks: Dictionary, unlocks: Array[StringName],
 		result.append(picked)
 		last_tiers.append(picked.rarity)
 		eligible.erase(picked)  # without replacement — offers are distinct
+		# ...and drop everything that READS the same. Split Shot (Rare) and Scatter
+		# (Uncommon) are both PROJECTILE_COUNT at magnitude 1.0 with byte-identical
+		# description text, so a hand could offer both — and did, at level 29
+		# (playtest 2026-08-03: "split shot and scatter same shit").
+		#
+		# Keyed on DESCRIPTION rather than on `effect`, deliberately. Effect is far
+		# too coarse: four upgrades share DAMAGE and four share FIRE_RATE as a
+		# deliberate tiered ladder (+2/+3/+6/+12), and three weapon drafts share
+		# EFFECT 26 while offering genuinely different weapons. The description is
+		# what the player actually tells two cards apart by, so it is the honest key
+		# — if a hand would show the same sentence twice, that hand is the bug.
+		#
+		# This is a GUARD, not a substitute for fixing the duplicate content.
+		#
+		# An EMPTY description is never a match. It carries no information, so it
+		# cannot be evidence that two cards read the same — and treating it as one
+		# collapses the whole pool to a single offer the moment anything ships
+		# without description text. That is not hypothetical: every upgrade built by
+		# test_upgrade_pool's `_mk` helper omits it, and the first version of this
+		# guard turned four green tests red on exactly that.
+		if not picked.description.is_empty():
+			for twin: UpgradeResource in eligible.duplicate():
+				if twin.description == picked.description:
+					eligible.erase(twin)
 	return result
 
 
