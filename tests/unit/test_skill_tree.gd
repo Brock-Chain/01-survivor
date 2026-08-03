@@ -58,9 +58,8 @@ func test_purchases_survive_a_save_round_trip() -> void:
 	var m := MetaState.new()
 	m.shards = 240
 	m.buy(&"node_hardy", 60)
-	var cfg := ConfigFile.new()
-	m.to_config(cfg)
-	var back: MetaState = MetaState.from_config(cfg)
+	var back: MetaState = MetaState.from_dict(
+		JSON.parse_string(JSON.stringify(m.to_dict())) as Dictionary)
 	assert_eq(back.shards, 180)
 	assert_true(back.has_purchase(&"node_hardy"))
 
@@ -69,10 +68,7 @@ func test_a_save_from_before_the_tree_reads_as_an_empty_tree() -> void:
 	# The schema changed under existing profiles. A missing key must be an empty
 	# tree and zero shards, never a crash — a corrupt save costs progress, a
 	# crash on boot costs the whole game.
-	var cfg := ConfigFile.new()
-	cfg.set_value(MetaState.SECTION, "runs_played", 11)
-	cfg.set_value(MetaState.SECTION, "unlocks", ["orbital"])
-	var m: MetaState = MetaState.from_config(cfg)
+	var m: MetaState = MetaState.from_dict({"runs_played": 11, "unlocks": ["orbital"]})
 	assert_eq(m.runs_played, 11)
 	assert_eq(m.shards, 0)
 	assert_eq(m.purchases.size(), 0)

@@ -2,16 +2,18 @@ class_name MetaState
 extends RefCounted
 ## Everything that SURVIVES a run: records, totals, and unlocks.
 ##
-## Serialization is ConfigFile, not a .tres. The project convention is
-## "game data is Resources, never dictionaries" — that governs CONTENT authored
-## by us. A save file is user-writable, and `load()`ing a Resource from a
-## user-writable path will happily instantiate whatever script the file names.
-## ConfigFile is typed, human-readable, and cannot execute anything.
+## Serialization is JSON, not a .tres and not ConfigFile. The project convention
+## is "game data is Resources, never dictionaries" — that governs CONTENT
+## authored by us, which ships read-only inside the .pck. A save file is
+## user-writable, and BOTH `.tres` and `.cfg` parsers construct objects while
+## parsing: a crafted `.cfg` ran an attacker script's `_init()` inside
+## `ConfigFile.load()` when it was measured on 4.7.1. `JSON.parse_string()`
+## structurally cannot — its grammar cannot name a class. See `UserStore` and
+## hub/knowledge/save-files-and-trust.md.
 ##
 ## Unlocks are milestones, not a shop. Each is earned by doing a specific thing,
 ## so the reward for a first victory is a new way to play rather than a number.
 
-const SECTION: String = "meta"
 
 ## Unlock ids. Referenced by content (weapons, upgrades) rather than by index,
 ## so reordering or removing one can never silently shift another.
@@ -172,38 +174,43 @@ func _earned(kills: int, time: float, won: bool) -> Array[StringName]:
 	return earned
 
 
-func to_config(cfg: ConfigFile) -> void:
-	cfg.set_value(SECTION, "runs_played", runs_played)
-	cfg.set_value(SECTION, "victories", victories)
-	cfg.set_value(SECTION, "best_time", best_time)
-	cfg.set_value(SECTION, "best_kills", best_kills)
-	cfg.set_value(SECTION, "total_kills", total_kills)
-	cfg.set_value(SECTION, "shards", shards)
-	# Stored as plain Strings: StringName round-trips inconsistently through
-	# ConfigFile, and a save that silently loses unlocks is the worst bug here.
+func to_dict() -> Dictionary:
+	# Ids are stored as plain Strings: StringName does not survive a JSON round
+	# trip as itself, and a save that silently loses unlocks is the worst bug
+	# available here.
 	var ids: Array[String] = []
 	for id: StringName in unlocks:
 		ids.append(String(id))
-	cfg.set_value(SECTION, "unlocks", ids)
 	var bought: Array[String] = []
 	for id: StringName in purchases:
 		bought.append(String(id))
-	cfg.set_value(SECTION, "purchases", bought)
+	return {
+		"runs_played": runs_played,
+		"victories": victories,
+		"best_time": best_time,
+		"best_kills": best_kills,
+		"total_kills": total_kills,
+		"shards": shards,
+		"unlocks": ids,
+		"purchases": bought,
+	}
 
 
 ## Tolerant by design: any missing or wrong-typed key falls back to its default
 ## rather than erroring. A corrupt save costs progress; a crash on boot costs
-## the whole game.
-static func from_config(cfg: ConfigFile) -> MetaState:
+## the whole game. The int narrowing is not cosmetic — JSON hands every number
+## back as a float, so without it `runs_played` becomes 12.0 and every integer
+## comparison against it quietly starts lying.
+static func from_dict(data: Dictionary) -> MetaState:
 	var m := MetaState.new()
-	m.runs_played = int(cfg.get_value(MetaState.SECTION, "runs_played", 0))
-	m.victories = int(cfg.get_value(MetaState.SECTION, "victories", 0))
-	m.best_time = float(cfg.get_value(MetaState.SECTION, "best_time", 0.0))
-	m.best_kills = int(cfg.get_value(MetaState.SECTION, "best_kills", 0))
-	m.total_kills = int(cfg.get_value(MetaState.SECTION, "total_kills", 0))
-	m.shards = int(cfg.get_value(MetaState.SECTION, "shards", 0))
-	m.unlocks = _ids(cfg.get_value(MetaState.SECTION, "unlocks", []))
-	m.purchases = _ids(cfg.get_value(MetaState.SECTION, "purchases", []))
+	m.runs_played = UserStore.get_int(data, "runs_played", 0)
+	m.victories = UserStore.get_int(data, "victories", 0)
+	m.best_time = UserStore.get_float(data, "best_time", 0.0)
+	m.best_kills = UserStore.get_int(data, "best_kills", 0)
+	m.total_kills = UserStore.get_int(data, "total_kills", 0)
+	m.shards = UserStore.get_int(data, "shards", 0)
+	m.unlocks = _ids(data.get("unlocks"))
+	m.purchases = _ids(data.get("purchases"))
 	return m
 
 

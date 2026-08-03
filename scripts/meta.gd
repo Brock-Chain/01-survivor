@@ -7,13 +7,19 @@ extends Node
 
 signal unlocked(ids: Array[StringName])
 
-const SAVE_PATH: String = "user://save.cfg"
+## `.json`, not `.cfg` — see `UserStore` for the measurement behind that. The
+## extension change is deliberate and doubles as the migration: an old `save.cfg`
+## is simply never read again, rather than needing a converter that would have to
+## parse it with the very parser being retired. The file is left on disk, not
+## deleted, so nothing is destroyed by the switch — but records and unlocks in an
+## existing profile do start from zero.
+const SAVE_PATH: String = "user://save.json"
 ## Where dev runs write instead. Review finding 12: `--dev-godmode` soaks and
 ## `--dev-autopick` bots banked EVERY run into the real profile, which is how the
 ## shipping save ended up with best_kills=1047 and an `elite_hunter` unlock that
 ## no human earned. Records that came from a bot are worse than no records: they
 ## silently retire the near-miss line on the death screen forever.
-const DEV_SAVE_PATH: String = "user://save_dev.cfg"
+const DEV_SAVE_PATH: String = "user://save_dev.json"
 
 ## The file actually in use. A var, not a const, so Main can redirect it before
 ## anything is written. Everything still goes through this one node, so there is
@@ -29,7 +35,10 @@ var state: MetaState = MetaState.new()
 ## Doing it in code this time, because the telemetry baseline the whole balance
 ## pass rests on is not something a rename should be allowed to orphan.
 const LEGACY_APP_DIRS: Array[String] = ["PRISM", "01-survivor"]
-const MIGRATED_FILES: Array[String] = ["save.cfg", "settings.cfg"]
+## The `.json` names only. The old `.cfg` files are deliberately NOT carried
+## across: nothing reads that format any more, so copying them would move dead
+## bytes and imply a migration that does not happen.
+const MIGRATED_FILES: Array[String] = ["save.json", "settings.json"]
 
 
 func _ready() -> void:
@@ -95,23 +104,14 @@ func use_dev_profile() -> void:
 
 
 func load_state() -> void:
-	var cfg := ConfigFile.new()
-	var err: int = cfg.load(save_path)
-	if err != OK:
-		# No save yet is the normal first-run path, not a failure.
-		state = MetaState.new()
-		return
-	state = MetaState.from_config(cfg)
+	# UserStore.read returns {} for missing, unreadable or corrupt, and
+	# MetaState.from_dict defaults every field — so a first run and a hostile
+	# file take the same path, which is the point.
+	state = MetaState.from_dict(UserStore.read(save_path))
 
 
 func save_state() -> bool:
-	var cfg := ConfigFile.new()
-	state.to_config(cfg)
-	var err: int = cfg.save(save_path)
-	if err != OK:
-		push_warning("Meta: could not write %s (%d)" % [save_path, err])
-		return false
-	return true
+	return UserStore.write(save_path, state.to_dict())
 
 
 ## End-of-run entry point. Takes the flat result Dictionary so the run's objects

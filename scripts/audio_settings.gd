@@ -3,10 +3,11 @@ extends Node
 ##
 ## Separate from the Music autoload because it governs the BUSES, not the
 ## soundtrack — SFX obey it too, and it has to survive the title screen, a run,
-## and a scene reload alike. Kept in the same ConfigFile as the save for the same
-## reason MetaState uses one: it is user-writable, so it must not be a Resource.
+## and a scene reload alike. Persisted as JSON through `UserStore`, for the same
+## reason MetaState is: this path is user-writable, and a parser that constructs
+## objects while parsing (`.tres` or ConfigFile alike) is an execution surface.
 
-const SAVE_PATH: String = "user://settings.cfg"
+const SAVE_PATH: String = "user://settings.json"
 const SECTION: String = "audio"
 ## Below this the slider is effectively off, so silence it properly rather than
 ## leaving a -60dB whisper that still costs mixing.
@@ -60,17 +61,21 @@ func _apply_bus(bus_name: StringName, linear: float) -> void:
 
 
 func _load() -> void:
-	var cfg := ConfigFile.new()
-	if cfg.load(SAVE_PATH) != OK:
-		return  # no settings yet is the normal first run, not a failure
-	music_volume = clampf(float(cfg.get_value(SECTION, "music", 0.8)), 0.0, 1.0)
-	sfx_volume = clampf(float(cfg.get_value(SECTION, "sfx", 0.8)), 0.0, 1.0)
-	muted = bool(cfg.get_value(SECTION, "muted", false))
+	# A missing file, a corrupt file and a hostile file all arrive here as {},
+	# and every field below has a default. No settings yet is the normal first
+	# run, not a failure.
+	var data: Dictionary = UserStore.section(SAVE_PATH, SECTION)
+	music_volume = clampf(UserStore.get_float(data, "music", 0.8), 0.0, 1.0)
+	sfx_volume = clampf(UserStore.get_float(data, "sfx", 0.8), 0.0, 1.0)
+	muted = UserStore.get_bool(data, "muted", false)
 
 
+## READ-MODIFY-WRITE, via `merge_section`. Writing a fresh object here was
+## invisible while audio owned the whole file and became data loss the moment
+## anything else shared it: `Settings` owns the "game" key of this same path, and
+## one drag of the music slider would have erased it. Merging is what makes two
+## independent owners of one file safe.
 func _save() -> void:
-	var cfg := ConfigFile.new()
-	cfg.set_value(SECTION, "music", music_volume)
-	cfg.set_value(SECTION, "sfx", sfx_volume)
-	cfg.set_value(SECTION, "muted", muted)
-	cfg.save(SAVE_PATH)
+	UserStore.merge_section(SAVE_PATH, SECTION, {
+		"music": music_volume, "sfx": sfx_volume, "muted": muted,
+	})

@@ -2,8 +2,10 @@ extends GutTest
 ## Run/meta separation, unlock rules, and save round-trips.
 ##
 ## This is the system V2 reuses wholesale, so its invariants are tested here
-## where they are still cheap to change. No file I/O: ConfigFile round-trips
-## through text in memory, which tests the same serialization path.
+## where they are still cheap to change. No file I/O: the round trip goes through
+## real JSON TEXT in memory, not through a Dictionary — that is what exercises
+## the actual serialization path, including JSON turning every int into a float
+## on the way back.
 
 
 func _result(kills: int, time: float, won: bool) -> Dictionary:
@@ -11,11 +13,10 @@ func _result(kills: int, time: float, won: bool) -> Dictionary:
 
 
 func _round_trip(m: MetaState) -> MetaState:
-	var out := ConfigFile.new()
-	m.to_config(out)
-	var back := ConfigFile.new()
-	assert_eq(back.parse(out.encode_to_text()), OK, "config parses")
-	return MetaState.from_config(back)
+	var text: String = JSON.stringify(m.to_dict())
+	var parsed: Variant = JSON.parse_string(text)
+	assert_true(parsed is Dictionary, "save parses as an object")
+	return MetaState.from_dict(parsed as Dictionary)
 
 
 # --- run / meta separation --------------------------------------------------
@@ -109,26 +110,55 @@ func test_save_round_trip_preserves_everything() -> void:
 	assert_true(loaded.has_unlock(MetaState.UNLOCK_ORBITAL), "unlocks survive")
 
 
-func test_empty_config_loads_as_a_fresh_profile() -> void:
-	var loaded := MetaState.from_config(ConfigFile.new())
+func test_empty_save_loads_as_a_fresh_profile() -> void:
+	var loaded := MetaState.from_dict({})
 	assert_eq(loaded.runs_played, 0)
 	assert_eq(loaded.unlocks.size(), 0)
 
 
 func test_corrupt_values_fall_back_instead_of_crashing() -> void:
 	# A corrupt save costs progress; a crash on boot costs the whole game.
-	var cfg := ConfigFile.new()
-	cfg.set_value(MetaState.SECTION, "runs_played", "not a number")
-	cfg.set_value(MetaState.SECTION, "unlocks", "not an array")
-	var loaded := MetaState.from_config(cfg)
+	var loaded := MetaState.from_dict({
+		"runs_played": "not a number", "unlocks": "not an array",
+	})
 	assert_eq(loaded.runs_played, 0)
 	assert_eq(loaded.unlocks.size(), 0)
 
 
 func test_duplicate_unlocks_in_a_save_are_collapsed() -> void:
-	var cfg := ConfigFile.new()
-	cfg.set_value(MetaState.SECTION, "unlocks", ["orbital", "orbital"])
-	assert_eq(MetaState.from_config(cfg).unlocks.size(), 1)
+	assert_eq(MetaState.from_dict({"unlocks": ["orbital", "orbital"]}).unlocks.size(), 1)
+
+
+func test_json_floats_are_narrowed_back_to_ints() -> void:
+	# JSON has one number type and it is a double. Without narrowing on the way
+	# in, runs_played comes back as 12.0 and every integer comparison against it
+	# starts quietly lying. This is the failure mode the format change bought.
+	var m := MetaState.new()
+	m.runs_played = 12
+	m.best_kills = 947
+	m.total_kills = 30412
+	var back := _round_trip(m)
+	assert_eq(typeof(back.runs_played), TYPE_INT, "runs_played is an int")
+	assert_eq(back.runs_played, 12)
+	assert_eq(back.best_kills, 947)
+	assert_eq(back.total_kills, 30412)
+
+
+func test_a_hostile_save_cannot_construct_anything() -> void:
+	# The reason this project is not on ConfigFile. That parser, measured on
+	# 4.7.1, builds live objects out of a crafted file and runs an attacker's
+	# _init() during load() — before any type check can intervene. JSON's
+	# grammar cannot name a class, so the same payload is not a dangerous value,
+	# it is a parse failure, and a parse failure is a fresh profile.
+	var payload: String = '[meta]
+x=Object(Node,"name":"pwned")
+y=Resource("user://evil.tres")'
+	# UserStore.parse is the exact code path a real save takes, and it stays
+	# quiet on malformed input rather than pushing an engine error the smoke
+	# gate would then grep as a failure.
+	assert_eq(UserStore.parse(payload), {}, "hostile payload does not parse as a save")
+	var loaded := MetaState.from_dict(UserStore.parse(payload))
+	assert_eq(loaded.runs_played, 0, "falls back to a fresh profile")
 
 
 func test_endless_survival_earns_endless_proven_via_update_records() -> void:
