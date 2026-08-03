@@ -66,6 +66,7 @@ func _ready() -> void:
 				% [n, box.size.x, box.size.y, top, rbot, foot,
 				"OK" if ok else "*** OFF-SCREEN ***"])
 
+	failures += await _check_title(vw, vh)
 	failures += await _check_level_up(pool, vw, vh)
 	failures += await _check_skill_tree(vw, vh)
 	failures += await _check_true_ending(vw, vh)
@@ -83,6 +84,43 @@ func _capturing() -> bool:
 		if arg.begins_with("--screenshot="):
 			return true
 	return false
+
+
+## The TITLE screen. Added after it shipped BROKEN: a third stacked button pushed
+## the music button clean off the bottom of the 640x360 viewport, and because a
+## CenterContainer clamps to the top rather than centring when its content is
+## taller than it is, the whole menu also sat against the bottom edge looking
+## misaligned. Two failures, one cause, and neither visible in the 1280x720
+## window everything is developed in.
+##
+## Checked with a RECORD LINE present, since that label is empty on a fresh
+## profile and appears only for a returning player — the screen is at its tallest
+## for exactly the person who has seen it most.
+func _check_title(vw: float, vh: float) -> int:
+	var screen: Control = load("res://scenes/ui/title.tscn").instantiate()
+	add_child(screen)
+	for _i: int in 4:
+		await get_tree().process_frame
+	screen.get_node("Center/VBox/RecordLabel").text = "12 wins · best 15:31"
+	for _i: int in 4:
+		await get_tree().process_frame
+
+	var box: Control = screen.get_node("Center/VBox")
+	var top: float = box.global_position.y
+	var bottom: float = top + box.size.y
+	# Centred, not merely on screen: an off-centre menu reads as broken even when
+	# every control is technically reachable.
+	var slack: float = absf(top - (vh - bottom))
+	var ok: bool = top >= 0.0 and bottom <= vh and box.size.x <= vw and slack <= 4.0
+	# NOT "centring_error": verify.ps1 greps this output for /ERROR/ case-
+	# insensitively, so a diagnostic label containing that substring fails the
+	# gate on a passing check. Cost one confusing red build to find.
+	print("[check] title menu=%3.0fx%3.0f top=%4.0f bottom=%4.0f off_centre=%.0f %s"
+			% [box.size.x, box.size.y, top, bottom, slack,
+			"OK" if ok else "*** OFF-SCREEN OR OFF-CENTRE ***"])
+	screen.queue_free()
+	await get_tree().process_frame
+	return 0 if ok else 1
 
 
 ## The LEVEL-UP panel, measured against its worst case: the three longest
@@ -116,7 +154,7 @@ func _check_level_up(pool: Array[UpgradeResource], vw: float, vh: float) -> int:
 	return 0 if ok else 1
 
 
-## THE LATTICE. The one screen designed around this constraint rather than
+## THE GRID. The one screen designed around this constraint rather than
 ## measured against it afterwards: a literal branching tree with connector lines
 ## needs roughly three times this height before a node is legible, which is why
 ## it is a scrolling list. What still has to be proven is that the FRAME fits and

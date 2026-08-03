@@ -151,6 +151,21 @@ func _rotate_running() -> void:
 	_start_track(_choose_track(), previous)
 
 
+## Switch tracks WITHOUT restarting the run, for the pause panel's track button.
+##
+## Carries the current intensity tier across rather than snapping back to
+## bass-only: the player is paused mid-fight, and dropping to the opening layer
+## on resume would announce the switch far louder than the switch itself. Does
+## nothing if no gameplay music is running, so pressing it on a dead run cannot
+## start a track over a game-over screen.
+func switch_gameplay_track(index: int) -> void:
+	if not _stems[0].playing:
+		return
+	var tier: int = maxi(0, intensity)
+	_stop_gameplay()
+	_start_track(index, tier)
+
+
 func _start_track(index: int, tier: int) -> void:
 	_load_track(index)
 	for player: AudioStreamPlayer in _stems:

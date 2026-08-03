@@ -121,6 +121,15 @@ custom_minimum_size = Vector2(76, 24)
 theme_override_font_sizes/font_size = 11
 text = "MUTE (M)"
 
+; Track switching was title-screen only, which meant the one place you can
+; actually judge whether a loop wears out — thirty seconds into a run, with the
+; game under it — was the one place you could not change it.
+[node name="TrackButton" type="Button" parent="Center/Panel/Margin/VBox/AudioRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(128, 24)
+theme_override_font_sizes/font_size = 11
+text = "TRACK: AUTO"
+
 [node name="Buttons" type="HBoxContainer" parent="Center/Panel/Margin/VBox"]
 alignment = 1
 theme_override_constants/separation = 10

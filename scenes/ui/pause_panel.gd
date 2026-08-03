@@ -52,6 +52,7 @@ const MAX_GRID_HEIGHT: float = 104.0
 @onready var music_slider: HSlider = %MusicSlider
 @onready var sfx_slider: HSlider = %SfxSlider
 @onready var mute_button: Button = %MuteButton
+@onready var track_button: Button = %TrackButton
 
 
 func _ready() -> void:
@@ -64,6 +65,8 @@ func _ready() -> void:
 	music_slider.value_changed.connect(func(v: float) -> void: Audio.set_music_volume(v))
 	sfx_slider.value_changed.connect(func(v: float) -> void: Audio.set_sfx_volume(v))
 	mute_button.pressed.connect(toggle_mute)
+	track_button.pressed.connect(_cycle_track)
+	_refresh_track()
 	build_tab.pressed.connect(_show_page.bind(false))
 	stats_tab.pressed.connect(_show_page.bind(true))
 	_refresh_mute()
@@ -109,6 +112,34 @@ func toggle_mute() -> void:
 
 func _refresh_mute() -> void:
 	mute_button.text = "UNMUTE (M)" if Audio.muted else "MUTE (M)"
+
+
+## AUTO, then each built track, and the change lands IMMEDIATELY rather than on
+## the next run. Track choice was title-screen only, which put the one control
+## for judging whether a 16-second loop wears out in the one place you cannot
+## hear it under gameplay.
+func _cycle_track() -> void:
+	Sfx.play(&"click")
+	var options: Array[int] = Music.available_tracks()
+	if options.is_empty():
+		return
+	if Music.forced_track < 0:
+		Music.forced_track = options[0]
+	else:
+		var at: int = options.find(Music.forced_track)
+		Music.forced_track = -1 if at < 0 or at + 1 >= options.size() else options[at + 1]
+	# AUTO resumes rotation on the NEXT run rather than jumping now — "auto" is a
+	# policy, and switching tracks to demonstrate it would be the opposite of one.
+	if Music.forced_track >= 0:
+		Music.switch_gameplay_track(Music.forced_track)
+	_refresh_track()
+
+
+func _refresh_track() -> void:
+	if Music.forced_track < 0:
+		track_button.text = "TRACK: AUTO"
+	else:
+		track_button.text = "TRACK: %s" % Music.track_name(Music.forced_track)
 
 
 ## `stacks` is id -> times taken. `pool` is every upgrade, so an id resolves back

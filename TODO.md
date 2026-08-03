@@ -269,7 +269,7 @@ instead of ~78, so each one is worth 3x and gets looked at 3x as hard.
 - [x] `pause_layout_check` now measures the level-up panel too, at its worst case (the three
       longest descriptions in the pool). It has shipped broken once already, at level 57
 
-**7.7 — Meta skill tree (main menu).** ✅ done 2026-08-03. Reached from the title as **THE LATTICE**.
+**7.7 — Meta skill tree (main menu).** ✅ done 2026-08-03. Reached from the title as **GRID**.
 - [x] **Depth-weighted currency (shards)**: 6 per minute survived + 25 per boss event cleared.
       Deliberately not kill-weighted — kills would pay best for farming the easy minutes. Save
       schema gained `shards` and `purchases`; a pre-tree save reads as an empty tree, not a crash
@@ -287,6 +287,9 @@ instead of ~78, so each one is worth 3x and gets looked at 3x as hard.
       legible, so it is a scrolling list grouped by cost — designed around the constraint rather
       than measured against it afterwards. `pause_layout_check` guards the frame and the Back button
 - [x] Shards shown on the death screen and on the title button, or the currency is invisible
+- [ ] *Later idea (human, 2026-08-03): lay the GRID out as actual hexagonal cells rather than
+      rows. Fits the game's whole shape language; needs a layout that still passes the 640x360
+      harness, which is why it is parked rather than done*
 
 **7.8 — Art.** Parallelisable against everything above.
 - [~] **Baked glow vs real bloom** — lab case built (`--lab-case=glow`, 3 variants) and three sheets
