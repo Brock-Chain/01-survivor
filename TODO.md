@@ -179,7 +179,7 @@ card screen every 7.9s.
 Do these **in order** — it is dependency-driven, not preference. Player DPS at 10:00 is moved by
 items 2 and 3, and item 4 is tuned against it.
 
-**7.1 — Fix the instrument first.** ✅ done 2026-08-03. Nothing below was measurable until this was.
+**7.1 — Fix the instrument first.** ✅ done 2026-08-02. Nothing below was measurable until this was.
 - [x] `begin_run()` called `_close()` instead of `end_run()` — a restart dropped the ending row,
       so both runs that ever reached a boss had no `run_end`
 - [x] `_run_t` reset in `begin_run()` — a new run's `run_start` carried the previous run's clock
@@ -194,7 +194,7 @@ items 2 and 3, and item 4 is tuned against it.
       lost**, because the player restarted instead of dying. Fixed forward; the existing save is
       left alone (a retro-repair is the human's call)
 
-**7.2 — Progression.** ✅ done 2026-08-03. Measured in a soak: **level 71 at 10:00, 74 at 11:00,
+**7.2 — Progression.** ✅ done 2026-08-02. Measured in a soak: **level 71 at 10:00, 74 at 11:00,
 exactly 25 card screens.**
 - [x] Cards gate to every 3rd level (`Progression.CARD_EVERY`), first card always on the first
       level-up so the loop teaches itself — levels 2, 5, 8, ... = 25 screens
@@ -208,7 +208,7 @@ exactly 25 card screens.**
       have saturated the ladder 40% in) and `PITY_LIMIT` 6 → 4 (it counts screens, and screens went
       from ~79 a run to ~25)
 
-**7.3 — Weapons become drafts, not possessions.** ✅ done 2026-08-03.
+**7.3 — Weapons become drafts, not possessions.** ✅ done 2026-08-02.
 - [x] Weapons are drafted mid-run as cards; a run starts blaster-only regardless of profile
 - [x] A meta unlock adds the weapon's **card** to the pool (`draft_orbital` etc., RARE so it
       actually appears in a 25-screen run). Milestones, announce and `MetaState` unchanged
@@ -227,7 +227,7 @@ exactly 25 card screens.**
 - [x] Card magnitudes rebalanced ~2-3x + `Stats.COOLDOWN_FLOOR`. Forced by measurement — see
       `DECISIONS.md`, the drip as specced left the arena pinned at the enemy cap from 3:00
 
-**7.4 — NOGAXEH v2, the 10:00 climax.** ✅ done 2026-08-03. Event total **11,200 base HP**.
+**7.4 — NOGAXEH v2, the 10:00 climax.** ✅ done 2026-08-02. Event total **11,200 base HP**.
 - [x] NOGAXEH **4000 HP**, projectiles roughly doubled and escalating across four phases
 - [x] Phase 1 — spawns with **2 full 1200 HP Prisms**, invulnerable until both are dead. Not an HP
       threshold and cannot be: it is invulnerable for the whole phase, so its HP never moves.
@@ -245,7 +245,7 @@ exactly 25 card screens.**
 - [x] Verified in a full soak: escorts gate phase 1, four more at phase 4, fuse lit at 804.5s,
       detonation exactly 5.0s later, `alive=0` for the entire fight
 
-**7.5 — Endings.** ✅ done 2026-08-03.
+**7.5 — Endings.** ✅ done 2026-08-02.
 - [x] **A distinct TRUE ENDING screen** — gold where victory is cyan, run record, weapons drafted,
       unlock reveal, Keep going / New run
 - [x] `RunDirector.boss_event_cleared` added alongside the once-per-run `victory`. Killing NOGAXEH
@@ -256,7 +256,7 @@ exactly 25 card screens.**
 - [x] Death screen: NOGAXEH and the detonation both name themselves, and the blast line says what
       to do differently — it is the one death a player can specifically fix
 
-**7.6 — The level-up card UI.** ✅ done 2026-08-03. It is the centrepiece now: ~25 screens a run
+**7.6 — The level-up card UI.** ✅ done 2026-08-02. It is the centrepiece now: ~25 screens a run
 instead of ~78, so each one is worth 3x and gets looked at 3x as hard.
 - [x] **Iconography** — `UpgradeIcon`, a glyph per effect FAMILY (offence, rate, breadth, movement,
       survival, fortune, orbit, weapon), drawn with `_draw` rather than imported: at 28px it is a
@@ -269,7 +269,7 @@ instead of ~78, so each one is worth 3x and gets looked at 3x as hard.
 - [x] `pause_layout_check` now measures the level-up panel too, at its worst case (the three
       longest descriptions in the pool). It has shipped broken once already, at level 57
 
-**7.7 — Meta skill tree (main menu).** ✅ done 2026-08-03. Reached from the title as **GRID**.
+**7.7 — Meta skill tree (main menu).** ✅ done 2026-08-02. Reached from the title as **GRID**.
 - [x] **Depth-weighted currency (shards)**: 6 per minute survived + 25 per boss event cleared.
       Deliberately not kill-weighted — kills would pay best for farming the easy minutes. Save
       schema gained `shards` and `purchases`; a pre-tree save reads as an empty tree, not a crash
@@ -287,7 +287,7 @@ instead of ~78, so each one is worth 3x and gets looked at 3x as hard.
       legible, so it is a scrolling list grouped by cost — designed around the constraint rather
       than measured against it afterwards. `pause_layout_check` guards the frame and the Back button
 - [x] Shards shown on the death screen and on the title button, or the currency is invisible
-- [ ] *Later idea (human, 2026-08-03): lay the GRID out as actual hexagonal cells rather than
+- [ ] *Later idea (human, 2026-08-02): lay the GRID out as actual hexagonal cells rather than
       rows. Fits the game's whole shape language; needs a layout that still passes the 640x360
       harness, which is why it is parked rather than done*
 
@@ -353,7 +353,7 @@ before the finale, and the telemetry that says so was recorded by a fixed instru
 - [x] **v1.1 M6.25** Upgrade rarity (2026-08-02) — 5 tiers, pity floor, superlinear XP, 36 upgrades
 - [x] **v1.1 M6.4** Remaining content (2026-08-02) — Splitter, Ram, Scattergun, Prism Lance, rename
 - [x] **v1.1 M6.5** Design review (2026-08-02) — 31 findings, 27 applied, BESTAGON rename, NOGAXEH, dash
-- [x] **v1.1 M7** The playtest rework (2026-08-03) — instrument fixed, cards gate to every 3rd
+- [x] **v1.1 M7** The playtest rework (2026-08-02) — instrument fixed, cards gate to every 3rd
       level with a measured drip, weapons drafted, NOGAXEH v2 + true ending, card iconography,
       THE LATTICE. **Tuning awaits a human run (7.9).**
 - [ ] v1.1: **M8 ship** ← next

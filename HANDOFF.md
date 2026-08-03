@@ -1,4 +1,4 @@
-# Session handoff — 2026-08-03
+# Session handoff — 2026-08-02
 
 Transient. Delete once the next session has absorbed it. `TODO.md` is the durable
 source of truth; `BRIEF.md` is the spec; `DECISIONS.md` is why things are the way

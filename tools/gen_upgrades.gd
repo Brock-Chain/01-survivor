@@ -19,7 +19,7 @@ extends SceneTree
 ## up and late levels have nothing legal to offer — that shipped once, and at
 ## level 37 the only legal draw was a heal.
 ##
-## MAGNITUDES REBALANCED 2026-08-03 (M7.3), roughly 2-3x on the stat axes. This
+## MAGNITUDES REBALANCED 2026-08-02 (M7.3), roughly 2-3x on the stat axes. This
 ## is not power creep, it is the other half of `Progression.CARD_EVERY`: the spec
 ## is "3x fewer, 3x more valuable decisions", and only the first half of that is
 ## a gate. Built without it and soaked blaster-only against the pre-rework build,

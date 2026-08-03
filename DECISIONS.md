@@ -610,7 +610,7 @@ pre-rename `PRISM` directory. Fixed first in M7, before any gameplay change, bec
 rework is measurable until it is. Related symptom to verify: `run_076` reached 2780 kills but
 `save.cfg` banked `best_kills=1125`.
 
-## M7.1 + M7.2 built — 2026-08-03
+## M7.1 + M7.2 built — 2026-08-02
 
 **The run had no single end, and that was the actual bug.** The instrument fixes were the cheap
 half. The expensive half was that `Main` only banked a run when the player DIED: a restart, a quit
@@ -725,7 +725,7 @@ got bigger; eleven picks on that axis would have reached a weapon firing every f
 the crit and lifesteal caps — an axis that stacks needs a ceiling authored next to it rather than
 discovered.
 
-## M7.4-7.7 built, and one number the soak refused to let stand — 2026-08-03
+## M7.4-7.7 built, and one number the soak refused to let stand — 2026-08-02
 
 **The 10:00 fight scales by LEVEL now, not by weapon count, and that was forced rather than argued.**
 Weapon count was a fair DPS proxy while weapons came from the PROFILE: a player either owned three
@@ -766,7 +766,7 @@ at its tallest in exactly the run it was written for. The level-up panel is guar
 shipped broken once (level 57, third card off the right edge), and M7.6 both widened the cards and
 put longer text on them.
 
-## Glow: the lab variant exists, the comparison does not yet — 2026-08-03
+## Glow: the lab variant exists, the comparison does not yet — 2026-08-02
 
 **Shipped look unchanged. Baked glow stays, and that is the fallback the brief already chose**, so
 nothing is at risk — but the reason recorded here is NOT "bloom looked worse", because the sheet

@@ -30,7 +30,7 @@ const CURVE_QUADRATIC: float = 0.17
 ## was "scarcer", not "back-loaded" — raising CURVE_QUADRATIC would have made
 ## late levels disproportionately expensive and changed the shape of the run.
 ##
-## SUPERSEDED 2026-08-03 (M7.2): was 1.45. That value was a proxy fix for CARD
+## SUPERSEDED 2026-08-02 (M7.2): was 1.45. That value was a proxy fix for CARD
 ## SCREEN spam — the complaint was never "too many levels", it was "a decision
 ## every 7.9 seconds". CARD_EVERY fixes that directly and at 3x the strength, so
 ## 1.45 became an over-correction on top of it. Levels are now deliberately
