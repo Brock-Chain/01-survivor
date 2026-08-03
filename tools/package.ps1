@@ -34,6 +34,20 @@ Write-Host "=== exports ===" -ForegroundColor Cyan
 # on "Failed to rename temporary file", which reads like a build error and is not.
 Get-Process -Name "BESTAGON" -ErrorAction SilentlyContinue | Stop-Process -Force
 
+# CLEAN FIRST. The web zip is built by globbing builds/web/*, so anything left
+# from a previous run ships. PLAYTEST.txt was renamed to README.txt and the
+# stale file sat in the directory, so the "release" zip carried BOTH -- one of
+# them a playtest note with a hardcoded date, deleted from the repo two commits
+# earlier. An export directory that is only ever added to is a directory that
+# quietly accumulates whatever you thought you had removed.
+# Recreated immediately: Godot refuses to export into a folder that does not
+# exist ("Target folder does not exist or is inaccessible").
+foreach ($dir in @("web", "windows")) {
+  $path = Join-Path $builds $dir
+  if (Test-Path $path) { Remove-Item $path -Recurse -Force }
+  New-Item -ItemType Directory -Path $path -Force | Out-Null
+}
+
 foreach ($p in @(
     @{ Name = "Web";             Out = "builds/web/index.html" },
     @{ Name = "Windows Desktop"; Out = "builds/windows/BESTAGON.exe" })) {
@@ -51,7 +65,7 @@ Write-Host ""
 Write-Host "=== package ===" -ForegroundColor Cyan
 
 Copy-Item (Join-Path $share "START-HERE.bat") (Join-Path $builds "web") -Force
-Copy-Item (Join-Path $share "PLAYTEST.txt")   (Join-Path $builds "web") -Force
+Copy-Item (Join-Path $share "README.txt")   (Join-Path $builds "web") -Force
 
 $webZip = Join-Path $builds "BESTAGON-web-$Stamp.zip"
 $winZip = Join-Path $builds "BESTAGON-windows-$Stamp.zip"
@@ -61,7 +75,7 @@ Remove-Item $webZip, $winZip -Force -ErrorAction SilentlyContinue
 # itch.io requires. Zipping the folder itself produces a zip that uploads fine
 # and then shows a blank page.
 Compress-Archive -Path (Join-Path $builds "web\*") -DestinationPath $webZip -CompressionLevel Optimal
-Compress-Archive -Path (Join-Path $builds "windows\BESTAGON.exe"), (Join-Path $share "PLAYTEST.txt") `
+Compress-Archive -Path (Join-Path $builds "windows\BESTAGON.exe"), (Join-Path $share "README.txt") `
   -DestinationPath $winZip -CompressionLevel Optimal
 
 # Prove the layout rather than trusting it. A web zip whose index.html is not at

@@ -319,12 +319,28 @@ what a bot cannot verify is tuning.
 before the finale, and the telemetry that says so was recorded by a fixed instrument.
 
 ### M8 — Ship
-- [ ] Full human playtest pass
-- [ ] README with a GIF
-- [ ] Web + Windows exports
-- [ ] itch.io page: HTML, browser-playable, 1280×720 embed, cover image
+- [ ] Full human playtest pass — **Windows build under test 2026-08-03.** The freeze recurred on
+      web for the tester, so this run is the discriminator: if Windows also freezes, the browser/rAF
+      hypothesis in `DECISIONS.md` is wrong and the next step is instrumenting frame times inside
+      the build rather than reasoning further
+- [x] README with a GIF (2026-08-03) — `tools/share/bestagon.gif`, sliced out of a contact sheet
+      captured from a real run at 4:16 / level 43
+- [x] Web + Windows exports (2026-08-03) — 13.6 MB / 40.1 MB, both verified to contain no
+      `node_modules`, `strudel`, `tests` or `scenes/dev`, and no stale files (`package.ps1` now
+      cleans `builds/` first, after the release zip shipped a deleted playtest note)
+- [x] Cover image (2026-08-03) — `tools/share/cover.png`, 630×500. Recropped once: the first
+      version had the developer's own save records in it
+- [ ] itch.io page: HTML, browser-playable, 1280×720 embed, cover image uploaded, **flip Restricted → Public**
 - [ ] butler push
 - [ ] **Postmortem in hub** + knowledge notes + pattern-candidate review
+
+**Pre-upload review, 2026-08-03.** Gate + soak green (126 tests, both boss events, victory 5:39).
+No secrets, no credentials, no leaked page password. Three defects found and fixed in the pass:
+the gate was banking bot runs into the real save profile (`--dev-noprofile`), every silent level-up
+toast reported **`+0.0% FIRE RATE`** because the drip was snapshotted after the level increment, and
+`builds/` was never cleaned so deleted files shipped. **Accepted, not fixed:** existing players lose
+their records to the `.cfg` → `.json` save change — a deliberate call, the page is restricted and the
+one known profile was bot-contaminated anyway.
 
 **Gate:** a stranger plays it in their browser at an itch.io URL. No postmortem → no game 2.
 

@@ -1,8 +1,11 @@
-BESTAGON — playtest build (2026-08-02)
-======================================
+BESTAGON
+========
 
 A micro arena survivor. WASD to move; your weapons fire themselves.
 Five minutes to win. Something worse waits at ten.
+
+(No date here on purpose. The zip filename carries the build date, and a
+date written into prose is one that goes stale without anyone noticing.)
 
 
 READ THIS FIRST IF YOU HAVE THE WEB VERSION
@@ -17,8 +20,9 @@ browser trusts. The page has to come from a server.
     Double-click START-HERE.bat instead. It starts one and opens the game.
     Leave that black window open while you play.
 
-(START-HERE.bat needs Python installed. If you do not have it, just ask
-for the Windows version — it is a single .exe and needs none of this.)
+(START-HERE.bat needs Python installed. If you do not have it, just grab
+the Windows version — it is a single .exe and needs none of this. Or play
+it in the browser on itch.io, where the server is already there.)
 
 
 HOW TO RUN
@@ -42,18 +46,16 @@ CONTROLS
   R               restart
 
 
-WHAT WOULD BE MOST USEFUL TO HEAR
----------------------------------
-This build just had a large rework. The parts most worth a stranger's eyes:
+NOTES
+-----
+Progress saves locally — per browser profile for the web version, so
+clearing site data resets it. A second run starts with a little more than
+the first.
 
-1. The first five minutes. Is it clear what to do without being told? Does
-   it get hard fast enough, or too fast?
-2. The level-up cards. You get one about every third level. Do the choices
-   feel worth stopping for, or do they blur together?
-3. The 10:00 fight, if you get there. It is meant to be a ~2 minute
-   climax. Too long, too short, or unclear what it wants from you?
-4. Anything that reads as BROKEN rather than hard. That distinction is the
-   single most useful thing you can report.
+The music is four tracks that each play as four separate layers, fading in
+and out with how much trouble you are in. Nothing about it is randomised;
+it is written that way. The pause menu lets you pin one track if you would
+rather it stopped rotating.
 
-Progress saves locally (per-browser for the web build), so a second run
-starts with a little more than the first.
+Found something that reads as BROKEN rather than hard? That distinction is
+the single most useful thing you can report.

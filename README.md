@@ -4,6 +4,11 @@ A micro arena survivor built in Godot 4.7.1 and GDScript. Move; your weapons fir
 third level you pick one upgrade out of three. Survive five minutes and beat what shows up and you
 have won — keep going, and something worse arrives at ten.
 
+![BESTAGON gameplay](tools/share/bestagon.gif)
+
+*Four minutes in, level 43, 742 kills. Captured from a real run with the in-repo screenshot
+tool — `--shot-frames` writes a contact sheet, and the frames are sliced back out into this loop.*
+
 **No third-party assets.** The sprites are drawn procedurally by a Python script
 (`tools/gen_assets.py`). The soundtrack is **written** — 38 original pieces, ~1,125 lines of
 [Strudel](https://strudel.cc) pattern code in `audio_src/`, including the four-stem adaptive

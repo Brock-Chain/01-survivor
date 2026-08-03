@@ -803,8 +803,8 @@ func _on_gem_collected(xp_value: int) -> void:
 func _check_level_up() -> void:
 	while xp_into_level >= Progression.xp_required(level):
 		xp_into_level -= Progression.xp_required(level)
+		var from_level: int = level
 		level += 1
-		var before: Dictionary = _drip_snapshot()
 		_apply_level_drip()
 		if not Progression.offers_card(level):
 			# Two levels in three pass without a card. Still a beat — but until
@@ -814,7 +814,7 @@ func _check_level_up() -> void:
 			# invisible, which makes a silent level read as nothing happening
 			# rather than as a reward.
 			Sfx.play(&"levelup", -15.0)
-			hud.show_level_toast(level, _drip_gains(before, _drip_snapshot()))
+			hud.show_level_toast(level, Progression.drip_gains(from_level, level))
 			continue
 		var offers: Array[UpgradeResource] = pool.draw_tiered(
 				3, stacks, _offer_gates(),
@@ -879,40 +879,6 @@ func _apply_purchases() -> void:
 	if gained > 0:
 		player.health.raise_max(gained)
 	player.refresh_from_stats()
-
-
-## The silent half of a level-up. SET from the level rather than accumulated, so
-## a chained level-up that resolves three levels in one frame applies it once and
-## the result is a pure function of `level` — see Progression for the numbers and
-## for why move speed is the only one with a ceiling.
-## The drip values that a player could plausibly notice, sampled before and after
-## a level so the toast can report the DELTA rather than the running total.
-## Move speed is deliberately absent: it changes by 0.3% per level, which is not
-## a thing anyone can feel on one level-up, and listing it would bury the lines
-## that matter under noise.
-func _drip_snapshot() -> Dictionary:
-	return {
-		"dmg": Progression.drip_damage_bonus(level),
-		"shots": Progression.drip_projectiles(level),
-		"rate": Progression.drip_cooldown_mult(level),
-	}
-
-
-func _drip_gains(before: Dictionary, after: Dictionary) -> Array[String]:
-	var gains: Array[String] = []
-	var d: int = int(after["dmg"]) - int(before["dmg"])
-	if d > 0:
-		gains.append("+%d DAMAGE" % d)
-	var shots: int = int(after["shots"]) - int(before["shots"])
-	if shots > 0:
-		gains.append("+%d PROJECTILE" % shots)
-	# Fire rate moves every single level, so it is the fallback rather than a
-	# headline: it only gets said when nothing louder happened, which keeps the
-	# toast honest without making every level look identical.
-	if gains.is_empty():
-		var pct: float = (float(before["rate"]) / float(after["rate"]) - 1.0) * 100.0
-		gains.append("+%.1f%% FIRE RATE" % pct)
-	return gains
 
 
 func _apply_level_drip() -> void:

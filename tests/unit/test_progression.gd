@@ -127,3 +127,40 @@ func _level_for_xp(total: int) -> int:
 		spent += Progression.xp_required(level)
 		level += 1
 	return level
+
+
+# --- level-up toast lines ----------------------------------------------------
+# The shipped bug these pin: `main.gd` snapshotted the drip AFTER incrementing
+# `level`, so both sides of the delta were the same level. Every toast said
+# "+0.0% FIRE RATE" and no level ever reported damage or projectiles.
+
+func test_a_level_up_always_reports_something_nonzero() -> void:
+	# Every level from 2 to 60 must produce at least one line, and no line may
+	# claim a zero gain. "+0.0% FIRE RATE" is the exact string that shipped.
+	for to_level: int in range(2, 61):
+		var gains: Array[String] = Progression.drip_gains(to_level - 1, to_level)
+		assert_gt(gains.size(), 0, "level %d says nothing" % to_level)
+		for line: String in gains:
+			assert_false(line.contains("+0.0%"), "level %d: '%s'" % [to_level, line])
+			assert_false(line.begins_with("+0 "), "level %d: '%s'" % [to_level, line])
+
+
+func test_the_same_level_twice_is_the_bug_and_yields_zero() -> void:
+	# Directly encodes the defect: if a caller ever passes one level as both
+	# ends again, the fire-rate fallback computes exactly 0.0% -- which is what
+	# the player saw. Kept so the failure is named rather than merely absent.
+	var gains: Array[String] = Progression.drip_gains(7, 7)
+	assert_eq(gains, ["+0.0% FIRE RATE"] as Array[String])
+
+
+func test_damage_and_projectile_steps_are_reported_when_they_land() -> void:
+	# Find the first level where the damage bonus actually steps, and assert the
+	# toast headlines it instead of falling through to fire rate.
+	var stepped: int = -1
+	for lvl: int in range(2, 61):
+		if Progression.drip_damage_bonus(lvl) > Progression.drip_damage_bonus(lvl - 1):
+			stepped = lvl
+			break
+	assert_gt(stepped, 0, "damage never steps in 60 levels")
+	var gains: Array[String] = Progression.drip_gains(stepped - 1, stepped)
+	assert_true(gains[0].contains("DAMAGE"), "level %d headlines: %s" % [stepped, str(gains)])

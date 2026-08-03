@@ -127,6 +127,35 @@ static func drip_move_speed_mult(level: int) -> float:
 	return 1.0 + minf(DRIP_MOVE_SPEED_CAP, DRIP_MOVE_SPEED * float(maxi(0, level - 1)))
 
 
+## What a level-up actually GAVE you, as toast lines. Takes both levels
+## explicitly and reads no state, which is the whole point: this lived in
+## `main.gd` as a pair of snapshots of the member `level`, and the snapshot was
+## taken one line AFTER `level += 1`. Both snapshots were therefore the same
+## level, every delta was zero, and the toast that exists because a playtester
+## said "0 indication we are getting stat boosts" rendered "+0.0% FIRE RATE" on
+## every silent level-up for the whole playtest. A scene script cannot be unit
+## tested; this can, so the sequencing cannot rot again unnoticed.
+##
+## Move speed is deliberately absent: 0.3% per level is not a thing anyone feels
+## on one level-up, and listing it would bury the lines that matter.
+static func drip_gains(from_level: int, to_level: int) -> Array[String]:
+	var gains: Array[String] = []
+	var dmg: int = drip_damage_bonus(to_level) - drip_damage_bonus(from_level)
+	if dmg > 0:
+		gains.append("+%d DAMAGE" % dmg)
+	var shots: int = drip_projectiles(to_level) - drip_projectiles(from_level)
+	if shots > 0:
+		gains.append("+%d PROJECTILE" % shots)
+	# Fire rate moves every single level, so it is the fallback rather than a
+	# headline: it only gets said when nothing louder happened, which keeps the
+	# toast honest without making every level look identical.
+	if gains.is_empty():
+		var before: float = drip_cooldown_mult(from_level)
+		var after: float = drip_cooldown_mult(to_level)
+		gains.append("+%.1f%% FIRE RATE" % ((before / after - 1.0) * 100.0))
+	return gains
+
+
 ## XP actually banked from a gem after the player's multiplier. Pure, so the
 ## rounding is testable. Floors at 1: a gem must never be worth nothing.
 static func xp_gain(base_value: int, xp_mult: float) -> int:
