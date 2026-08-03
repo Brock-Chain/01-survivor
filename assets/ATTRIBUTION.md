@@ -13,8 +13,11 @@ Two generators, not one:
 
 Then reimport (`--headless --import`).
 
-**The audio renderer is not committed here** and is needed only to *change* the music — the `.ogg`
-files it produces are committed and are what the game ships. It imports AGPL-3.0 packages, which is
-why it is resolved rather than vendored into an MIT repo; see *Rebuilding the audio* in the
-[README](../README.md). None of that reaches the audio itself: Godot plays `.ogg` files and never
-links Strudel, so the stems are original works of this project like everything else here.
+Both generators are committed, so **every asset here is regenerable from a clone** — the audio needs
+one `npm install` in [`tools/strudel/`](../tools/strudel/) first, and the renderer is seeded, so a
+re-render reproduces the committed file byte for byte.
+
+`npm install` fetches AGPL-3.0 packages that this repo declares but does not redistribute. That
+boundary is written out in [`tools/strudel/README.md`](../tools/strudel/README.md) and does not reach
+the audio itself: Godot plays `.ogg` files and never links Strudel, so the stems are original works
+of this project like everything else here.

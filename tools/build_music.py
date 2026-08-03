@@ -7,10 +7,11 @@ Source of truth is `audio_src/*.strudel` — a few dozen lines of readable code,
 diffable in git. The .ogg files under assets/audio/music/ are BUILD ARTIFACTS:
 delete them and this regenerates byte-identical copies (the renderer is seeded).
 
-That last claim holds ONLY if you have the renderer, which is a separate tool and
-is not committed here — see `strudel_renderer.py` for the three places this looks
-and why it is not vendored. You do not need it to build or play the game; the
-.ogg files are committed. You need it to change the music.
+That claim is TESTED, not asserted. The renderer ships in `tools/strudel/`, so
+from a fresh clone it is `cd tools/strudel && npm install`, then this script —
+nothing else, and no path to anyone's machine. Verified 2026-08-03: a clean
+install re-rendered victory.strudel to a byte-identical copy of the committed
+victory.wav (sha256 dddd8b8e..., 1,993,364 bytes).
 
 Two non-obvious steps, both learned the hard way (hub/knowledge/audio-authoring.md):
 

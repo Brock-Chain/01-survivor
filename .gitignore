@@ -37,7 +37,7 @@ audio_src/**/*.wav
 audio_src/**/*.events.json
 audio_src/**/*.import
 
-# If the Strudel renderer is ever vendored into tools/strudel/, its dependencies
-# are 67 MB of AGPL-3.0 packages and are never committed — package.json and
-# package-lock.json declare them, `npm install` fetches them.
+# The Strudel renderer's dependencies: ~67 MB of AGPL-3.0 packages, and not ours
+# to redistribute. package.json + package-lock.json are committed and declare
+# them exactly; `npm install` rebuilds this folder from the lockfile.
 tools/strudel/node_modules/

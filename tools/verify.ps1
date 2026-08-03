@@ -77,6 +77,35 @@ function Invoke-Step {
   return $out
 }
 
+# ABSOLUTE PATH GUARD. This repo is PUBLIC, and an absolute path in it is never a
+# local convenience - it is a claim that only works on one machine, and it is
+# invisible to the person who wrote it. tools/build_music.py carried a hardcoded
+# path into a private repo for months while the README promised the .ogg files
+# were regenerable build artifacts. It was true for exactly one computer on
+# earth. (This comment describes it rather than quoting it, because the guard
+# below has no exemption for examples - which is the point of it.)
+#
+# CODE ONLY (.gd/.py/.ps1/.mjs) and tracked files only - prose legitimately shows
+# example paths, and node_modules is gitignored so it never reaches this. The
+# lookbehind is what keeps https:// , res:// and user:// from matching.
+Write-Host ""
+Write-Host "=== absolute path guard ===" -ForegroundColor Cyan
+$pattern = '(?<![A-Za-z])[A-Za-z]:[\\/]|[\\/](Users|home)[\\/]'
+$hits = @()
+foreach ($rel in @(& git -C $root ls-files -- '*.gd' '*.py' '*.ps1' '*.mjs')) {
+  $full = Join-Path $root $rel
+  if (-not (Test-Path $full)) { continue }
+  foreach ($m in (Select-String -Path $full -Pattern $pattern -AllMatches)) {
+    $hits += ("  {0}:{1}: {2}" -f $rel, $m.LineNumber, $m.Line.Trim())
+  }
+}
+if ($hits.Count -gt 0) {
+  $script:failed += "absolute path guard ($($hits.Count) found)"
+  $hits | Select-Object -First 8 | ForEach-Object { Write-Host $_ -ForegroundColor Red }
+} else {
+  Write-Host "  ok" -ForegroundColor Green
+}
+
 Invoke-Step "import" @('--headless','--import','--path',$root) | Out-Null
 
 $tests = Invoke-Step "unit tests" @('--headless','--path',$root,'-d','-s',

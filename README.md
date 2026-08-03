@@ -9,11 +9,11 @@ have won — keep going, and something worse arrives at ten.
 [Strudel](https://strudel.cc) pattern code (`audio_src/*.strudel`) and rendered to `.ogg`. There are
 no third-party assets — see [`assets/ATTRIBUTION.md`](assets/ATTRIBUTION.md).
 
-> **One honest caveat about "generated".** Sprites regenerate from a clone with nothing but Python
-> and Pillow. **Audio does not** — rendering `.strudel` to audio needs an external tool that is not
-> committed here (see [Rebuilding the audio](#rebuilding-the-audio)). The `.ogg` files *are*
-> committed and are what the game ships, so cloning, building and playing all work unchanged; only
-> *changing the music* needs the extra step.
+> **And regenerable from a clone, which is a stronger claim than "generated".** Sprites rebuild with
+> Python and Pillow; audio rebuilds with one `npm install` (see
+> [Rebuilding the audio](#rebuilding-the-audio)). Both generators are committed here, neither
+> contains a path to anybody's machine, and the audio renderer is seeded — re-rendering a stem
+> reproduces the committed file **byte for byte**.
 
 > Built with Claude as a deliberate experiment in AI-assisted development: the code, the generators
 > and the copy are largely LLM-written, and the design decisions, direction and playtesting are not.
@@ -55,17 +55,22 @@ Only needed if you want to **change** the music or SFX — the `.ogg` files the 
 committed.
 
 ```powershell
-$env:STRUDEL_RENDERER = "C:\path\to\render_superdough.mjs"   # then `npm install` once in that folder
-python tools/build_music.py            # re-renders whatever changed
+cd tools/strudel; npm install; cd ../..    # once per clone, a few seconds
+python tools/build_music.py                # re-renders whatever changed
 python tools/build_sfx.py
 ```
 
-The renderer is `render_superdough.mjs` — Strudel pattern code to `.wav`, headless and seeded, so
-renders are byte-identical run to run. **It is deliberately not committed here.** It imports
-AGPL-3.0 packages (`@strudel/*`, `superdough`), and shipping it inside this repo would be a
-licensing decision rather than a convenience; the game itself never links any of it, since Godot
-just plays audio files. Run either script without the variable set and it prints every path it
-looked in and what to do — it does not fail silently.
+The renderer ships in [`tools/strudel/`](tools/strudel/) — Strudel pattern code to `.wav`, headless
+and **seeded**, so renders are byte-identical run to run. Verified: a clean install re-rendered
+`victory.strudel` into a byte-for-byte copy of the committed `victory.wav`. `npm install` fetches
+AGPL-3.0 packages from the registry, which this repo declares but does not redistribute
+(`node_modules/` is gitignored); the boundary is written out in
+[`tools/strudel/README.md`](tools/strudel/README.md). The game never links any of it — Godot plays
+`.ogg` files.
+
+`$STRUDEL_RENDERER` overrides the location if you keep a checkout elsewhere. Run either script when
+it cannot resolve and it prints every path it looked in — it does not fail silently, and it contains
+no absolute path to fail with. `verify.ps1` enforces that last part.
 
 ## Layout
 
@@ -97,8 +102,11 @@ later deckbuilder.
 
 ## Licence
 
-[MIT](LICENSE) — code and generated assets alike. Every sprite, sound and music stem in this repo
-is produced by a committed generator, so there is no third-party asset whose terms could conflict
-with that; see [`assets/ATTRIBUTION.md`](assets/ATTRIBUTION.md). The offline Strudel renderer used
-to *author* the music is AGPL-3.0 and is deliberately **not** part of this repo, so it does not mix
-with the licence above — the audio it produced is an original work of this project either way.
+[MIT](LICENSE) — code and generated assets alike. Every sprite, sound and music stem here is
+produced by a committed generator, so there is no third-party asset whose terms could conflict with
+that; see [`assets/ATTRIBUTION.md`](assets/ATTRIBUTION.md).
+
+One boundary worth stating rather than leaving implicit: the audio renderer in `tools/strudel/` is
+ours and MIT like the rest, but `npm install` fetches **AGPL-3.0** packages from the npm registry.
+This repo declares those dependencies and never redistributes them, and the game links none of them
+— Godot plays `.ogg` files. Detail in [`tools/strudel/README.md`](tools/strudel/README.md).
