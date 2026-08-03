@@ -68,6 +68,27 @@ The reasoning, because the parts are not all the same:
   the output is downstream of generative AI. Genuinely arguable either way, and
   it does not matter: the line above already settles it.
 
+**Sub-classification (mandatory once Yes): tick all four** — Graphics, Sounds,
+Text & Dialog, Code.
+
+- **Code** — all GDScript. Not arguable.
+- **Text & Dialog** — 45 upgrade names and descriptions, the title copy, the
+  death-screen lines, the unlock blurbs, the true ending. The game's entire
+  written surface. This is the one that is easy to forget and hardest to defend
+  omitting.
+- **Sounds** — no audio model ran, but the chord progressions, basslines, drum
+  patterns and the four-stem intensity structure were composed by an LLM and
+  then written as Strudel code. Composition is the AI part; rendering is not.
+- **Graphics** — the weakest case and still worth ticking. `gen_assets.py` is
+  PIL drawing polygons, bolts and chevrons with a glow pass: no model, no
+  dataset. But the shapes, palette and glow were an LLM's choices, and the form
+  does not distinguish "a model made the image" from "a model wrote the code
+  that made the image."
+
+The asymmetry is what decides it: under-tagging risks delisting, which itch
+states outright; over-tagging costs a browse filter already accepted by
+answering Yes.
+
 No image, audio, or voice model output ships in this game. That is a materially
 different position from prompt-generated art, and the page description says so
 rather than leaving people to assume the tag means what it usually means.
