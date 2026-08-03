@@ -51,6 +51,40 @@ type it.
 Draft mode is *not* the right choice here: it is meant for editors, and itch's
 own docs say others cannot download or purchase from it.
 
+## AI generation disclosure — YES
+
+itch's field reads: *"disclose if this project contains content produced by
+generative AI tools such as LLMs, ChatGPT, Midjourney, Stable Diffusion, etc.,
+**even if you hand-edited it**."* Answer **Yes**. Decided 2026-08-02, recorded
+here so it is not re-argued at ship.
+
+The reasoning, because the parts are not all the same:
+
+- **Code and player-visible text** — written by an LLM and shipped in the .pck.
+  This alone decides the answer.
+- **Sprites (`tools/gen_assets.py`) and music (Strudel)** — deterministic,
+  self-contained algorithms with no model and no dataset at render time, which
+  is squarely itch's stated carve-out. But both scripts were LLM-authored, so
+  the output is downstream of generative AI. Genuinely arguable either way, and
+  it does not matter: the line above already settles it.
+
+No image, audio, or voice model output ships in this game. That is a materially
+different position from prompt-generated art, and the page description says so
+rather than leaving people to assume the tag means what it usually means.
+
+Cost of disclosing: the project appears on itch's **AI Assisted** browse page.
+Zero while Restricted (restricted projects are not on browse pages at all);
+real at ship, where some jams disallow AI-assisted entries. Weighed against
+itch's own warning that mis-tagging can result in delisting, and against this
+project's premise being AI-assisted development in the first place.
+
+## Genre and tags
+
+- **Genre**: Action
+- **Tags** (max 10, and itch asks you not to repeat the genre or platform):
+  `survivors-like`, `roguelite`, `bullet-hell`, `arena`, `minimalist`, `neon`,
+  `godot`
+
 ## Page description (paste as-is)
 
 > A micro arena survivor built in Godot. Move, and your weapons fire themselves;
