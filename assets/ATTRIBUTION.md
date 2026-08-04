@@ -47,3 +47,20 @@ reproduces the committed file byte for byte (verified 2026-08-03 against `victor
 boundary is written out in [`tools/strudel/README.md`](../tools/strudel/README.md). It does not reach
 the music: Godot plays `.ogg` files and never links Strudel, so the recordings are original works of
 this project exactly like the code that describes them.
+
+## In the repository, but not in the game
+
+"No third-party assets" is a statement about **what ships**. A clone contains one vendored
+third-party dependency, and it is worth naming rather than leaving a reader to find it:
+
+| | |
+|---|---|
+| [`addons/gut/`](../addons/gut/) | **GUT** (Godot Unit Test) by bitwes — the test framework. **MIT**, with its licence committed at [`addons/gut/LICENSE.md`](../addons/gut/LICENSE.md). It also ships 25 font files (Anonymous Pro, Courier Prime, Lobster Two) for its own result GUI, covered by the SIL Open Font Licence at [`addons/gut/fonts/OFL.txt`](../addons/gut/fonts/OFL.txt) |
+
+None of it reaches a player: both export presets carry
+`exclude_filter="addons/gut/*, tests/*, scenes/dev/*, builds/*"`, so GUT and its fonts are absent
+from the web and Windows builds. It is a development dependency in the same sense as the engine — the
+difference is that GUT is small enough to vendor, so it is here rather than resolved.
+
+Nothing above conflicts with this project's [MIT licence](../LICENSE): MIT and OFL both permit
+redistribution with their notices intact, and both notices are intact and committed.
