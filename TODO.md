@@ -441,8 +441,8 @@ one known profile was bot-contaminated anyway.
 - [ ] v1.1: **M8 ship** ← next. The freeze is SETTLED as of 2026-08-03 — root-caused (orphaned
       Legendary-pulse tween; debug-only engine detector) and fixed in `304923c`, regression-gated
       in verify.ps1. Remaining, in order:
-      1. **Confirmation runs** on `304923c`: local runs deep past LV 17, and the friend's machine
-         (their two zips predate the fix). Every prior freeze hit by ~LV 17, so this is cheap.
+      1. [x] **Confirmation runs — CLEAN (2026-08-03).** Local runs past LV 17 and the friend's
+         machine both confirmed by the human: no freeze, balance accepted. The freeze is closed.
       2. **The 5:00 fight is FIXED by the player cut, measured (2026-08-03): 53 s**, from
          `[boss] t=300s` to `[victory] t=353s` on the strongest soak profile — against ~6 s
          reported by a playtester and ~7 s recorded for a three-weapon profile. Bosses untouched.
@@ -452,8 +452,10 @@ one known profile was bot-contaminated anyway.
          everything else on this list. `MIRROR_LEVEL_STEP` was never re-fitted either. Needs a
          soak long enough to actually finish the fight; the standard 40000-frame soak ends 66 s
          into it and cannot see the result.
-      3. **First gamepad session** — controller bindings shipped 2026-08-03 (`1d7f41c`) straight
-         from the editor and have never met a physical pad.
+      3. [~] **Gamepad session — DROPPED for this game (human call, 2026-08-03).** The bindings
+         ship untested against a physical pad; enough data was gathered from this build and the
+         cost of another verification pass was judged not worth it. Recorded rather than left
+         implied, because "shipped untested" is a fact a future reader should not have to infer.
       4. **Two destructive-action defects found in the 2026-08-03 audit, deliberately NOT bundled
          with the R fix.** (a) Pause **QUIT** is one click, no confirmation, run gone — the same
          defect R had, and the footer stacks Resume / Restart / Quit so both destructive rows sit
@@ -468,9 +470,12 @@ one known profile was bot-contaminated anyway.
       5. *(decide, do not rush)* **`best_time` mixes SPEED x1 and x3 runs** — it records game time,
          so one record number means two different real-time reflex demands. Unmeasured; a
          records-design question, not a bug.
-      6. **itch: butler push + flip Restricted → Public.** Closes hub D15.
-      Then the **v1.1 postmortem in the hub** (D6/D15: written BEFORE v2 work starts), and v2 —
-      `02-sts-lite` — opens from `hub/research/sts/`, which is already planned in full.
+      6. **itch: butler push + flip Restricted → Public.** Closes hub D15. **Owned by the human,
+         handled separately (2026-08-03).**
+      The **v1.1 postmortem addendum is WRITTEN** (`hub/postmortems/01-survivor.md`), so D6's
+      "no postmortem → no next game" gate is satisfied and v2 is unblocked. `02-sts-lite` opens
+      from `hub/research/sts/`, already planned in full — a brief and five system contracts, not
+      a blank page.
 
 *The ship gate moved from M7 to M8 because the first clean human run to 10:00 turned into a rework
 spec rather than a punch list. Scope grew by explicit decision, not by drift.*
