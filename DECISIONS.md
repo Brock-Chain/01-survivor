@@ -1107,3 +1107,44 @@ LLM-written). Full reasoning in `tools/share/ITCH-PAGE.md`.
   it could go red. Same failure class as the title-screen smoke of review finding 29: a gate that
   cannot fail is evidence of nothing. It now runs in verify.ps1 with a MustContain that proves the
   second screen was reached, and it was watched RED (pre-fix) and GREEN (post-fix) on the same day.
+
+## Balance pass 2 — the whole player power curve, at once (2026-08-03)
+
+- **2026-08-03 — Cut every damage axis in one pass, and left the bosses alone.** Playtest: "all
+  damage power ups are still unbalanced, crit is insane, players get too strong too fast", and a
+  friend's 5:00 Prism died in **six seconds**. The three axes were never checked against each
+  other, and they multiply: flat damage reached ~100 on a base-1 weapon (cards +75, drip +24),
+  fire rate hit the `COOLDOWN_FLOOR` clamp for 6.7x, and crit at the 0.85 chance cap was an
+  effective x2.28 on every shot. Product: roughly **1500x** the opening blaster's DPS before
+  pierce, multishot, ricochet or orbitals. Applied together rather than one-at-a-time because the
+  human asked for it and because measuring one axis while the other two are broken measures
+  nothing. `crit_mult` 2.5 -> 1.5, `COOLDOWN_FLOOR` 0.15 -> 0.25, the four damage cards
+  1/2/3/6 (was 2/3/6/12), the four fire-rate cards 10/15/22/25% (was 15/25/35/40%), and the drip
+  1/3 -> 1/4 damage and 1.5% -> 1.0% fire rate per level. Projected ~**-76%** DPS at cap.
+  **Bosses deliberately untouched** — their HP was budgeted for a ~60s fight and has been giving
+  6s, so the player cut is the boss fix; changing both at once would leave neither measurable.
+
+- **2026-08-03 — `Overdrive` had `max_stacks = 0`, which this codebase means as UNLIMITED.** A +2
+  flat damage card with no cap, found while auditing the axes rather than reported. It is now 5.
+  `test_upgrade_pool` pins the unlimited semantics deliberately (for cards that should never
+  exhaust), which is exactly why a stray 0 on a damage card was invisible.
+
+- **2026-08-03 — The upgrade GENERATOR was a loaded gun, and pulling the trigger proved it.**
+  `tools/gen_upgrades.gd` writes every `resources/upgrades/*.tres`, but two cards had been
+  hand-tuned in the `.tres` and never back-ported: Siphon's lifesteal nerf (0.14 -> 0.06, the
+  "14% lifesteal is a lot" fix from the same day) and Ricochet's description. Running the
+  generator to check it agreed with this balance pass **silently reverted the Siphon nerf** —
+  caught only because the diff touched 11 files when 9 were expected. Both back-ported; the
+  generator now reproduces every `.tres` byte-identically, verified by regenerating and diffing
+  to exactly the intended change. **The lesson generalises past this repo: a generated artifact
+  that anyone hand-edits has two sources of truth and silently keeps the older one.** The check
+  is cheap and should be routine — regenerate, and require the diff to be empty or intended.
+
+- **2026-08-03 — Four unit tests went red on the cut, and they were RIGHT to.** They pinned the
+  old drip values as design guarantees ("a real point of damage by level 4", "enough by the 5:00
+  boss to matter without cards", the L75 fire-rate multiple). The guarantees are what moved, so
+  the tests were updated as INTENT rather than rebased to green: the first real point of damage
+  now lands at level 5, not 4, and the drip alone brings 10 to the 5:00 boss instead of 13 — both
+  recorded in the assertions' own messages so the next reader sees a decision, not a fudge. The
+  property each test actually defends (purity, flat-not-percentage, rate-not-subtraction) is
+  untouched.

@@ -72,8 +72,12 @@ const FIRST_CARD_LEVEL: int = 2
 ## pre-rework one — which is a MEASURED quantity (the 5:00 Prism at 49s) rather
 ## than a guess. The rework's goal was fewer and better decisions, never a
 ## quieter player.
-const DRIP_DAMAGE_PER_LEVEL: float = 1.0 / 3.0
-const DRIP_FIRE_RATE: float = 0.015
+## Both cut 2026-08-03 ("players get too strong too fast"). The drip is the
+## FLOOR of the power curve — it arrives whether or not the player picks well —
+## so it compounds with every card rather than competing with them. 1/3 -> 1/4
+## damage per level and 1.5% -> 1.0% fire rate per level.
+const DRIP_DAMAGE_PER_LEVEL: float = 1.0 / 4.0
+const DRIP_FIRE_RATE: float = 0.010
 
 ## Breadth, and the second thing measurement forced in. Damage and fire rate make
 ## the player kill ONE thing faster; only projectile COUNT clears a crowd, and

@@ -239,11 +239,25 @@ func _check_contact_damage() -> void:
 ## FIRST ESTIMATE, expected to move after the next playtest: 180 px is enough to
 ## leave his body but deliberately NOT enough to beat a committed dash. Escaping a
 ## boss should still cost you the dash you earned at 5:00.
-const BOSS_CONTACT_KNOCKBACK: float = 180.0
+## 180 -> 260 and a grace window added, 2026-08-03. Distance alone was never the
+## whole fix: the throw only fires when damage LANDS, so the boss was free to
+## re-close during the i-frame window and be touching again the moment it
+## lapsed. Chain-hit, over and over, which is what "he just killed me" was.
+##
+## The grace makes the throw mean something — you cannot be contact-damaged
+## again while you are still being thrown clear. `grant_invuln` takes the MAX of
+## the windows, so this can only ever extend the i-frames a hit already bought,
+## never shorten them.
+##
+## This mattered more after the same day's balance cut: player DPS is down ~76%,
+## so every boss fight is ~4x longer and offers ~4x the chances to be latched.
+const BOSS_CONTACT_KNOCKBACK: float = 260.0
+const BOSS_CONTACT_GRACE: float = 0.35
 const KNOCKBACK_DECAY: float = 9.0
 
 
 func _throw_clear_of(from: Vector2) -> void:
+	health.grant_invuln(_time, BOSS_CONTACT_GRACE)
 	var away: Vector2 = global_position - from
 	# Dead centre inside the body: any direction beats staying welded, and picking
 	# one at random keeps it from always resolving the same way.

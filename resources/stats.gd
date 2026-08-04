@@ -21,7 +21,11 @@ const XP_MULT_CAP: float = 1.6
 ## Extra enemies a shot punches through before dying.
 @export var pierce: int = 0
 @export var crit_chance: float = 0.0
-@export var crit_mult: float = 2.5
+## 2.5 -> 1.5, playtest 2026-08-03 ("crit is insane"). At the 0.85 chance cap
+## this is the difference between an effective x2.28 and an effective x1.43 on
+## EVERY shot -- crit was quietly the largest single multiplier in the game,
+## stacked on top of flat damage and fire rate that already multiply out.
+@export var crit_mult: float = 1.5
 ## Chance per kill to recover 1 HP. Healing as a BUILD CHOICE rather than a
 ## level-up option, so it is never a wasted pick at full health.
 @export var lifesteal_chance: float = 0.0
@@ -89,7 +93,12 @@ func damage_from(base: int) -> float:
 ## bigger. Eleven fire-rate picks would otherwise reach a 20x rate and, at the
 ## bottom, a weapon firing every frame. Same shape as the crit and lifesteal
 ## caps: an axis that stacks needs a ceiling authored next to it, not discovered.
-const COOLDOWN_FLOOR: float = 0.15
+## 0.15 -> 0.25 (2026-08-03). The floor, not the cards, is what actually
+## decided the top of this axis: the full card set multiplies out to ~0.021 and
+## has been clamped here for a long time, so every fire-rate card past the
+## fourth or so bought nothing. Raising the floor is therefore the honest dial —
+## it moves the ceiling from 6.7x fire rate to 4.0x.
+const COOLDOWN_FLOOR: float = 0.25
 
 func cooldown_scale() -> float:
 	return maxf(COOLDOWN_FLOOR, fire_rate_mult * drip_cooldown_mult)

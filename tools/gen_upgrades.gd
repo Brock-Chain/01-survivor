@@ -50,8 +50,8 @@ func _init() -> void:
 	var defs: Array = [
 		# ---- COMMON ---------------------------------------------------------
 		["swift_boots", "Swift Boots", "+14% move speed", eff.MOVE_SPEED, 0.14, 5, 1.0, C],
-		["sharp_shots", "Sharp Shots", "+3 damage", eff.DAMAGE, 3.0, 5, 1.0, C],
-		["rapid_fire", "Rapid Fire", "15% faster firing", eff.FIRE_RATE, 0.15, 5, 1.0, C],
+		["sharp_shots", "Sharp Shots", "+2 damage", eff.DAMAGE, 2.0, 5, 1.0, C],
+		["rapid_fire", "Rapid Fire", "10% faster firing", eff.FIRE_RATE, 0.10, 5, 1.0, C],
 		# The whole magnet axis, merged into this one card (M7.3). There used to be
 		# three: `magnetism` at Common (0/12 taken), `lodestone` at Uncommon
 		# (0/16), and `greed`, which grants a full gem magnet as a side effect of
@@ -63,13 +63,17 @@ func _init() -> void:
 		["tough_hide", "Tough Hide", "+2 max HP", eff.MAX_HP, 2.0, 5, 0.8, C],
 		["velocity", "Velocity", "+25% projectile speed", eff.PROJECTILE_SPEED, 0.25, 4, 0.7, C],
 		# Unlimited: the floor that guarantees the pool can always offer something.
-		["overdrive", "Overdrive", "+2 damage", eff.DAMAGE, 2.0, 0, 0.5, C],
+		["overdrive", "Overdrive", "+1 damage", eff.DAMAGE, 1.0, 5, 0.5, C],
 
 		# ---- UNCOMMON -------------------------------------------------------
 		["momentum", "Momentum", "+22% move speed", eff.MOVE_SPEED, 0.22, 4, 1.0, U],
-		["honed_edge", "Honed Edge", "+6 damage", eff.DAMAGE, 6.0, 4, 1.0, U],
-		["cadence", "Cadence", "25% faster firing", eff.FIRE_RATE, 0.25, 4, 1.0, U],
-		["siphon", "Siphon", "14% chance to recover 1 HP per kill", eff.LIFESTEAL, 0.14, 4, 0.9, U],
+		["honed_edge", "Honed Edge", "+3 damage", eff.DAMAGE, 3.0, 4, 1.0, U],
+		["cadence", "Cadence", "15% faster firing", eff.FIRE_RATE, 0.15, 4, 1.0, U],
+		# 0.14 -> 0.06 was hand-applied to the .tres on 2026-08-03 and NEVER made it
+		# back here, so this generator sat loaded to revert it. See upgrade.gd's
+		# LIFESTEAL note: 14% across 4 stacks is 56% of a heal per kill, and a
+		# 1000-kill run pulled ~560 HP through a 6 HP bar.
+		["siphon", "Siphon", "6% chance to recover 1 HP per kill", eff.LIFESTEAL, 0.06, 4, 0.9, U],
 		["carapace", "Carapace", "+4 max HP", eff.MAX_HP, 4.0, 4, 0.8, U],
 		# A projectile source at Uncommon too: multishot is a signature mechanic and
 		# must not be something a player can finish a run without ever seeing.
@@ -82,18 +86,21 @@ func _init() -> void:
 		["relentless", "Relentless", "+10% move speed", eff.MOVE_SPEED, 0.10, 0, 0.4, U],
 
 		# ---- RARE -----------------------------------------------------------
-		["cannonball", "Cannonball", "+12 damage", eff.DAMAGE, 12.0, 3, 1.0, R],
+		["cannonball", "Cannonball", "+6 damage", eff.DAMAGE, 6.0, 3, 1.0, R],
 		# Weight was 2.2 — the highest in the entire pool, more than double anything
 		# else — so the draw actively steered every run onto the most multiplicative
 		# axis in the game. Telemetry: split_shot x3 in a 44-pick run.
 		["split_shot", "Split Shot", "+1 projectile · wider volleys hit softer", eff.PROJECTILE_COUNT, 1.0, 3, 1.0, R],
 		["pierce", "Piercing Rounds", "Shots punch through +2 enemies", eff.PIERCE, 2.0, 3, 1.0, R],
-		["focus", "Focus", "+18% critical chance (2.5x damage)", eff.CRIT_CHANCE, 0.18, 5, 1.0, R],
-		["fusillade", "Fusillade", "40% faster firing", eff.FIRE_RATE, 0.40, 2, 0.9, R],
+		["focus", "Focus", "+18% critical chance (1.5x damage)", eff.CRIT_CHANCE, 0.18, 5, 1.0, R],
+		["fusillade", "Fusillade", "25% faster firing", eff.FIRE_RATE, 0.25, 2, 0.9, R],
 		["reservoir", "Reservoir", "+7 max HP", eff.MAX_HP, 7.0, 2, 0.7, R],
 
 		# ---- EPIC · semi-unique, changes HOW a weapon behaves ----------------
-		["ricochet", "Ricochet", "Shots bounce to 2 more targets", eff.RICOCHET, 2.0, 2, 1.0, E],
+		# Same drift as siphon: the ", carrying leftover damage" clause was added to
+		# the .tres when Ricochet stopped bouncing at full damage, and never here.
+		["ricochet", "Ricochet", "Shots bounce to 2 more targets, carrying leftover damage",
+				eff.RICOCHET, 2.0, 2, 1.0, E],
 		["cryo_rounds", "Cryo Rounds", "Hits slow enemies by 40%", eff.CRYO, 0.40, 2, 1.0, E],
 		["executioner", "Executioner", "Enemies below 15% HP die instantly", eff.EXECUTE, 0.15, 2, 1.0, E],
 		["greed", "Greed", "+50% XP, and gems come to you", eff.GREED, 0.50, 2, 0.9, E],
@@ -159,8 +166,8 @@ func _init() -> void:
 	# the same question the pool has always asked. A purchase buys the chance to
 	# be dealt these, never the effect itself — which is what keeps the tree from
 	# handing a returning player power a stranger cannot reach.
-	_write([["shop_coils", "Overload Coils", "35% faster firing",
-			eff.FIRE_RATE, 0.35, 2, 1.0, R]], &"node_card_coils")
+	_write([["shop_coils", "Overload Coils", "22% faster firing",
+			eff.FIRE_RATE, 0.22, 2, 1.0, R]], &"node_card_coils")
 	_write([["shop_hollow", "Hollow Point", "Enemies below 22% HP die instantly",
 			eff.EXECUTE, 0.22, 1, 1.0, E]], &"node_card_hollow")
 	_write([["shop_mirror", "Mirror Shards", "Shots split into five on impact",

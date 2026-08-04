@@ -6,8 +6,7 @@
 script = ExtResource("1_iw2nf")
 id = &"overdrive"
 display_name = "Overdrive"
-description = "+2 damage"
+description = "+1 damage"
 effect = 2
-magnitude = 2.0
-max_stacks = 0
+magnitude = 1.0
 weight = 0.5

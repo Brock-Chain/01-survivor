@@ -16,13 +16,13 @@ func _at_level(level: int) -> Stats:
 
 
 func test_damage_from_folds_cards_and_drip() -> void:
-	var s: Stats = _at_level(13)  # +4 flat
+	var s: Stats = _at_level(13)  # +3 flat (was +4 before the 2026-08-03 cut)
 	s.damage_bonus = 3
-	# A base-1 weapon, +3 from cards, +4 from the drip.
-	assert_almost_eq(s.damage_from(1), 8.0, 0.001)
+	# A base-1 weapon, +3 from cards, +3 from the drip.
+	assert_almost_eq(s.damage_from(1), 7.0, 0.001)
 	# Float on the way out: the multishot and ring taxes still have to multiply
 	# it, and rounding here would round three times per shot instead of once.
-	assert_almost_eq(s.damage_from(5), 12.0, 0.001)
+	assert_almost_eq(s.damage_from(5), 11.0, 0.001)
 
 
 func test_cooldown_scale_folds_cards_and_drip() -> void:

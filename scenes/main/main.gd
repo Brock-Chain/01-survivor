@@ -777,6 +777,12 @@ func _on_boss_killed(_xp_value: int, at: Vector2, tint: Color) -> void:
 ## kill it or get clear — it dies either way, and the clock only decides whether
 ## the player eats the blast.
 func _on_fuse_lit(seconds: float) -> void:
+	# Unconditional breadcrumb, like [boss]. The finale is REACHABLE ONLY through
+	# phase 4, so an overpowered player who deletes NOGAXEH early never sees it —
+	# and the log could not previously tell "the fuse is broken" from "the fight
+	# ended before the fuse could exist". Playtest 2026-08-03 asked exactly that
+	# ("does final boss charge up to explode still? didn't see it").
+	print("[fuse] lit t=%.0fs hp=%d/%d" % [time_survived, player.health.hp, player.health.max_hp])
 	hud.announce("NOGAXEH IS OVERLOADING\n%d SECONDS" % int(seconds))
 	Music.set_intensity(3)
 	player.camera.add_trauma(0.7)
@@ -801,6 +807,8 @@ func _on_detonated(at: Vector2) -> void:
 	player.apply_damage(amount, &"nogaxeh_blast")
 	Telemetry.event(&"detonation", {"amt": amount, "core": core,
 			"hp": player.health.hp, "max_hp": player.health.max_hp})
+	print("[fuse] detonated t=%.0fs core=%s dmg=%d hp=%d/%d"
+			% [time_survived, core, amount, player.health.hp, player.health.max_hp])
 	hud.announce("NOGAXEH DETONATES")
 	Sfx.play(&"boss_death", 0.0)
 	player.camera.add_trauma(1.2)

@@ -443,10 +443,15 @@ one known profile was bot-contaminated anyway.
       in verify.ps1. Remaining, in order:
       1. **Confirmation runs** on `304923c`: local runs deep past LV 17, and the friend's machine
          (their two zips predate the fix). Every prior freeze hit by ~LV 17, so this is cheap.
-      2. **Tune the 5:00→10:00 ramp and the 10:00 fight length against a real run.** Two numbers
-         owed a soak rather than an opinion: the mirror event inherited the Prism doubling and is
-         now 18,400 base (was 11,200, last measured 212 s for a four-weapon run), and
-         `MIRROR_LEVEL_STEP` was fitted against the old base and never re-fitted.
+      2. **The 5:00 fight is FIXED by the player cut, measured (2026-08-03): 53 s**, from
+         `[boss] t=300s` to `[victory] t=353s` on the strongest soak profile — against ~6 s
+         reported by a playtester and ~7 s recorded for a three-weapon profile. Bosses untouched.
+         **Still open: the 10:00 mirror.** Its 18,400 base was fitted to the OLD player curve
+         (212 s for four weapons) and the cut multiplies that by roughly the same factor the 5:00
+         fight moved — so the climax may now be far too long, in the opposite direction from
+         everything else on this list. `MIRROR_LEVEL_STEP` was never re-fitted either. Needs a
+         soak long enough to actually finish the fight; the standard 40000-frame soak ends 66 s
+         into it and cannot see the result.
       3. **First gamepad session** — controller bindings shipped 2026-08-03 (`1d7f41c`) straight
          from the editor and have never met a physical pad.
       4. **Two destructive-action defects found in the 2026-08-03 audit, deliberately NOT bundled

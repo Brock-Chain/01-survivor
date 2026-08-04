@@ -76,8 +76,10 @@ func test_the_drip_is_a_pure_function_of_the_level() -> void:
 	assert_eq(Progression.drip_damage_bonus(1), 0)
 	assert_almost_eq(Progression.drip_cooldown_mult(1), 1.0, 0.0001)
 	assert_almost_eq(Progression.drip_move_speed_mult(1), 1.0, 0.0001)
-	assert_eq(Progression.drip_damage_bonus(13), 4)
-	assert_eq(Progression.drip_damage_bonus(75), 24)
+	# Anchors, not intent — they moved with the 2026-08-03 balance cut
+	# (DRIP_DAMAGE_PER_LEVEL 1/3 -> 1/4). What this test guards is PURITY.
+	assert_eq(Progression.drip_damage_bonus(13), 3)
+	assert_eq(Progression.drip_damage_bonus(75), 18)
 
 
 func test_the_damage_drip_is_flat_because_early_dps_is_flat() -> void:
@@ -86,8 +88,16 @@ func test_the_damage_drip_is_flat_because_early_dps_is_flat() -> void:
 	# identical blaster-only run, because a percentage of a base-1 weapon is
 	# worth nothing exactly when the player has no cards yet. Pinned at both ends
 	# so a future "tidy this into a multiplier" cannot quietly undo it.
-	assert_eq(Progression.drip_damage_bonus(4), 1, "a real point of damage by level 4")
-	assert_gt(Progression.drip_damage_bonus(41), 12,
+	#
+	# The 2026-08-03 cut (1/3 -> 1/4) moved BOTH ends, deliberately — the whole
+	# change is "players get too strong too fast". The FLAT-ness is what this
+	# test defends and that is untouched; the thresholds are the part that moved.
+	# Recorded rather than quietly rebased: the first real point of damage now
+	# lands at level 5 instead of 4, and the drip alone brings 10 to the 5:00
+	# boss instead of 13.
+	assert_eq(Progression.drip_damage_bonus(4), 0, "level 4 is now the last silent one")
+	assert_eq(Progression.drip_damage_bonus(5), 1, "a real point of damage by level 5")
+	assert_gt(Progression.drip_damage_bonus(41), 8,
 			"and enough by the 5:00 boss to matter without cards")
 
 
@@ -102,9 +112,10 @@ func test_the_drip_buys_breadth_as_well_as_damage() -> void:
 
 func test_the_fire_rate_drip_is_a_rate_not_a_subtraction() -> void:
 	# Stored as a COOLDOWN scale, so it can approach zero without ever reaching
-	# it. At level 75 the player fires ~2.1x as often, not infinitely often.
+	# it. At level 75 the player fires ~1.74x as often, not infinitely often —
+	# was ~2.11x before the 2026-08-03 cut (DRIP_FIRE_RATE 0.015 -> 0.010).
 	var scale: float = Progression.drip_cooldown_mult(75)
-	assert_almost_eq(1.0 / scale, 2.11, 0.01)
+	assert_almost_eq(1.0 / scale, 1.74, 0.01)
 	assert_gt(Progression.drip_cooldown_mult(500), 0.0,
 			"an endless run can never reach a zero cooldown")
 

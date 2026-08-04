@@ -24,6 +24,10 @@ extends CanvasLayer
 var _buff_labels: Array[Label] = []
 ## Guards the shield readout so it is not rebuilt every physics frame.
 var _shielded: bool = false
+## The boss's NAME, held separately from what the label currently reads. The two
+## are not the same thing: while shielded, the label shows the warning instead —
+## see render_boss_name.
+var _boss_label: String = ""
 
 
 func set_health(hp: int, max_hp: int) -> void:
@@ -71,6 +75,7 @@ func set_run(time_survived: float, kills: int) -> void:
 ## the question being answered.
 func set_boss(name_text: String, hp: int, max_hp: int) -> void:
 	boss_panel.visible = true
+	_boss_label = name_text
 	boss_name.text = name_text
 	boss_bar.max_value = maxi(1, max_hp)
 	boss_bar.value = hp
@@ -79,6 +84,9 @@ func set_boss(name_text: String, hp: int, max_hp: int) -> void:
 func hide_boss() -> void:
 	boss_panel.visible = false
 	_shielded = false
+	# Cleared with the panel, so the NEXT event cannot inherit the last one's
+	# name if it ever hides before its own set_boss lands.
+	_boss_label = ""
 
 
 ## The third layer of the shield indicator, after the membrane on the boss and
@@ -88,16 +96,36 @@ func hide_boss() -> void:
 ## refuse to move needs to be told WHY in the place they are already looking.
 ## Without this, "invulnerable boss" and "the game is broken" are the same
 ## experience, which is BRIEF defect #4.
+## The shield state and the boss's NAME share one label, and they used to fight
+## over it — with the shield always losing, at the only fight that has one.
+## `set_boss_shielded` wrote its warning once and then latched `_shielded`, so it
+## never wrote again; `flip_boss_name`'s tween fired ~0.6s later and overwrote
+## the same label with NOGAXEH. The shield warning was destroyed at the exact
+## moment it was needed, every single run (playtest 2026-08-03: "need indicator
+## of invulnerability at the start of boss fight too").
+##
+## Fixed by making one function own what that label says, and having BOTH the
+## flip and the shield toggle re-render through it. The reveal still plays — the
+## name flip owns the label for its ~0.75s and then hands it back — so the
+## sequence reads HEXAGON -> NOGAXEH -> SHIELDED, which is also the right order
+## dramatically: who it is, then what to do about it.
 func set_boss_shielded(shielded: bool, label: String = "") -> void:
+	if label != "":
+		_boss_label = label
 	if shielded == _shielded:
 		return
 	_shielded = shielded
-	if shielded:
+	render_boss_name()
+
+
+## The single writer. Anything that changes either half calls this.
+func render_boss_name() -> void:
+	if _shielded:
 		boss_name.text = "SHIELDED — DESTROY THE PRISMS"
 		boss_name.add_theme_color_override(&"font_color", Color(0.78, 0.75, 1.0))
 		boss_bar.modulate = Color(0.55, 0.5, 0.62)
 	else:
-		boss_name.text = label
+		boss_name.text = _boss_label
 		boss_name.add_theme_color_override(&"font_color", Color(1, 0.6, 0.87))
 		boss_bar.modulate = Color.WHITE
 
@@ -106,12 +134,19 @@ func set_boss_shielded(shielded: bool, label: String = "") -> void:
 ## whose name is the word mirrored, so the reveal is typography rather than a
 ## line of dialogue nobody reads mid-fight.
 func flip_boss_name(from_text: String, to_text: String) -> void:
+	_boss_label = from_text
 	boss_name.text = from_text
 	var tween: Tween = create_tween()
 	tween.tween_interval(0.45)
 	tween.tween_property(boss_name, "modulate:a", 0.0, 0.12)
 	tween.tween_callback(func() -> void: boss_name.text = to_text)
 	tween.tween_property(boss_name, "modulate:a", 1.0, 0.18)
+	# Hand the label back to whoever owns it now. If the boss is shielded — and
+	# NOGAXEH always is when this reveal plays — the warning returns instead of
+	# staying buried under the name for the rest of the phase.
+	tween.tween_callback(func() -> void:
+		_boss_label = to_text
+		render_boss_name())
 
 
 ## Centre-screen announcement. Exists because `Meta.unlocked` had ZERO listeners
