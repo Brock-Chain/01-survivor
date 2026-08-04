@@ -1,9 +1,18 @@
 # Godot 4 editor cache — fully regenerated, never commit
 .godot/
 
-# Exported builds
+# Exported builds.
+#
+# `/builds/*` and not `/builds/`, deliberately: git cannot re-include a file
+# inside an excluded DIRECTORY, and `builds/.gdignore` must be committed. Without
+# it the engine scans this folder on every import, turns the web export's own
+# icons into project resources, and packs them into the WINDOWS build -- this
+# repo's shipped-the-cover-art-inside-the-.pck bug. Ignoring the directory
+# outright would ignore the guard against that, which is what it did until
+# 2026-08-04; the fix was written in the next project and never came back here.
 /exports/
-/builds/
+/builds/*
+!/builds/.gdignore
 
 # AI screenshot/debug scratch
 /.ai/

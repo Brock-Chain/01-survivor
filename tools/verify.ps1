@@ -28,7 +28,11 @@ param([string]$Mode = "")
 
 $ErrorActionPreference = "Continue"
 $root   = Split-Path -Parent $PSScriptRoot
-$godot  = Join-Path $root "..\..\engine\Godot_v4.7.1-stable_win64_console.exe"
+# $env:GODOT, then the workspace engine\ folder, then PATH - and on a miss it
+# prints every location it tried. See tools/find_godot.ps1 for why this is not
+# the one hardcoded path it used to be.
+. (Join-Path $PSScriptRoot "find_godot.ps1")
+$godot  = Assert-Godot -Root $root
 $script:failed = @()
 
 # Teardown noise that is genuinely benign, matched as narrowly as possible. The
@@ -39,6 +43,54 @@ $benign = @(
   'resources still in use at exit',
   'RID allocations of type'
 )
+
+# THE one definition of "this line is an error". Every stage's verdict comes from
+# here, and so does the self-test below - a self-test that re-states the pattern
+# instead of calling this would only ever test its own copy.
+#
+# -cmatch, NOT -match, on the engine's tokens: PowerShell's -match is
+# CASE-INSENSITIVE, so a bare 'ERROR' matched the class name `GutErrorTracker` in
+# the importer's `update_scripts_classes` output. That output only appears on a
+# COLD import - once .godot/ exists the step is silent - so it was invisible on
+# any machine that had already built once, and fired on exactly the case nobody
+# here ever runs: a fresh clone's first verify. Found 2026-08-04 while testing
+# whether this repo can actually be forked. Godot writes ERROR:/SCRIPT ERROR:/
+# USER ERROR: uppercase and with the colon. The mixed-case English phrases below
+# stay case-insensitive because Godot does not shout those.
+function Test-IsErrorLine {
+  param([string]$Line)
+  $hit = ($Line -cmatch 'SCRIPT ERROR|ERROR:|Parse Error') -or
+         ($Line  -match 'Failed to load|Cannot call')
+  if (-not $hit) { return $false }
+  foreach ($b in $benign) { if ($Line -match [regex]::Escape($b)) { return $false } }
+  return $true
+}
+
+# SELF-TEST. This runs first because every other stage's pass/fail is decided by
+# the function above, so if it is wrong, nothing below it means anything. The
+# real-error strings are copied verbatim from a deliberately sabotaged build.
+Write-Host ""
+Write-Host "=== error filter self-test ===" -ForegroundColor Cyan
+$filterCases = @(
+  @{ Want = $true;  Line = 'ERROR: Failed to instantiate an autoload, script ''res://scripts/meta.gd'' does not inherit from ''Node''.' },
+  @{ Want = $true;  Line = 'ERROR: Failed to load script "res://scripts/meta.gd" with error "Parse error".' },
+  @{ Want = $true;  Line = 'SCRIPT ERROR: Invalid access to property or key ''unlocked'' on a base object of type ''Nil''.' },
+  @{ Want = $true;  Line = 'SCRIPT ERROR: Parse Error: Function "nope()" not found in base self.' },
+  @{ Want = $true;  Line = 'USER ERROR: pushed from game code' },
+  @{ Want = $false; Line = '[  23% ] update_scripts_classes | GutErrorTracker' },
+  @{ Want = $false; Line = '[  31% ] update_scripts_classes | GutTrackedError' },
+  @{ Want = $false; Line = 'WARNING: 3 resources still in use at exit.' },
+  @{ Want = $false; Line = 'ERROR: 2 RID allocations of type ''N13TextServerAdv'' were leaked at exit.' }
+)
+$filterBad = @($filterCases | Where-Object { (Test-IsErrorLine $_.Line) -ne $_.Want })
+if ($filterBad.Count -gt 0) {
+  $script:failed += "error filter self-test ($($filterBad.Count) wrong)"
+  $filterBad | ForEach-Object {
+    Write-Host ("  expected {0}, got {1}: {2}" -f $_.Want, (Test-IsErrorLine $_.Line), $_.Line) -ForegroundColor Red
+  }
+} else {
+  Write-Host "  ok ($($filterCases.Count) cases)" -ForegroundColor Green
+}
 
 function Invoke-Step {
   param([string]$Name, [string[]]$GodotArgs, [string]$MustContain)
@@ -59,11 +111,8 @@ function Invoke-Step {
   $out = ((Get-Content $so -Raw) + "`n" + (Get-Content $se -Raw))
   Remove-Item $so, $se -Force -ErrorAction SilentlyContinue
 
-  $errors = $out -split "`r?`n" | Where-Object {
-    $line = $_
-    ($line -match 'SCRIPT ERROR|Parse Error|ERROR|Failed to load|Cannot call') -and
-    -not ($benign | Where-Object { $line -match [regex]::Escape($_) })
-  }
+  # Test-IsErrorLine is the single definition, self-tested at the top of this file.
+  $errors = $out -split "`r?`n" | Where-Object { Test-IsErrorLine $_ }
 
   if ($code -ne 0) { $script:failed += "$Name (exit $code)" }
   if ($errors) {
@@ -102,6 +151,29 @@ foreach ($rel in @(& git -C $root ls-files -- '*.gd' '*.py' '*.ps1' '*.mjs')) {
 if ($hits.Count -gt 0) {
   $script:failed += "absolute path guard ($($hits.Count) found)"
   $hits | Select-Object -First 8 | ForEach-Object { Write-Host $_ -ForegroundColor Red }
+} else {
+  Write-Host "  ok" -ForegroundColor Green
+}
+
+# BUILD ARTIFACT GUARD. The guard above reads text, so a COMPILED artifact walks
+# straight past it. tools/__pycache__/build_music.cpython-310.pyc was tracked in
+# this PUBLIC repo for 3 commits carrying a baked-in absolute path to an unrelated
+# project on the author's disk - the exact string the guard above exists to catch,
+# in a file it never opened. Found 2026-08-04 by cloning the public URL and reading
+# the bytecode; the history was rewritten to purge it.
+#
+# .gitignore did not save it either: `__pycache__/` was added AFTER the file was
+# already tracked, and ignore rules do not apply to tracked files. So the guard is
+# on what is TRACKED, which is the thing that actually ships.
+Write-Host ""
+Write-Host "=== build artifact guard ===" -ForegroundColor Cyan
+$artifacts = @(& git -C $root ls-files) | Where-Object {
+  $_ -match '(^|/)__pycache__/' -or $_ -match '\.py[co]$' -or $_ -match '(^|/)node_modules/'
+}
+if ($artifacts.Count -gt 0) {
+  $script:failed += "build artifact guard ($($artifacts.Count) tracked)"
+  Write-Host "  tracked build artifacts - untrack these, they are not source:" -ForegroundColor Red
+  $artifacts | Select-Object -First 8 | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
 } else {
   Write-Host "  ok" -ForegroundColor Green
 }

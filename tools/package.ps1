@@ -21,7 +21,9 @@ param([string]$Stamp = (Get-Date -Format "yyyy-MM-dd"))
 
 $ErrorActionPreference = "Stop"
 $root   = Split-Path -Parent $PSScriptRoot
-$godot  = Join-Path $root "..\..\engine\Godot_v4.7.1-stable_win64_console.exe"
+# See verify.ps1 and tools/find_godot.ps1 - resolved, never hardcoded.
+. (Join-Path $PSScriptRoot "find_godot.ps1")
+$godot  = Assert-Godot -Root $root
 $builds = Join-Path $root "builds"
 $share  = Join-Path $PSScriptRoot "share"
 
