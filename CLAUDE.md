@@ -4,14 +4,26 @@ Micro arena survivor (Vampire-Survivors-lite) in Godot 4.7.1, GDScript. Game 1 o
 
 ## Commands (from this folder)
 
-Engine: `..\..\engine\Godot_v4.7.1-stable_win64_console.exe` (always the `_console` exe).
+Engine: `..\..\engine\Godot_v4.7.1-stable_win64_console.exe` (always the `_console` exe). The
+scripts no longer hardcode that — `tools/find_godot.ps1` resolves `$env:GODOT` → that workspace
+folder → `PATH`, and names every location on a miss. Hardcoding it was invisible here and broke
+every clone; see the file's header.
 
 ```powershell
-# THE GATE. Run this, not the individual steps: absolute-path guard + import +
-# tests + gameplay smoke + pause-layout harness, with the error grep and the
-# benign-noise list built in. The guard fails the build on any absolute path in
-# tracked .gd/.py/.ps1/.mjs -- this repo is PUBLIC and a machine-specific path
-# silently falsifies every claim built on the tool it points at.
+# THE GATE. Run this, not the individual steps: error-filter self-test +
+# absolute-path guard + build-artifact guard + import + tests + gameplay smoke +
+# pause-layout harness + tween-orphan regression, with the error grep and the
+# benign-noise list built in.
+#   * absolute-path guard: fails on any absolute path in tracked .gd/.py/.ps1/.mjs
+#     -- this repo is PUBLIC and a machine-specific path silently falsifies every
+#     claim built on the tool it points at.
+#   * build-artifact guard: fails on any tracked __pycache__/.pyc/node_modules. The
+#     guard above only opens TEXT, so a committed .pyc smuggled an absolute path
+#     into the public repo past it. Compiled artifacts are not source.
+#   * error-filter self-test: runs FIRST, because every other stage's verdict comes
+#     from Test-IsErrorLine. PowerShell's -match is case-insensitive, which made a
+#     bare 'ERROR' match `GutErrorTracker` on a cold import only -- invisible on any
+#     machine that had built once.
 powershell -File tools/verify.ps1
 powershell -File tools/verify.ps1 soak     # + an 11-minute run clearing both boss events
 

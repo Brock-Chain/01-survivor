@@ -378,8 +378,38 @@ before the finale, and the telemetry that says so was recorded by a fixed instru
 - [x] Cover image (2026-08-03) — `tools/share/cover.png`, 630×500. Recropped once: the first
       version had the developer's own save records in it
 - [ ] itch.io page: HTML, browser-playable, 1280×720 embed, cover image uploaded, **flip Restricted → Public**
+- [ ] **Set the GitHub repo homepage to the itch URL, in the same sitting as the flip above.** Held
+      back deliberately on 2026-08-04: the repo is public and the page is still password-gated, so
+      linking it now sends every visitor to a login wall. This is a checkbox and not a note because
+      the last "remember to do X later" in this workspace lapsed silently. `gh repo edit
+      Brock-Chain/01-survivor --homepage <url>`, and drop the "(currently a restricted playtest
+      build)" hedge from README.md's Play it section at the same time
 - [ ] butler push
 - [ ] **Postmortem in hub** + knowledge notes + pattern-candidate review
+
+**Public-repo audit, 2026-08-04.** Asked what it would take to publish this safely; it was already
+public, so the question became what a stranger actually gets. Cloned the public URL to a scratch
+directory and ran the README's first command. **Four defects, all invisible from inside the
+workspace, all found by that one test** — the pattern is that every one of them was a claim that
+held on exactly one machine:
+
+- **The gate could not run in a fork.** `verify.ps1`/`package.ps1` hardcoded the engine at
+  `..\..\engine\`; all five stages died with a `Start-Process` exception that never said "engine".
+  Now `tools/find_godot.ps1` (`$env:GODOT` → workspace → `PATH`, naming every miss). A simulated
+  fork with only `$env:GODOT` set runs the full gate green from cold, 128 tests.
+- **A tracked `.pyc` carried an absolute path to an unrelated project into the public repo.** The
+  absolute-path guard only ever opened text files, and `.gitignore` gained `__pycache__/` *after*
+  the file was tracked, which does nothing. History rewritten and force-pushed; new build-artifact
+  guard, watched red on the exact file.
+- **The error grep used `-match`, which is case-insensitive in PowerShell**, so `ERROR` matched
+  `GutErrorTracker` in cold-import output — a false failure that could only ever fire on a fresh
+  clone's first run. Now one self-tested `Test-IsErrorLine`.
+- **`builds/.gdignore` still uncommittable** — the `/builds/*` fix was written in 02-deckbuilder and
+  never came back. Backported.
+
+**The transferable lesson, for the hub:** *a guard that has only ever run on the author's machine is
+testing the author's machine.* Three of these four sat behind green gates. The test that found all
+of them was not a cleverer gate — it was leaving the workspace.
 
 **Pre-upload review, 2026-08-03.** Gate + soak green (126 tests, both boss events, victory 5:39).
 No secrets, no credentials, no leaked page password. Three defects found and fixed in the pass:

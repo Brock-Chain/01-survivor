@@ -95,7 +95,10 @@ function Get-GodotSearchReport {
     "mono - mono ships no web export templates) from https://godotengine.org, then",
     "point this at it:",
     "",
-    "    `$env:GODOT = 'C:\path\to\Godot_v4.7.1-stable_win64_console.exe'",
+    # Written as a placeholder rather than a specimen path on purpose: this file
+    # is tracked .ps1, so the absolute-path guard in verify.ps1 reads it, and that
+    # guard has no exemption for examples. It caught this line. Good.
+    "    `$env:GODOT = '<full path to Godot_v4.7.1-stable_win64_console.exe>'",
     "",
     "Use the _console executable. The plain one detaches from the terminal and",
     "every line of output is lost, which makes the gate below unable to grep for",

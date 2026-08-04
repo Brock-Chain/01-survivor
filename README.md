@@ -39,18 +39,37 @@ pause · **M** mute · **R** restart.
 
 ## Running it from source
 
-The engine binary lives outside this repo. Use the `_console` executable for everything automated —
-the plain one detaches from the terminal and you lose all output.
+You need **Godot 4.7.1 stable, standard build** — not mono, which ships no web export templates.
+It is not vendored here: it is a ~120 MB binary and not ours to redistribute.
+[Download it](https://godotengine.org/download), then point the scripts at it:
 
 ```powershell
-# THE GATE: import + 123 unit tests + gameplay smoke + the UI layout harness,
-# with the error grep and the known-benign-noise list built in. Run this, not the pieces.
+$env:GODOT = 'C:\path\to\Godot_v4.7.1-stable_win64_console.exe'
+```
+
+Use the **`_console`** executable. The plain one detaches from the terminal and every line of output
+is lost — which leaves the gate below unable to grep for the errors it exists to catch.
+
+`$env:GODOT` is an override, not a requirement: the scripts also look in this workspace's `engine\`
+folder and then on `PATH`. If none of them resolve, they print every location they tried and what to
+install, rather than failing with a path you never wrote. (`$env:GODOT` was added after a clone of
+this repo turned out to fail on all five gate stages with an error that never said "engine" —
+see [`tools/find_godot.ps1`](tools/find_godot.ps1).)
+
+```powershell
+# THE GATE: error-filter self-test + absolute-path and build-artifact guards + import
+# + 128 unit tests + gameplay smoke + the UI layout harness + the tween-orphan
+# regression, with the error grep and the known-benign-noise list built in.
+# Run this, not the pieces.
 powershell -File tools/verify.ps1
 powershell -File tools/verify.ps1 soak      # + an 11-minute run clearing both boss events
 
 # build and package both platforms for release
 powershell -File tools/package.ps1
 ```
+
+A fresh clone with nothing but `$env:GODOT` set runs the whole gate green from cold — that is
+checked by actually doing it, not assumed.
 
 Success is **exit 0 AND no `SCRIPT ERROR`/`ERROR` in stdout** — Godot's exit codes do not reliably
 reflect script failures, so the gate greps.
